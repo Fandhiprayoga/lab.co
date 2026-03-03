@@ -27,6 +27,8 @@ class SettingController extends BaseController
         'Mail.encryption'     => 'tls',
         'Mail.fromEmail'      => 'noreply@example.com',
         'Mail.fromName'       => 'CI4 RBAC',
+        'App.navbarBg'        => '#6777ef',
+        'App.sidebarActive'   => '#6777ef',
     ];
 
     /**
@@ -203,6 +205,26 @@ class SettingController extends BaseController
     }
 
     /**
+     * Update pengaturan tampilan (warna navbar & sidebar)
+     */
+    public function updateAppearance()
+    {
+        $rules = [
+            'navbar_bg'      => 'required|max_length[7]|regex_match[/^#[0-9A-Fa-f]{6}$/]',
+            'sidebar_active' => 'required|max_length[7]|regex_match[/^#[0-9A-Fa-f]{6}$/]',
+        ];
+
+        if (! $this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        setting('App.navbarBg', $this->request->getPost('navbar_bg'));
+        setting('App.sidebarActive', $this->request->getPost('sidebar_active'));
+
+        return redirect()->to('/admin/settings?tab=appearance')->with('success', 'Pengaturan tampilan berhasil diperbarui.');
+    }
+
+    /**
      * Reset semua pengaturan ke default
      */
     public function resetDefaults()
@@ -213,8 +235,9 @@ class SettingController extends BaseController
         $keysToReset = match ($tab) {
             'general' => ['App.siteName', 'App.siteNameShort', 'App.siteDescription', 'App.siteFooter', 'App.siteVersion', 'App.siteLogo', 'App.siteFavicon'],
             'auth'    => ['App.defaultRole', 'Auth.allowRegistration', 'App.maintenanceMode', 'App.maintenanceMsg'],
-            'mail'    => ['Mail.protocol', 'Mail.hostname', 'Mail.port', 'Mail.username', 'Mail.password', 'Mail.encryption', 'Mail.fromEmail', 'Mail.fromName'],
-            default   => array_keys($this->defaults),
+            'mail'       => ['Mail.protocol', 'Mail.hostname', 'Mail.port', 'Mail.username', 'Mail.password', 'Mail.encryption', 'Mail.fromEmail', 'Mail.fromName'],
+            'appearance' => ['App.navbarBg', 'App.sidebarActive'],
+            default      => array_keys($this->defaults),
         };
 
         // Hapus file branding jika reset general
@@ -230,17 +253,8 @@ class SettingController extends BaseController
         }
 
         // Hapus setting dari DB sehingga kembali ke default config
-        $db = \Config\Database::connect();
-
         foreach ($keysToReset as $key) {
-            // Pisahkan class dan property: "App.siteName" -> class="App", key="siteName"
-            $parts = explode('.', $key, 2);
-            if (count($parts) === 2) {
-                $db->table('settings')
-                   ->where('class', $parts[0])
-                   ->where('key', $parts[1])
-                   ->delete();
-            }
+            setting()->forget($key);
         }
 
         return redirect()->to('/admin/settings?tab=' . $tab)->with('success', 'Pengaturan berhasil direset ke default.');

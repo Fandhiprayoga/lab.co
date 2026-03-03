@@ -23,6 +23,30 @@
   <link rel="stylesheet" href="<?= base_url('assets/css/style.css') ?>">
   <link rel="stylesheet" href="<?= base_url('assets/css/components.css') ?>">
   <link rel="stylesheet" href="<?= base_url('assets/css/custom.css') ?>">
+
+  <!-- Dynamic Theme Colors -->
+  <?php
+    $navbarBg      = setting('App.navbarBg') ?: '#6777ef';
+    $sidebarActive = setting('App.sidebarActive') ?: '#6777ef';
+    // Sanitize: only allow valid hex color format
+    $navbarBg      = preg_match('/^#[0-9A-Fa-f]{6}$/', $navbarBg) ? $navbarBg : '#6777ef';
+    $sidebarActive = preg_match('/^#[0-9A-Fa-f]{6}$/', $sidebarActive) ? $sidebarActive : '#6777ef';
+  ?>
+  <style>
+    .navbar-bg { background-color: <?= $navbarBg ?> !important; }
+    body:not(.sidebar-mini) .sidebar-style-1 .sidebar-menu li.active > a {
+      background-color: <?= $sidebarActive ?> !important;
+    }
+    body:not(.sidebar-mini) .sidebar-style-1 .sidebar-menu li.active ul.dropdown-menu li a:hover {
+      background-color: <?= $sidebarActive ?> !important;
+    }
+    body.sidebar-mini .main-sidebar .sidebar-menu > li.active > a {
+      background-color: <?= $sidebarActive ?> !important;
+    }
+    body:not(.sidebar-mini) .sidebar-style-2 .sidebar-menu > li.active > a:before {
+      background-color: <?= $sidebarActive ?> !important;
+    }
+  </style>
 </head>
 
 <body>

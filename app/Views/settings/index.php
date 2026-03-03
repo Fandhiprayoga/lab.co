@@ -26,6 +26,12 @@ $s = function (string $key) use ($settings) {
             </a>
           </li>
           <li class="nav-item">
+            <a class="nav-link <?= $activeTab === 'appearance' ? 'active' : '' ?>"
+               id="appearance-tab" data-toggle="tab" href="#appearance" role="tab">
+              <i class="fas fa-palette"></i> Tampilan
+            </a>
+          </li>
+          <li class="nav-item">
             <a class="nav-link <?= $activeTab === 'auth' ? 'active' : '' ?>"
                id="auth-tab" data-toggle="tab" href="#auth" role="tab">
               <i class="fas fa-shield-alt"></i> Autentikasi
@@ -177,7 +183,85 @@ $s = function (string $key) use ($settings) {
           </div>
 
           <!-- ============================================ -->
-          <!-- TAB: AUTENTIKASI -->
+          <!-- TAB: TAMPILAN -->
+          <!-- ============================================ -->
+          <div class="tab-pane fade <?= $activeTab === 'appearance' ? 'show active' : '' ?>" id="appearance" role="tabpanel">
+            <form action="<?= base_url('admin/settings/update/appearance') ?>" method="post" class="mt-4">
+              <?= csrf_field() ?>
+
+              <div class="form-group row">
+                <label for="navbar_bg" class="col-sm-3 col-form-label">Warna Navbar <span class="text-danger">*</span></label>
+                <div class="col-sm-9">
+                  <div class="input-group" style="max-width: 260px;">
+                    <input type="color" class="form-control" id="navbar_bg_picker" 
+                           value="<?= old('navbar_bg', $s('App.navbarBg') ?: '#6777ef') ?>"
+                           style="width: 50px; padding: 2px; cursor: pointer;"
+                           oninput="document.getElementById('navbar_bg').value = this.value; updatePreview()">
+                    <input type="text" class="form-control" id="navbar_bg" name="navbar_bg"
+                           value="<?= old('navbar_bg', $s('App.navbarBg') ?: '#6777ef') ?>"
+                           pattern="^#[0-9A-Fa-f]{6}$" maxlength="7" required
+                           oninput="document.getElementById('navbar_bg_picker').value = this.value; updatePreview()">
+                  </div>
+                  <small class="form-text text-muted">Warna latar belakang navbar di bagian atas halaman.</small>
+                </div>
+              </div>
+
+              <div class="form-group row">
+                <label for="sidebar_active" class="col-sm-3 col-form-label">Warna Menu Aktif Sidebar <span class="text-danger">*</span></label>
+                <div class="col-sm-9">
+                  <div class="input-group" style="max-width: 260px;">
+                    <input type="color" class="form-control" id="sidebar_active_picker" 
+                           value="<?= old('sidebar_active', $s('App.sidebarActive') ?: '#6777ef') ?>"
+                           style="width: 50px; padding: 2px; cursor: pointer;"
+                           oninput="document.getElementById('sidebar_active').value = this.value; updatePreview()">
+                    <input type="text" class="form-control" id="sidebar_active" name="sidebar_active"
+                           value="<?= old('sidebar_active', $s('App.sidebarActive') ?: '#6777ef') ?>"
+                           pattern="^#[0-9A-Fa-f]{6}$" maxlength="7" required
+                           oninput="document.getElementById('sidebar_active_picker').value = this.value; updatePreview()">
+                  </div>
+                  <small class="form-text text-muted">Warna indikator menu yang sedang aktif di sidebar.</small>
+                </div>
+              </div>
+
+              <!-- Live Preview -->
+              <div class="form-group row">
+                <label class="col-sm-3 col-form-label">Preview</label>
+                <div class="col-sm-9">
+                  <div class="border rounded p-3" style="background: #f4f6f9; max-width: 400px;">
+                    <div id="preview-navbar" style="height: 30px; border-radius: 4px; margin-bottom: 10px; background: <?= $s('App.navbarBg') ?: '#6777ef' ?>;"></div>
+                    <div class="d-flex">
+                      <div style="width: 120px; background: #34395e; border-radius: 4px; padding: 10px;">
+                        <div style="background: rgba(255,255,255,0.1); border-radius: 3px; padding: 6px 8px; margin-bottom: 6px; color: #e0e0e0; font-size: 11px;"><i class="fas fa-fire mr-1"></i> Dashboard</div>
+                        <div id="preview-sidebar-active" style="border-radius: 3px; padding: 6px 8px; margin-bottom: 6px; color: #fff; font-size: 11px; font-weight: 600; background: <?= $s('App.sidebarActive') ?: '#6777ef' ?>;"><i class="fas fa-users mr-1"></i> Users</div>
+                        <div style="background: rgba(255,255,255,0.1); border-radius: 3px; padding: 6px 8px; color: #e0e0e0; font-size: 11px;"><i class="fas fa-cog mr-1"></i> Settings</div>
+                      </div>
+                      <div style="flex: 1; margin-left: 10px; background: #fff; border-radius: 4px; padding: 15px; color: #999; font-size: 11px;">Konten halaman</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group row">
+                <div class="col-sm-9 offset-sm-3">
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Simpan Pengaturan Tampilan
+                  </button>
+                </div>
+              </div>
+            </form>
+
+            <!-- Reset to Default -->
+            <hr>
+            <form action="<?= base_url('admin/settings/reset') ?>" method="post"
+                  onsubmit="return confirm('Apakah Anda yakin ingin mereset pengaturan Tampilan ke default?')">
+              <?= csrf_field() ?>
+              <input type="hidden" name="tab" value="appearance">
+              <button type="submit" class="btn btn-outline-danger btn-sm">
+                <i class="fas fa-undo"></i> Reset Pengaturan Tampilan ke Default
+              </button>
+            </form>
+          </div>
+
           <!-- ============================================ -->
           <div class="tab-pane fade <?= $activeTab === 'auth' ? 'show active' : '' ?>" id="auth" role="tabpanel">
             <form action="<?= base_url('admin/settings/update/auth') ?>" method="post" class="mt-4">
@@ -393,4 +477,16 @@ document.querySelectorAll('.custom-file-input').forEach(function(input) {
     this.nextElementSibling.textContent = fileName;
   });
 });
+
+// Live preview warna tampilan
+function updatePreview() {
+  var navbarColor = document.getElementById('navbar_bg') ? document.getElementById('navbar_bg').value : '#6777ef';
+  var sidebarColor = document.getElementById('sidebar_active') ? document.getElementById('sidebar_active').value : '#6777ef';
+
+  var previewNavbar = document.getElementById('preview-navbar');
+  var previewSidebar = document.getElementById('preview-sidebar-active');
+
+  if (previewNavbar) previewNavbar.style.background = navbarColor;
+  if (previewSidebar) previewSidebar.style.background = sidebarColor;
+}
 </script>
