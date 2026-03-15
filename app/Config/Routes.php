@@ -64,6 +64,7 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
             $routes->post('update/appearance', 'SettingController::updateAppearance');
             $routes->post('update/auth', 'SettingController::updateAuth');
             $routes->post('update/mail', 'SettingController::updateMail');
+            $routes->post('test-email', 'SettingController::testEmail');
             $routes->post('reset', 'SettingController::resetDefaults');
         });
     });

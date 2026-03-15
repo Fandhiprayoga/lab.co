@@ -147,6 +147,55 @@ class SettingController extends BaseController
     /**
      * Update branding (logo & favicon)
      */
+    public function testEmail()
+    {
+        $json = $this->request->getJSON(true);
+        $email = $json['email'] ?? '';
+        $subject = $json['subject'] ?? 'Test Email';
+        $message = $json['message'] ?? 'Ini adalah email percobaan.';
+
+        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Alamat email tidak valid.']);
+        }
+
+        try {
+            $protocol   = setting('Mail.protocol') ?? 'smtp';
+            $encryption = setting('Mail.encryption') ?? 'tls';
+
+            $config = [
+                'protocol' => $protocol,
+                'mailType' => 'html',
+            ];
+
+            if ($protocol === 'smtp') {
+                $config['SMTPHost']   = setting('Mail.hostname') ?? '';
+                $config['SMTPPort']   = (int) (setting('Mail.port') ?? 587);
+                $config['SMTPUser']   = setting('Mail.username') ?? '';
+                $config['SMTPPass']   = setting('Mail.password') ?? '';
+                $config['SMTPCrypto'] = ($encryption === 'none') ? '' : $encryption;
+            }
+
+            $emailService = \Config\Services::email(null, false);
+            $emailService->initialize($config);
+
+            $fromEmail = setting('Mail.fromEmail') ?? 'noreply@example.com';
+            $fromName  = setting('Mail.fromName') ?? 'CI4 RBAC';
+
+            $emailService->setFrom($fromEmail, $fromName);
+            $emailService->setTo($email);
+            $emailService->setSubject($subject);
+            $emailService->setMessage(nl2br(esc((string) $message)));
+
+            if ($emailService->send()) {
+                return $this->response->setJSON(['success' => true, 'message' => 'Email berhasil dikirim ke ' . esc($email)]);
+            }
+
+            return $this->response->setJSON(['success' => false, 'message' => 'Gagal mengirim email. ' . $emailService->printDebugger(['headers', 'subject'])]);
+        } catch (\Throwable $e) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+        }
+    }
+
     public function updateBranding()
     {
         $uploadPath = FCPATH . 'uploads/branding';

@@ -440,19 +440,60 @@ $s = function (string $key) use ($settings) {
               </div>
             </form>
 
-            <!-- Reset to Default -->
+            <!-- Test Email & Reset -->
             <hr>
-            <form action="<?= base_url('admin/settings/reset') ?>" method="post"
-                  onsubmit="return confirm('Apakah Anda yakin ingin mereset pengaturan Email ke default?')">
-              <?= csrf_field() ?>
-              <input type="hidden" name="tab" value="mail">
-              <button type="submit" class="btn btn-outline-danger btn-sm">
-                <i class="fas fa-undo"></i> Reset Pengaturan Email ke Default
+            <div class="d-flex justify-content-between align-items-center">
+              <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#testEmailModal">
+                <i class="fas fa-paper-plane"></i> Test Kirim Email
               </button>
-            </form>
+              <form action="<?= base_url('admin/settings/reset') ?>" method="post"
+                    onsubmit="return confirm('Apakah Anda yakin ingin mereset pengaturan Email ke default?')">
+                <?= csrf_field() ?>
+                <input type="hidden" name="tab" value="mail">
+                <button type="submit" class="btn btn-outline-danger btn-sm">
+                  <i class="fas fa-undo"></i> Reset Pengaturan Email ke Default
+                </button>
+              </form>
+            </div>
           </div>
 
         </div><!-- end tab-content -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Test Email -->
+<div class="modal fade" id="testEmailModal" tabindex="-1" role="dialog" aria-labelledby="testEmailModalLabel" aria-hidden="true" style="z-index: 9999;">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="testEmailModalLabel"><i class="fas fa-paper-plane"></i> Test Kirim Email</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div id="testEmailResult" style="display:none;" class="mb-3"></div>
+        <p class="text-muted">Kirim email percobaan menggunakan konfigurasi SMTP yang sudah disimpan.</p>
+        <div class="form-group">
+          <label for="test_email_to">Alamat Email Tujuan <span class="text-danger">*</span></label>
+          <input type="email" class="form-control" id="test_email_to" placeholder="contoh@email.com" required>
+        </div>
+        <div class="form-group">
+          <label for="test_email_subject">Subjek</label>
+          <input type="text" class="form-control" id="test_email_subject" value="Test Email - <?= esc(setting('App.siteName') ?? 'CI4 Shield RBAC') ?>">
+        </div>
+        <div class="form-group">
+          <label for="test_email_message">Pesan</label>
+          <textarea class="form-control" id="test_email_message" rows="3">Ini adalah email percobaan dari <?= esc(setting('App.siteName') ?? 'CI4 Shield RBAC') ?>. Jika Anda menerima email ini, konfigurasi SMTP sudah benar.</textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+        <button type="button" class="btn btn-primary" id="btnSendTestEmail">
+          <i class="fas fa-paper-plane"></i> Kirim
+        </button>
       </div>
     </div>
   </div>
@@ -489,4 +530,60 @@ function updatePreview() {
   if (previewNavbar) previewNavbar.style.background = navbarColor;
   if (previewSidebar) previewSidebar.style.background = sidebarColor;
 }
+
+// Pindahkan modal ke body agar tidak tertutup backdrop
+(function() {
+  var modal = document.getElementById('testEmailModal');
+  if (modal) document.body.appendChild(modal);
+})();
+
+// Test kirim email via AJAX
+document.getElementById('btnSendTestEmail').addEventListener('click', function() {
+  var btn = this;
+  var resultDiv = document.getElementById('testEmailResult');
+  var emailTo = document.getElementById('test_email_to').value.trim();
+  var subject = document.getElementById('test_email_subject').value.trim();
+  var message = document.getElementById('test_email_message').value.trim();
+
+  if (!emailTo) {
+    resultDiv.style.display = 'block';
+    resultDiv.className = 'mb-3 alert alert-warning';
+    resultDiv.textContent = 'Alamat email tujuan wajib diisi.';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
+  resultDiv.style.display = 'none';
+
+  fetch('<?= base_url('admin/settings/test-email') ?>', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+    },
+    body: JSON.stringify({ email: emailTo, subject: subject, message: message })
+  })
+  .then(function(response) { return response.json(); })
+  .then(function(data) {
+    resultDiv.style.display = 'block';
+    if (data.success) {
+      resultDiv.className = 'mb-3 alert alert-success';
+      resultDiv.textContent = data.message;
+    } else {
+      resultDiv.className = 'mb-3 alert alert-danger';
+      resultDiv.textContent = data.message;
+    }
+  })
+  .catch(function() {
+    resultDiv.style.display = 'block';
+    resultDiv.className = 'mb-3 alert alert-danger';
+    resultDiv.textContent = 'Terjadi kesalahan saat mengirim email.';
+  })
+  .finally(function() {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim';
+  });
+});
 </script>
