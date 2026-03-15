@@ -127,18 +127,39 @@ class SettingController extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        setting('Mail.protocol', $this->request->getPost('mail_protocol'));
-        setting('Mail.hostname', $this->request->getPost('mail_hostname') ?? '');
-        setting('Mail.port', $this->request->getPost('mail_port') ?? '587');
-        setting('Mail.username', $this->request->getPost('mail_username') ?? '');
-        setting('Mail.encryption', $this->request->getPost('mail_encryption'));
-        setting('Mail.fromEmail', $this->request->getPost('mail_from_email') ?? '');
-        setting('Mail.fromName', $this->request->getPost('mail_from_name') ?? '');
+        $protocol   = $this->request->getPost('mail_protocol');
+        $hostname   = $this->request->getPost('mail_hostname') ?? '';
+        $port       = $this->request->getPost('mail_port') ?? '587';
+        $username   = $this->request->getPost('mail_username') ?? '';
+        $encryption = $this->request->getPost('mail_encryption');
+        $fromEmail  = $this->request->getPost('mail_from_email') ?? '';
+        $fromName   = $this->request->getPost('mail_from_name') ?? '';
+        $cryptoValue = ($encryption === 'none') ? '' : $encryption;
+
+        // Simpan ke namespace Mail.* (dipakai admin UI & testEmail)
+        setting('Mail.protocol', $protocol);
+        setting('Mail.hostname', $hostname);
+        setting('Mail.port', $port);
+        setting('Mail.username', $username);
+        setting('Mail.encryption', $encryption);
+        setting('Mail.fromEmail', $fromEmail);
+        setting('Mail.fromName', $fromName);
+
+        // Sinkronkan ke namespace Email.* (dipakai Shield emailer helper)
+        setting('Email.protocol', $protocol);
+        setting('Email.SMTPHost', $hostname);
+        setting('Email.SMTPPort', (int) $port);
+        setting('Email.SMTPUser', $username);
+        setting('Email.SMTPCrypto', $cryptoValue);
+        setting('Email.SMTPTimeout', 30);
+        setting('Email.fromEmail', $fromEmail);
+        setting('Email.fromName', $fromName);
 
         // Password hanya di-update jika diisi
         $password = $this->request->getPost('mail_password');
         if (! empty($password)) {
             setting('Mail.password', $password);
+            setting('Email.SMTPPass', $password);
         }
 
         return redirect()->to('/admin/settings?tab=mail')->with('success', 'Pengaturan email berhasil diperbarui.');
@@ -161,10 +182,15 @@ class SettingController extends BaseController
         try {
             $protocol   = setting('Mail.protocol') ?? 'smtp';
             $encryption = setting('Mail.encryption') ?? 'tls';
+            $cryptoValue = ($encryption === 'none') ? '' : $encryption;
 
             $config = [
-                'protocol' => $protocol,
-                'mailType' => 'html',
+                'protocol'    => $protocol,
+                'mailType'    => 'html',
+                'SMTPTimeout' => 30,
+                'charset'     => 'UTF-8',
+                'newline'     => "\r\n",
+                'CRLF'        => "\r\n",
             ];
 
             if ($protocol === 'smtp') {
@@ -172,10 +198,10 @@ class SettingController extends BaseController
                 $config['SMTPPort']   = (int) (setting('Mail.port') ?? 587);
                 $config['SMTPUser']   = setting('Mail.username') ?? '';
                 $config['SMTPPass']   = setting('Mail.password') ?? '';
-                $config['SMTPCrypto'] = ($encryption === 'none') ? '' : $encryption;
+                $config['SMTPCrypto'] = $cryptoValue;
             }
 
-            $emailService = \Config\Services::email(null, false);
+            $emailService = new \CodeIgniter\Email\Email();
             $emailService->initialize($config);
 
             $fromEmail = setting('Mail.fromEmail') ?? 'noreply@example.com';
@@ -284,7 +310,7 @@ class SettingController extends BaseController
         $keysToReset = match ($tab) {
             'general' => ['App.siteName', 'App.siteNameShort', 'App.siteDescription', 'App.siteFooter', 'App.siteVersion', 'App.siteLogo', 'App.siteFavicon'],
             'auth'    => ['App.defaultRole', 'Auth.allowRegistration', 'App.maintenanceMode', 'App.maintenanceMsg'],
-            'mail'       => ['Mail.protocol', 'Mail.hostname', 'Mail.port', 'Mail.username', 'Mail.password', 'Mail.encryption', 'Mail.fromEmail', 'Mail.fromName'],
+            'mail'       => ['Mail.protocol', 'Mail.hostname', 'Mail.port', 'Mail.username', 'Mail.password', 'Mail.encryption', 'Mail.fromEmail', 'Mail.fromName', 'Email.protocol', 'Email.SMTPHost', 'Email.SMTPPort', 'Email.SMTPUser', 'Email.SMTPPass', 'Email.SMTPCrypto', 'Email.fromEmail', 'Email.fromName'],
             'appearance' => ['App.navbarBg', 'App.sidebarActive'],
             default      => array_keys($this->defaults),
         };
