@@ -340,6 +340,114 @@ class LoanAssetController extends BaseController
         return redirect()->to('/admin/loans/assets')->with('success', 'Master aset berhasil dihapus.');
     }
 
+    public function qrIndex()
+    {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
+        $filterLabId = (int) $this->request->getGet('lab_id');
+
+        $builder = db_connect()->table('lab_assets a')
+            ->select('a.id, a.name, a.asset_code, a.brand, a.model, a.lab_id, l.name AS lab_name')
+            ->join('labs l', 'l.id = a.lab_id', 'left')
+            ->where('a.asset_type', 'equipment')
+            ->orderBy('l.name', 'ASC')
+            ->orderBy('a.name', 'ASC');
+
+        if ($filterLabId > 0) {
+            $builder->where('a.lab_id', $filterLabId);
+        }
+
+        $assets = $builder->get()->getResultArray();
+
+        return $this->renderView('loans/assets/qr_index', [
+            'title'      => 'QR Code Alat',
+            'page_title' => 'QR Code Alat',
+            'assets'     => $assets,
+            'labs'       => $this->getActiveLabs(),
+            'filterLabId' => $filterLabId,
+        ]);
+    }
+
+    public function qr(int $id)
+    {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
+        $asset = $this->assetModel->find($id);
+        if (! $asset || ($asset['asset_type'] ?? null) !== 'equipment') {
+            return redirect()->to('/admin/loans/assets/qr')->with('error', 'Aset tidak ditemukan.');
+        }
+
+        return view('loans/assets/qr_show', [
+            'asset'  => $asset,
+            'qrUrl'  => base_url('admin/loans/assets/edit/' . $id),
+        ]);
+    }
+
+    public function qrImage(int $id)
+    {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
+        $asset = $this->assetModel->find($id);
+        if (! $asset || ($asset['asset_type'] ?? null) !== 'equipment') {
+            return $this->response->setStatusCode(404)->setBody('Aset tidak ditemukan.');
+        }
+
+        $url = base_url('admin/loans/assets/edit/' . $id);
+
+        $builder = new \Endroid\QrCode\Builder\Builder(
+            writer: new \Endroid\QrCode\Writer\PngWriter(),
+            data: $url,
+            encoding: new \Endroid\QrCode\Encoding\Encoding('UTF-8'),
+            errorCorrectionLevel: \Endroid\QrCode\ErrorCorrectionLevel::High,
+            size: 400,
+            margin: 16,
+            roundBlockSizeMode: \Endroid\QrCode\RoundBlockSizeMode::Margin,
+        );
+        $result = $builder->build();
+
+        return $this->response
+            ->setHeader('Content-Type', $result->getMimeType())
+            ->setBody($result->getString());
+    }
+
+    public function qrBulkPrint()
+    {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
+        $rawIds = $this->request->getGet('ids');
+        $ids    = [];
+
+        if (is_array($rawIds)) {
+            $ids = array_map('intval', $rawIds);
+            $ids = array_filter($ids, static fn ($v) => $v > 0);
+            $ids = array_values($ids);
+        }
+
+        if (empty($ids)) {
+            return redirect()->to('/admin/loans/assets/qr')->with('error', 'Pilih minimal satu alat untuk dicetak.');
+        }
+
+        $assets = db_connect()->table('lab_assets a')
+            ->select('a.id, a.name, a.asset_code, a.brand, a.model, l.name AS lab_name')
+            ->join('labs l', 'l.id = a.lab_id', 'left')
+            ->whereIn('a.id', $ids)
+            ->where('a.asset_type', 'equipment')
+            ->orderBy('a.name', 'ASC')
+            ->get()->getResultArray();
+
+        return view('loans/assets/qr_bulk', [
+            'assets' => $assets,
+        ]);
+    }
+
     private function guardAccess()
     {
         if (! activeGroupCan('lending.master.manage')) {

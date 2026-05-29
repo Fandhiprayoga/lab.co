@@ -108,6 +108,11 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
             $routes->post('store', 'LoanAssetController::store');
             $routes->post('update/(:num)', 'LoanAssetController::update/$1');
             $routes->post('delete/(:num)', 'LoanAssetController::delete/$1');
+            // QR Code routes
+            $routes->get('qr', 'LoanAssetController::qrIndex');
+            $routes->get('qr/bulk', 'LoanAssetController::qrBulkPrint');
+            $routes->get('(:num)/qr', 'LoanAssetController::qr/$1');
+            $routes->get('(:num)/qr/image', 'LoanAssetController::qrImage/$1');
         });
 
         // Loan Asset Categories Master Data

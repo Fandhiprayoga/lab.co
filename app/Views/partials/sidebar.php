@@ -144,7 +144,7 @@ function isDropdownActive(array $paths): string {
       <?php endif; ?>
 
       <?php if (activeGroupCan('lending.master.manage')): ?>
-      <li class="<?= isMenuActive('admin/loans/assets') ?>">
+      <li class="<?= rtrim(uri_string(), '/') === 'admin/loans/assets' ? 'active' : '' ?>">
         <a class="nav-link" href="<?= base_url('admin/loans/assets') ?>"><i class="fas fa-tools"></i> <span>Daftar Alat</span></a>
       </li>
       <?php endif; ?>
@@ -164,6 +164,12 @@ function isDropdownActive(array $paths): string {
       <?php if (activeGroupCan('lending.master.documents.manage')): ?>
       <li class="<?= isMenuActive('admin/loans/documents') ?>">
         <a class="nav-link" href="<?= base_url('admin/loans/documents') ?>"><i class="fas fa-folder-open"></i> <span>Dokumen Aset</span></a>
+      </li>
+      <?php endif; ?>
+
+      <?php if (activeGroupCan('lending.master.manage')): ?>
+      <li class="<?= isMenuActive('admin/loans/assets/qr') ?>">
+        <a class="nav-link" href="<?= base_url('admin/loans/assets/qr') ?>"><i class="fas fa-qrcode"></i> <span>QR Code Alat</span></a>
       </li>
       <?php endif; ?>
       <?php endif; ?>

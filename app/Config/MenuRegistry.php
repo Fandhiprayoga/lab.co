@@ -193,6 +193,13 @@ class MenuRegistry
                 'permission' => 'lending.master.documents.manage',
                 'group'      => null,
             ],
+            [
+                'label'      => 'QR Code Alat',
+                'url'        => 'admin/loans/assets/qr',
+                'icon'       => 'fas fa-qrcode',
+                'permission' => 'lending.master.manage',
+                'group'      => null,
+            ],
 
             // -------------------------------------------------------
             // Kunjungan
