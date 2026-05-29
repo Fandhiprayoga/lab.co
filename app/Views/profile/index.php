@@ -23,6 +23,21 @@
           ?>
           <span class="badge <?= $badgeClass ?>"><?= ucfirst($group) ?></span>
         <?php endforeach; ?>
+
+        <?php if (! empty($profile['prodi']) || ! empty($profile['nim_nik']) || ! empty($profile['phone'])): ?>
+          <hr>
+          <div class="text-left small">
+            <?php if (! empty($profile['prodi'])): ?>
+              <p class="mb-1"><i class="fas fa-university mr-1 text-muted"></i> <?= esc($profile['prodi']) ?></p>
+            <?php endif; ?>
+            <?php if (! empty($profile['nim_nik'])): ?>
+              <p class="mb-1"><i class="fas fa-id-card mr-1 text-muted"></i> NIM/NIK: <?= esc($profile['nim_nik']) ?></p>
+            <?php endif; ?>
+            <?php if (! empty($profile['phone'])): ?>
+              <p class="mb-1"><i class="fas fa-phone mr-1 text-muted"></i> <?= esc($profile['phone']) ?></p>
+            <?php endif; ?>
+          </div>
+        <?php endif; ?>
       </div>
     </div>
   </div>
@@ -52,6 +67,39 @@
             <label for="password">Password Baru</label>
             <input type="password" class="form-control" id="password" name="password">
             <small class="form-text text-muted">Kosongkan jika tidak ingin mengubah password.</small>
+          </div>
+
+          <hr>
+          <h6 class="text-muted mb-3">Data Tambahan</h6>
+
+          <div class="form-group">
+            <label for="prodi">Program Studi (Prodi)</label>
+            <select class="form-control" id="prodi" name="prodi">
+              <option value="">-- Pilih Program Studi --</option>
+              <?php
+                $selectedProdi = old('prodi', $profile['prodi'] ?? '');
+                foreach ($studyPrograms as $sp):
+              ?>
+                <option value="<?= esc($sp['name']) ?>"
+                  <?= $selectedProdi === $sp['name'] ? 'selected' : '' ?>>
+                  <?= esc($sp['name']) ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="nim_nik">NIM / NIK <small class="text-muted">(Nomor Induk Mahasiswa / Nomor Induk Karyawan)</small></label>
+            <input type="text" class="form-control" id="nim_nik" name="nim_nik"
+                   value="<?= old('nim_nik', esc($profile['nim_nik'] ?? '')) ?>"
+                   placeholder="Masukkan NIM atau NIK Anda">
+          </div>
+
+          <div class="form-group">
+            <label for="phone">No. HP / WhatsApp</label>
+            <input type="text" class="form-control" id="phone" name="phone"
+                   value="<?= old('phone', esc($profile['phone'] ?? '')) ?>"
+                   placeholder="Contoh: 08123456789">
           </div>
 
           <div class="form-group text-right">
