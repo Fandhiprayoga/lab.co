@@ -108,6 +108,8 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
             $routes->post('store', 'LoanAssetController::store');
             $routes->post('update/(:num)', 'LoanAssetController::update/$1');
             $routes->post('delete/(:num)', 'LoanAssetController::delete/$1');
+            // Download
+            $routes->get('download', 'LoanAssetController::download');
             // QR Code routes
             $routes->get('qr', 'LoanAssetController::qrIndex');
             $routes->get('qr/bulk', 'LoanAssetController::qrBulkPrint');

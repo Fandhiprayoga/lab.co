@@ -636,4 +636,204 @@ class LoanAssetController extends BaseController
             // Keep original upload when image manipulation library is unavailable.
         }
     }
+
+    // -------------------------------------------------------------------------
+    // Download (CSV / Excel)
+    // -------------------------------------------------------------------------
+
+    public function download()
+    {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
+        $format = $this->request->getGet('format') ?? 'csv';
+        if (! in_array($format, ['csv', 'excel'], true)) {
+            $format = 'csv';
+        }
+
+        $builder = db_connect()->table('lab_assets a')
+            ->select(
+                'a.asset_code, a.name, l.name AS lab_name, a.category, a.brand, a.model,' .
+                ' a.serial_number, a.condition_status, a.inventory_status, a.is_loanable,' .
+                ' a.stock_total, a.stock_available, u.symbol AS unit_symbol, a.max_loan_hours,' .
+                ' a.acquisition_source, a.acquisition_date, a.purchase_price, a.supplier,' .
+                ' a.funding_source, a.warranty_until, a.is_active, a.specifications, a.notes'
+            )
+            ->join('labs l', 'l.id = a.lab_id', 'left')
+            ->join('units u', 'u.id = a.unit_id', 'left')
+            ->where('a.asset_type', 'equipment')
+            ->orderBy('l.name', 'ASC')
+            ->orderBy('a.name', 'ASC');
+
+        $labId = (int) $this->request->getGet('lab_id');
+        if ($labId > 0) {
+            $builder->where('a.lab_id', $labId);
+        }
+
+        $category = trim((string) ($this->request->getGet('category') ?? ''));
+        if ($category !== '') {
+            $builder->where('a.category', $category);
+        }
+
+        $conditionStatus = trim((string) ($this->request->getGet('condition_status') ?? ''));
+        if (in_array($conditionStatus, [self::CONDITION_BAIK, self::CONDITION_PERLU_PERBAIKAN, self::CONDITION_RUSAK], true)) {
+            $builder->where('a.condition_status', $conditionStatus);
+        }
+
+        $inventoryStatus = trim((string) ($this->request->getGet('inventory_status') ?? ''));
+        if (in_array($inventoryStatus, self::INVENTORY_STATUSES, true)) {
+            $builder->where('a.inventory_status', $inventoryStatus);
+        }
+
+        $isLoanable = $this->request->getGet('is_loanable');
+        if ($isLoanable !== null && $isLoanable !== '') {
+            $builder->where('a.is_loanable', (int) $isLoanable);
+        }
+
+        $isActive = $this->request->getGet('is_active');
+        if ($isActive !== null && $isActive !== '') {
+            $builder->where('a.is_active', (int) $isActive);
+        }
+
+        $assets   = $builder->get()->getResultArray();
+        $filename = 'master-alat-' . date('Ymd-His');
+
+        if ($format === 'excel') {
+            return $this->outputExcel($assets, $filename);
+        }
+
+        return $this->outputCsv($assets, $filename);
+    }
+
+    private function buildExportHeaders(): array
+    {
+        return [
+            'No',
+            'Kode Aset',
+            'Nama Alat',
+            'Lab',
+            'Kategori',
+            'Merk',
+            'Model',
+            'No. Seri',
+            'Kondisi',
+            'Status Inventaris',
+            'Boleh Dipinjam',
+            'Stok Total',
+            'Stok Tersedia',
+            'Satuan',
+            'Maks Jam Pinjam',
+            'Sumber Perolehan',
+            'Tanggal Perolehan',
+            'Harga Beli (Rp)',
+            'Supplier',
+            'Sumber Dana',
+            'Garansi Hingga',
+            'Status Aktif',
+            'Spesifikasi',
+            'Catatan',
+        ];
+    }
+
+    private function buildExportRow(int $no, array $asset): array
+    {
+        $conditionLabel = [
+            'baik'             => 'Baik',
+            'perlu_perbaikan'  => 'Perlu Perbaikan',
+            'rusak'            => 'Rusak',
+        ][$asset['condition_status'] ?? ''] ?? ($asset['condition_status'] ?? '');
+
+        $invLabel = ucwords(str_replace('_', ' ', $asset['inventory_status'] ?? ''));
+
+        $maxLoanHours = (int) ($asset['max_loan_hours'] ?? 0);
+
+        return [
+            $no,
+            $asset['asset_code']       ?? '',
+            $asset['name']             ?? '',
+            $asset['lab_name']         ?? '',
+            $asset['category']         ?? '',
+            $asset['brand']            ?? '',
+            $asset['model']            ?? '',
+            $asset['serial_number']    ?? '',
+            $conditionLabel,
+            $invLabel,
+            (int) ($asset['is_loanable'] ?? 0) === 1 ? 'Ya' : 'Tidak',
+            (int) ($asset['stock_total']     ?? 0),
+            (int) ($asset['stock_available'] ?? 0),
+            $asset['unit_symbol']      ?? '',
+            $maxLoanHours === 0 ? 'Unlimited' : $maxLoanHours . ' jam',
+            $asset['acquisition_source'] ?? '',
+            $asset['acquisition_date']   ?? '',
+            $asset['purchase_price'] !== null ? (float) $asset['purchase_price'] : '',
+            $asset['supplier']           ?? '',
+            $asset['funding_source']     ?? '',
+            $asset['warranty_until']     ?? '',
+            (int) ($asset['is_active'] ?? 0) === 1 ? 'Aktif' : 'Nonaktif',
+            $asset['specifications']     ?? '',
+            $asset['notes']              ?? '',
+        ];
+    }
+
+    private function outputCsv(array $assets, string $filename): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $headers = $this->buildExportHeaders();
+
+        ob_start();
+        $out = fopen('php://output', 'w');
+
+        // UTF-8 BOM so Excel on Windows interprets encoding correctly.
+        fwrite($out, "\xEF\xBB\xBF");
+        fputcsv($out, $headers);
+
+        foreach ($assets as $no => $asset) {
+            fputcsv($out, $this->buildExportRow($no + 1, $asset));
+        }
+
+        fclose($out);
+        $csv = ob_get_clean();
+
+        return $this->response
+            ->setHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '.csv"')
+            ->setHeader('Cache-Control', 'no-store, no-cache')
+            ->setBody($csv);
+    }
+
+    private function outputExcel(array $assets, string $filename): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $headers = $this->buildExportHeaders();
+
+        $html  = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        $html .= '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"';
+        $html .= ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">' . "\n";
+        $html .= '<Worksheet ss:Name="Master Alat"><Table>' . "\n";
+
+        // Header row
+        $html .= '<Row>';
+        foreach ($headers as $h) {
+            $html .= '<Cell><Data ss:Type="String">' . htmlspecialchars((string) $h, ENT_XML1, 'UTF-8') . '</Data></Cell>';
+        }
+        $html .= '</Row>' . "\n";
+
+        // Data rows
+        foreach ($assets as $no => $asset) {
+            $row  = $this->buildExportRow($no + 1, $asset);
+            $html .= '<Row>';
+            foreach ($row as $cell) {
+                $type  = is_numeric($cell) ? 'Number' : 'String';
+                $html .= '<Cell><Data ss:Type="' . $type . '">' . htmlspecialchars((string) $cell, ENT_XML1, 'UTF-8') . '</Data></Cell>';
+            }
+            $html .= '</Row>' . "\n";
+        }
+
+        $html .= '</Table></Worksheet></Workbook>';
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/vnd.ms-excel; charset=UTF-8')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '.xls"')
+            ->setHeader('Cache-Control', 'no-store, no-cache')
+            ->setBody($html);
+    }
 }

@@ -89,6 +89,15 @@
     line-height: 1;
     cursor: pointer;
   }
+
+  /* Pastikan modal download muncul di atas overlay filter drawer */
+  #modal-download {
+    z-index: 2147483030 !important;
+  }
+  #modal-download ~ .modal-backdrop,
+  body > .modal-backdrop {
+    z-index: 2147483025 !important;
+  }
 </style>
 <?= $this->endSection() ?>
 <?php $labs = $labs ?? []; ?>
@@ -114,6 +123,9 @@ sort($categoryOptions);
         <div class="card-header-action">
           <button type="button" id="open-filter-drawer" class="btn btn-outline-secondary mr-2">
             <i class="fas fa-filter"></i> Filter
+          </button>
+          <button type="button" class="btn btn-outline-success mr-2" data-target="#modal-download">
+            <i class="fas fa-download"></i> Download
           </button>
           <a href="<?= base_url('admin/loans/assets/create') ?>" class="btn btn-primary">
             <i class="fas fa-plus"></i> Tambah Alat
@@ -224,6 +236,104 @@ sort($categoryOptions);
 </div>
 
 <div id="asset-filter-overlay" class="asset-filter-overlay"></div>
+
+<!-- Modal Download -->
+<div class="modal fade" id="modal-download" tabindex="-1" role="dialog" aria-labelledby="modal-download-label" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modal-download-label"><i class="fas fa-download mr-1"></i> Download Data Master Alat</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Tutup"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <form id="form-download" action="<?= base_url('admin/loans/assets/download') ?>" method="get" target="_blank">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="font-weight-bold">Format File</label>
+            <div class="d-flex" style="gap: 1rem;">
+              <div class="custom-control custom-radio">
+                <input type="radio" id="fmt-csv" name="format" value="csv" class="custom-control-input" checked>
+                <label class="custom-control-label" for="fmt-csv"><i class="fas fa-file-csv text-success mr-1"></i> CSV</label>
+              </div>
+              <div class="custom-control custom-radio">
+                <input type="radio" id="fmt-excel" name="format" value="excel" class="custom-control-input">
+                <label class="custom-control-label" for="fmt-excel"><i class="fas fa-file-excel text-success mr-1"></i> Excel (.xls)</label>
+              </div>
+            </div>
+          </div>
+          <hr>
+          <p class="text-muted small mb-2">Filter data yang akan diunduh (opsional — kosongkan untuk mengunduh semua data):</p>
+
+          <div class="form-group">
+            <label for="dl-lab">Lab</label>
+            <select id="dl-lab" name="lab_id" class="form-control form-control-sm">
+              <option value="">Semua Lab</option>
+              <?php foreach ($labs as $lab): ?>
+                <option value="<?= (int) $lab['id'] ?>"><?= esc($lab['name']) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="dl-category">Kategori</label>
+            <select id="dl-category" name="category" class="form-control form-control-sm">
+              <option value="">Semua Kategori</option>
+              <?php foreach ($categoryOptions as $categoryOption): ?>
+                <option value="<?= esc($categoryOption) ?>"><?= esc($categoryOption) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label for="dl-condition">Kondisi</label>
+              <select id="dl-condition" name="condition_status" class="form-control form-control-sm">
+                <option value="">Semua</option>
+                <option value="baik">Baik</option>
+                <option value="perlu_perbaikan">Perlu Perbaikan</option>
+                <option value="rusak">Rusak</option>
+              </select>
+            </div>
+            <div class="form-group col-md-6">
+              <label for="dl-inventory">Status Inventaris</label>
+              <select id="dl-inventory" name="inventory_status" class="form-control form-control-sm">
+                <option value="">Semua</option>
+                <option value="aktif">Aktif</option>
+                <option value="dipinjam">Dipinjam</option>
+                <option value="dalam_perbaikan">Dalam Perbaikan</option>
+                <option value="dihapuskan">Dihapuskan</option>
+                <option value="hilang">Hilang</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label for="dl-loanable">Boleh Dipinjam</label>
+              <select id="dl-loanable" name="is_loanable" class="form-control form-control-sm">
+                <option value="">Semua</option>
+                <option value="1">Ya</option>
+                <option value="0">Tidak</option>
+              </select>
+            </div>
+            <div class="form-group col-md-6">
+              <label for="dl-active">Status Aktif</label>
+              <select id="dl-active" name="is_active" class="form-control form-control-sm">
+                <option value="">Semua</option>
+                <option value="1">Aktif</option>
+                <option value="0">Nonaktif</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-success"><i class="fas fa-download mr-1"></i> Download</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <aside id="asset-filter-drawer" class="asset-filter-drawer" aria-hidden="true">
   <div class="asset-filter-drawer__header">
     <h6 class="mb-0">Filter Master Alat</h6>
@@ -287,13 +397,22 @@ sort($categoryOptions);
     var activeFilterWrap = $('#asset-active-filters');
     var activeFilterChips = $('#asset-active-filter-chips');
 
-    // Move drawer and overlay to body to escape parent stacking contexts.
+    // Move drawer, overlay, and download modal to body to escape parent stacking contexts.
     if (drawer.parent()[0] !== document.body) {
       drawer.appendTo('body');
     }
     if (overlay.parent()[0] !== document.body) {
       overlay.appendTo('body');
     }
+    var dlModal = $('#modal-download');
+    if (dlModal.parent()[0] !== document.body) {
+      dlModal.appendTo('body');
+    }
+
+    $('[data-target="#modal-download"]').on('click', function (e) {
+      e.preventDefault();
+      dlModal.modal('show');
+    });
 
     function setDrawerState(isOpen) {
       drawer.toggleClass('is-open', isOpen).attr('aria-hidden', isOpen ? 'false' : 'true');
