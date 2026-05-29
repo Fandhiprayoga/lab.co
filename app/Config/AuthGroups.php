@@ -62,6 +62,7 @@ class AuthGroups extends ShieldAuthGroups
         'users.create'        => 'Dapat membuat pengguna baru',
         'users.edit'          => 'Dapat mengedit pengguna',
         'users.delete'        => 'Dapat menghapus pengguna',
+        'users.toggle-status' => 'Dapat mengaktifkan/menonaktifkan pengguna',
         'users.manage-roles'  => 'Dapat mengatur role pengguna',
 
         // Role management

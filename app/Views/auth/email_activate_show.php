@@ -15,17 +15,26 @@
   </div>
 
   <div class="card-body">
+    <?php if (session('activation_error')) : ?>
+      <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle mr-1"></i>
+        <?= session('activation_error') ?>
+      </div>
+    <?php endif ?>
+
     <?php if (session('error')) : ?>
       <div class="alert alert-danger">
         <?= esc(session('error')) ?>
       </div>
     <?php endif ?>
 
+    <?php if (! session('activation_error')) : ?>
     <div class="alert alert-info">
       <i class="fas fa-info-circle mr-1"></i>
       Kode aktivasi 6 digit telah dikirim ke alamat email Anda.
       Masukkan kode tersebut di bawah ini untuk mengaktifkan akun.
     </div>
+    <?php endif ?>
 
     <form action="<?= url_to('auth-action-verify') ?>" method="POST">
       <?= csrf_field() ?>
@@ -56,6 +65,17 @@
         </button>
       </div>
     </form>
+
+    <hr>
+
+    <div class="text-center">
+      <a href="<?= url_to('auth-action-show') ?>" class="btn btn-sm btn-outline-secondary mr-2">
+        <i class="fas fa-redo mr-1"></i> Kirim Ulang Kode
+      </a>
+      <a href="<?= site_url('register/cancel') ?>" class="btn btn-sm btn-outline-danger">
+        <i class="fas fa-times mr-1"></i> Batal &amp; Daftar Ulang
+      </a>
+    </div>
   </div>
 
   <div class="card-footer text-center">

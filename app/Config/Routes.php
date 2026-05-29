@@ -15,6 +15,7 @@ service('auth')->routes($routes, ['except' => ['register']]);
 // Custom register routes with email domain guard
 $routes->get('register', 'RegisterController::registerView', ['as' => 'register']);
 $routes->post('register', 'RegisterController::registerAction');
+$routes->get('register/cancel', 'RegisterController::cancelActivation', ['as' => 'register-cancel']);
 
 // ---------------------------------------------------------------
 // Public Routes
@@ -85,6 +86,7 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
             $routes->get('edit/(:num)', 'UserController::edit/$1', ['filter' => 'permission:users.edit']);
             $routes->post('update/(:num)', 'UserController::update/$1', ['filter' => 'permission:users.edit']);
             $routes->post('delete/(:num)', 'UserController::delete/$1', ['filter' => 'permission:users.delete']);
+            $routes->post('toggle-status/(:num)', 'UserController::toggleStatus/$1', ['filter' => 'permission:users.toggle-status']);
             $routes->post('assign-role/(:num)', 'UserController::assignRole/$1', ['filter' => 'permission:users.manage-roles']);
         });
 

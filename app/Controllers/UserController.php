@@ -139,6 +139,28 @@ class UserController extends BaseController
 
             // Actions
             $actions = '';
+            if (activeGroupCan('users.toggle-status') && (int) $row['id'] !== (int) auth()->id()) {
+                $isActive      = (bool) $row['active'];
+                $toggleTitle   = $isActive ? 'Nonaktifkan' : 'Aktifkan';
+                $toggleIcon    = $isActive ? 'fa-ban' : 'fa-check-circle';
+                $toggleBtn     = $isActive ? 'btn-warning' : 'btn-success';
+                $swalTitle     = $isActive ? 'Nonaktifkan user?' : 'Aktifkan user?';
+                $swalText      = $isActive
+                    ? 'User \'' . esc($row['username']) . '\' akan dinonaktifkan dan tidak bisa login.'
+                    : 'User \'' . esc($row['username']) . '\' akan diaktifkan kembali.';
+                $swalIcon      = $isActive ? 'warning' : 'question';
+                $swalColor     = $isActive ? '#e67e22' : '#28a745';
+                $actions .= '<form action="' . base_url('admin/users/toggle-status/' . (int) $row['id']) . '" method="post" class="d-inline js-swal-confirm-form"'
+                    . ' data-swal-title="' . $swalTitle . '"'
+                    . ' data-swal-text="' . $swalText . '"'
+                    . ' data-swal-icon="' . $swalIcon . '"'
+                    . ' data-swal-confirm="Ya, ' . strtolower($toggleTitle) . '"'
+                    . ' data-swal-cancel="Batal"'
+                    . ' data-swal-confirm-color="' . $swalColor . '">'
+                    . '<input type="hidden" name="' . $csrfName . '" value="' . $csrfHash . '">'
+                    . '<button type="submit" class="btn btn-sm ' . $toggleBtn . ' mr-1" title="' . $toggleTitle . '"><i class="fas ' . $toggleIcon . '"></i></button>'
+                    . '</form>';
+            }
             if (activeGroupCan('users.edit')) {
                 $actions .= '<a href="' . base_url('admin/users/edit/' . (int) $row['id']) . '" class="btn btn-sm btn-info mr-1" title="Edit"><i class="fas fa-edit"></i></a>';
             }
@@ -303,6 +325,32 @@ class UserController extends BaseController
         }
 
         return redirect()->to('/admin/users')->with('success', 'User berhasil diperbarui.');
+    }
+
+    /**
+     * Toggle status aktif/nonaktif user
+     */
+    public function toggleStatus(int $id)
+    {
+        if (! activeGroupCan('users.toggle-status')) {
+            return redirect()->to('/admin/users')->with('error', 'Anda tidak punya izin untuk mengubah status user.');
+        }
+
+        $user = $this->userModel->findById($id);
+
+        if (! $user) {
+            return redirect()->to('/admin/users')->with('error', 'User tidak ditemukan.');
+        }
+
+        if ($user->id === auth()->id()) {
+            return redirect()->to('/admin/users')->with('error', 'Anda tidak bisa mengubah status akun sendiri.');
+        }
+
+        $newActive = $user->active ? 0 : 1;
+        db_connect()->table('users')->where('id', $id)->update(['active' => $newActive]);
+
+        $msg = $newActive ? 'User berhasil diaktifkan.' : 'User berhasil dinonaktifkan.';
+        return redirect()->to('/admin/users')->with('success', $msg);
     }
 
     /**

@@ -129,32 +129,33 @@
   <script src="<?= base_url('assets/js/stisla.js') ?>"></script>
 
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      var deleteForms = document.querySelectorAll('.js-swal-delete-form');
+    document.addEventListener('submit', function (event) {
+      var form = event.target.closest('.js-swal-delete-form, .js-swal-confirm-form');
+      if (!form) return;
 
-      deleteForms.forEach(function (form) {
-        form.addEventListener('submit', function (event) {
-          event.preventDefault();
+      event.preventDefault();
 
-          var title = form.getAttribute('data-swal-title') || 'Hapus data?';
-          var text = form.getAttribute('data-swal-text') || 'Data akan dihapus permanen.';
-          var confirmText = form.getAttribute('data-swal-confirm') || 'Ya, hapus';
-          var cancelText = form.getAttribute('data-swal-cancel') || 'Batal';
+      var isDelete    = form.classList.contains('js-swal-delete-form');
+      var title       = form.getAttribute('data-swal-title')         || (isDelete ? 'Hapus data?' : 'Konfirmasi?');
+      var text        = form.getAttribute('data-swal-text')          || (isDelete ? 'Data akan dihapus permanen.' : '');
+      var icon        = form.getAttribute('data-swal-icon')          || 'warning';
+      var confirmText = form.getAttribute('data-swal-confirm')       || (isDelete ? 'Ya, hapus' : 'Ya');
+      var cancelText  = form.getAttribute('data-swal-cancel')        || 'Batal';
+      var confirmColor= form.getAttribute('data-swal-confirm-color') || (isDelete ? '#e3342f' : '#3085d6');
 
-          Swal.fire({
-            title: title,
-            text: text,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: confirmText,
-            cancelButtonText: cancelText,
-            reverseButtons: true,
-          }).then(function (result) {
-            if (result.isConfirmed) {
-              form.submit();
-            }
-          });
-        });
+      Swal.fire({
+        title            : title,
+        text             : text,
+        icon             : icon,
+        showCancelButton : true,
+        confirmButtonText: confirmText,
+        cancelButtonText : cancelText,
+        confirmButtonColor: confirmColor,
+        reverseButtons   : true,
+      }).then(function (result) {
+        if (result.isConfirmed) {
+          form.submit();
+        }
       });
     });
   </script>
