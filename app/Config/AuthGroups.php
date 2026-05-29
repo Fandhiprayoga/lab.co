@@ -13,7 +13,7 @@ class AuthGroups extends ShieldAuthGroups
      * Default Group
      * --------------------------------------------------------------------
      */
-    public string $defaultGroup = 'user';
+    public string $defaultGroup = 'mahasiswa';
 
     /**
      * --------------------------------------------------------------------
@@ -25,17 +25,25 @@ class AuthGroups extends ShieldAuthGroups
             'title'       => 'Super Admin',
             'description' => 'Kontrol penuh terhadap seluruh sistem.',
         ],
-        'admin' => [
-            'title'       => 'Admin',
-            'description' => 'Administrator harian sistem.',
+        'laboran' => [
+            'title'       => 'Laboran',
+            'description' => 'Petugas operasional lab: approval L1, checkout/checkin, master data.',
         ],
-        'manager' => [
-            'title'       => 'Manager',
-            'description' => 'Manajer yang dapat melihat laporan dan mengelola data.',
+        'asisten' => [
+            'title'       => 'Asisten Lab',
+            'description' => 'Asisten laboratorium: bantu checkout/checkin, tanpa hak approval.',
         ],
-        'user' => [
-            'title'       => 'User',
-            'description' => 'Pengguna umum dengan akses terbatas.',
+        'kepala_lab' => [
+            'title'       => 'Kepala Lab',
+            'description' => 'Dosen penanggung jawab lab: approval L2 dan analitik pemanfaatan.',
+        ],
+        'dosen' => [
+            'title'       => 'Dosen',
+            'description' => 'Dosen peminjam fasilitas lab; kelak pengampu praktikum.',
+        ],
+        'mahasiswa' => [
+            'title'       => 'Mahasiswa',
+            'description' => 'Mahasiswa peminjam fasilitas lab; kelak peserta praktikum.',
         ],
     ];
 
@@ -114,20 +122,16 @@ class AuthGroups extends ShieldAuthGroups
             'lending.*',
             'visits.*',
         ],
-        'admin' => [
+        'laboran' => [
             'admin.access',
-            'users.list',
-            'users.create',
-            'users.edit',
-            'users.delete',
-            'dashboard.*',
-            'reports.*',
+            'dashboard.access',
+            'dashboard.stats',
+            'reports.view',
             'lending.access',
             'lending.catalog.view',
             'lending.request.track',
             'lending.request.history',
             'lending.request.manage-all',
-            'lending.request.submit',
             'lending.approval.l1',
             'lending.checkout',
             'lending.checkin',
@@ -135,8 +139,6 @@ class AuthGroups extends ShieldAuthGroups
             'lending.analytics.view',
             'lending.master.manage',
             'lending.master.labs.manage',
-            'lending.master.faculties.manage',
-            'lending.master.study_programs.manage',
             'lending.master.units.manage',
             'lending.master.movements.manage',
             'lending.master.maintenances.manage',
@@ -144,7 +146,19 @@ class AuthGroups extends ShieldAuthGroups
             'visits.list',
             'visits.manage',
         ],
-        'manager' => [
+        'asisten' => [
+            'admin.access',
+            'dashboard.access',
+            'lending.access',
+            'lending.catalog.view',
+            'lending.request.track',
+            'lending.checkout',
+            'lending.checkin',
+            'lending.issue.report',
+            'visits.list',
+            'visits.manage',
+        ],
+        'kepala_lab' => [
             'admin.access',
             'users.list',
             'dashboard.*',
@@ -158,7 +172,17 @@ class AuthGroups extends ShieldAuthGroups
             'lending.analytics.view',
             'visits.list',
         ],
-        'user' => [
+        'dosen' => [
+            'dashboard.access',
+            'lending.access',
+            'lending.catalog.view',
+            'lending.request.create',
+            'lending.request.cancel',
+            'lending.request.track',
+            'lending.request.history',
+            'lending.request.submit',
+        ],
+        'mahasiswa' => [
             'dashboard.access',
             'lending.access',
             'lending.catalog.view',

@@ -23,22 +23,34 @@ class UserSeeder extends Seeder
                 'group'    => 'superadmin',
             ],
             [
-                'username' => 'admin',
-                'email'    => 'admin@example.com',
+                'username' => 'laboran',
+                'email'    => 'laboran@example.com',
                 'password' => 'password123',
-                'group'    => 'admin',
+                'group'    => 'laboran',
             ],
             [
-                'username' => 'manager',
-                'email'    => 'manager@example.com',
+                'username' => 'asisten',
+                'email'    => 'asisten@example.com',
                 'password' => 'password123',
-                'group'    => 'manager',
+                'group'    => 'asisten',
             ],
             [
-                'username' => 'user',
-                'email'    => 'user@example.com',
+                'username' => 'kepalab',
+                'email'    => 'kepalab@example.com',
                 'password' => 'password123',
-                'group'    => 'user',
+                'group'    => 'kepala_lab',
+            ],
+            [
+                'username' => 'dosen',
+                'email'    => 'dosen@example.com',
+                'password' => 'password123',
+                'group'    => 'dosen',
+            ],
+            [
+                'username' => 'mahasiswa',
+                'email'    => 'mahasiswa@example.com',
+                'password' => 'password123',
+                'group'    => 'mahasiswa',
             ],
         ];
 
@@ -64,10 +76,12 @@ class UserSeeder extends Seeder
         }
 
         echo "\n=== Default Login Credentials ===\n";
-        echo "Super Admin : superadmin@example.com / password123\n";
-        echo "Admin       : admin@example.com / password123\n";
-        echo "Manager     : manager@example.com / password123\n";
-        echo "User        : user@example.com / password123\n";
+        echo "Super Admin  : superadmin@example.com / password123\n";
+        echo "Laboran      : laboran@example.com / password123\n";
+        echo "Asisten Lab  : asisten@example.com / password123\n";
+        echo "Kepala Lab   : kepalab@example.com / password123\n";
+        echo "Dosen        : dosen@example.com / password123\n";
+        echo "Mahasiswa    : mahasiswa@example.com / password123\n";
         echo "=================================\n";
     }
 }

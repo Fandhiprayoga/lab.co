@@ -8,9 +8,11 @@ $authGroups   = config('AuthGroups');
 // Badge color per group
 $badgeColors = [
     'superadmin' => 'danger',
-    'admin'      => 'warning',
-    'manager'    => 'info',
-    'user'       => 'primary',
+    'laboran'    => 'warning',
+    'asisten'    => 'info',
+    'kepala_lab' => 'success',
+    'dosen'      => 'primary',
+    'mahasiswa'  => 'secondary',
 ];
 ?>
 <nav class="navbar navbar-expand-lg main-navbar">

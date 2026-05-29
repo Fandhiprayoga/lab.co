@@ -23,9 +23,11 @@
                   <?php
                     $badgeClass = match($key) {
                       'superadmin' => 'badge-danger',
-                      'admin'      => 'badge-warning',
-                      'manager'    => 'badge-info',
-                      default      => 'badge-primary',
+                      'laboran'    => 'badge-warning',
+                      'asisten'    => 'badge-info',
+                      'kepala_lab' => 'badge-success',
+                      'dosen'      => 'badge-primary',
+                      default      => 'badge-secondary',
                     };
                   ?>
                   <span class="badge <?= $badgeClass ?>"><?= esc($group['title']) ?></span>
