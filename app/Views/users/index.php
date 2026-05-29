@@ -66,8 +66,11 @@
                     <?php endif; ?>
 
                     <?php if (activeGroupCan('users.delete') && $user->id !== auth()->id()): ?>
-                    <form action="<?= base_url('admin/users/delete/' . $user->id) ?>" method="post" class="d-inline"
-                          onsubmit="return confirm('Yakin ingin menghapus user ini?')">
+                      <form action="<?= base_url('admin/users/delete/' . $user->id) ?>" method="post" class="d-inline js-swal-delete-form"
+                        data-swal-title="Hapus user?"
+                        data-swal-text="User '<?= esc($user->username) ?>' akan dihapus permanen."
+                        data-swal-confirm="Ya, hapus"
+                        data-swal-cancel="Batal">
                       <?= csrf_field() ?>
                       <button type="submit" class="btn btn-sm btn-danger" title="Hapus">
                         <i class="fas fa-trash"></i>

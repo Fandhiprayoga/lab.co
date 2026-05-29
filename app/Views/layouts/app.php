@@ -119,11 +119,45 @@
 
   <!-- General JS Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap4.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.nicescroll/3.7.6/jquery.nicescroll.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="<?= base_url('assets/js/stisla.js') ?>"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var deleteForms = document.querySelectorAll('.js-swal-delete-form');
+
+      deleteForms.forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+          event.preventDefault();
+
+          var title = form.getAttribute('data-swal-title') || 'Hapus data?';
+          var text = form.getAttribute('data-swal-text') || 'Data akan dihapus permanen.';
+          var confirmText = form.getAttribute('data-swal-confirm') || 'Ya, hapus';
+          var cancelText = form.getAttribute('data-swal-cancel') || 'Batal';
+
+          Swal.fire({
+            title: title,
+            text: text,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: confirmText,
+            cancelButtonText: cancelText,
+            reverseButtons: true,
+          }).then(function (result) {
+            if (result.isConfirmed) {
+              form.submit();
+            }
+          });
+        });
+      });
+    });
+  </script>
 
   <!-- JS Libraries -->
   <?= $this->renderSection('js') ?>

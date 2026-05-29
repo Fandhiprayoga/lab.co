@@ -443,6 +443,124 @@ Edit file `app/Views/partials/sidebar.php`, tambahkan di dalam section **Adminis
 
 ---
 
+## Modul Inventaris Aset Lab
+
+Modul `lab_assets` diperluas menjadi sistem pencatatan inventaris lengkap dengan 4 sub-modul pendukung: **Satuan**, **Mutasi Aset**, **Perawatan Aset**, dan **Dokumen Aset**.
+
+### Tabel & Field Baru
+
+| Tabel | Keterangan |
+|-------|------------|
+| `units` | Master satuan (Buah/pcs, Unit/unit, Set/set, dst.) |
+| `lab_assets` (extended) | +16 kolom inventaris: `asset_code`, `serial_number`, `brand`, `model`, `unit_id`, `acquisition_date`, `acquisition_source`, `purchase_price`, `supplier`, `funding_source`, `warranty_until`, `inventory_status`, `responsible_user_id`, `minimum_stock`, `notes`, `updated_by` |
+| `asset_movements` | Log mutasi (in/out/transfer/borrow/return/adjustment/disposal) — immutable |
+| `asset_maintenances` | Riwayat perawatan (preventive/corrective/calibration/inspection) |
+| `asset_documents` | Lampiran file per aset (invoice/BAST/manual/warranty/photo/other) |
+
+### Migration & Seeder
+
+```bash
+php spark migrate
+php spark db:seed UnitSeeder
+```
+
+Migration file:
+- `2026-05-29-000001_CreateUnitsTable`
+- `2026-05-29-000002_AddInventoryFieldsToLabAssets`
+- `2026-05-29-000003_CreateAssetMovementsTable`
+- `2026-05-29-000004_CreateAssetMaintenancesTable`
+- `2026-05-29-000005_CreateAssetDocumentsTable`
+
+### Folder Storage (Wajib Dibuat)
+
+Dokumen aset disimpan di luar `public/` agar tidak bisa diakses langsung via URL:
+
+```bash
+mkdir -p writable/uploads/asset_documents
+chmod -R 775 writable/uploads
+```
+
+Struktur runtime:
+
+```
+writable/uploads/
+├── asset_documents/        # dokumen aset (PDF/DOC/XLS/gambar)
+│   └── {asset_id}/         # subfolder per aset (auto-create)
+└── index.html              # blocker direct listing
+```
+
+> File diakses lewat controller `AssetDocumentController::download($id)` agar permission tetap dicek.
+
+### Permission Baru
+
+Tambahan di `app/Config/AuthGroups.php` (sudah ter-assign ke role `admin`):
+
+| Permission | Akses |
+|------------|-------|
+| `lending.master.units.manage` | Master Satuan CRUD |
+| `lending.master.movements.manage` | Mutasi aset |
+| `lending.master.maintenances.manage` | Perawatan aset |
+| `lending.master.documents.manage` | Dokumen aset |
+
+### URL Modul
+
+| Path | Modul |
+|------|-------|
+| `/admin/loans/units` | Master Satuan |
+| `/admin/loans/assets` | Master Alat (extended) |
+| `/admin/loans/movements` | Mutasi Aset (filter `?asset_id=N`) |
+| `/admin/loans/maintenances` | Perawatan Aset (filter `?asset_id=N`) |
+| `/admin/loans/documents` | Dokumen Aset (filter `?asset_id=N`) |
+
+### Asset Code Auto-Generate
+
+Format default: `LAB{lab_id}-{KAT3}-{YY}-{seq4}` (contoh: `LAB1-MIK-26-0007`).
+Dihasilkan otomatis oleh `LoanAssetController::generateAssetCode()` saat field `asset_code` dikosongkan pada form create/edit. Admin tetap boleh override manual (validasi UNIQUE).
+
+### Auto-Hook Loan Flow → Movement
+
+`LoanController` otomatis menulis ke `asset_movements` dan menyesuaikan `inventory_status`:
+
+| Aksi loan | Movement | inventory_status |
+|-----------|----------|------------------|
+| `checkout()` (status → `borrowed`) | `borrow` (qty negatif) | `dipinjam` |
+| `checkin()` kondisi normal | `return` (qty positif) | `aktif` |
+| `checkin()` kondisi `hilang` | `disposal` (qty negatif) | `hilang` |
+
+### Auto-Sync Maintenance → Asset Status
+
+`AssetMaintenanceController::syncAssetStatus()` dipanggil setiap CRUD perawatan:
+
+- Ada record `status='in_progress'` → aset `inventory_status='dalam_perbaikan'` + `is_loanable=0`
+- Semua perawatan selesai/batal → aset kembali `inventory_status='aktif'` + `is_loanable=1` (jika kondisi bukan `rusak`)
+
+### Helper Upload Aman
+
+File `app/Helpers/upload_helper.php` menyediakan `handleDocumentUpload($file, $subfolder)`:
+
+```php
+helper('upload');
+$meta = handleDocumentUpload(
+    $this->request->getFile('document_file'),
+    'asset_documents/' . $assetId
+);
+// $meta = ['path' => ..., 'size' => ..., 'mime' => ..., 'original' => ...]
+```
+
+> **Bug-fix lesson:** SELALU pakai `UploadedFile::getClientExtension()`, JANGAN `getExtension()`. Yang kedua memanggil `finfo_file()` yang crash di macOS karena temp file sudah dibersihkan sebelum validation rule dievaluasi. Helper ini sudah aman by default.
+
+### Verifikasi End-to-End
+
+1. `/admin/loans/units` → CRUD satuan (default 8 satuan dari seeder).
+2. `/admin/loans/assets/create` → biarkan `asset_code` kosong → tersimpan dengan kode auto-generate.
+3. `/admin/loans/movements/create` → manual `in` qty 5 → `stock_available` & `stock_total` bertambah 5.
+4. Approve + check-out loan → cek `/admin/loans/movements?asset_id=N` muncul record `borrow` otomatis.
+5. Check-in loan → muncul record `return`, `inventory_status` kembali ke `aktif`.
+6. Buat perawatan `in_progress` → aset jadi `dalam_perbaikan` + `is_loanable=0`. Ubah ke `completed` → kembali normal.
+7. Upload PDF di `/admin/loans/documents` → tersimpan di `writable/uploads/asset_documents/{id}/`, bisa di-download lewat tombol. **Tidak ada error `finfo_file`.**
+
+---
+
 ## Lisensi
 
 MIT License

@@ -36,6 +36,29 @@ function isDropdownActive(array $paths): string {
         <a class="nav-link" href="<?= base_url('dashboard') ?>"><i class="fas fa-fire"></i> <span>Dashboard</span></a>
       </li>
 
+      <!-- Lending Module -->
+      <?php if (activeGroupCan('lending.access')): ?>
+      <li class="menu-header">Peminjaman Lab</li>
+
+      <?php if (activeGroupCan('lending.request.create')): ?>
+      <li class="<?= isMenuActive('loans/create') ?>">
+        <a class="nav-link" href="<?= base_url('loans/create') ?>"><i class="fas fa-file-alt"></i> <span>Buat Proposal</span></a>
+      </li>
+      <?php endif; ?>
+
+      <?php if (activeGroupCan('lending.request.track')): ?>
+      <li class="<?= (strpos($currentUrl, 'loans') === 0) && !isMenuActive('loans/create') && !isMenuActive('loans/analytics') ? 'active' : '' ?>">
+        <a class="nav-link" href="<?= base_url('loans') ?>"><i class="fas fa-clipboard-list"></i> <span>Permohonan</span></a>
+      </li>
+      <?php endif; ?>
+
+      <?php if (activeGroupCan('lending.analytics.view')): ?>
+      <li class="<?= isMenuActive('loans/analytics') ?>">
+        <a class="nav-link" href="<?= base_url('loans/analytics') ?>"><i class="fas fa-chart-line"></i> <span>Analitik Lab</span></a>
+      </li>
+      <?php endif; ?>
+      <?php endif; ?>
+
       <!-- Admin Menu (hanya untuk active group yang punya akses admin) -->
       <?php if (activeGroupCan('admin.access')): ?>
       <li class="menu-header">Administrasi</li>
@@ -68,6 +91,89 @@ function isDropdownActive(array $paths): string {
         <a class="nav-link" href="<?= base_url('admin/settings') ?>"><i class="fas fa-cog"></i> <span>Pengaturan</span></a>
       </li>
       <?php endif; ?>
+
+      <?php if (activeGroupCan('lending.master.manage') || activeGroupCan('lending.master.faculties.manage') || activeGroupCan('lending.master.study_programs.manage') || activeGroupCan('lending.master.units.manage')): ?>
+      <li class="menu-header">Master Data</li>
+      <?php endif; ?>
+
+      <?php if (activeGroupCan('lending.master.faculties.manage')): ?>
+      <li class="<?= isMenuActive('admin/loans/faculties') ?>">
+        <a class="nav-link" href="<?= base_url('admin/loans/faculties') ?>"><i class="fas fa-university"></i> <span>Master Fakultas</span></a>
+      </li>
+      <?php endif; ?>
+
+      <?php if (activeGroupCan('lending.master.study_programs.manage')): ?>
+      <li class="<?= isMenuActive('admin/loans/study-programs') ?>">
+        <a class="nav-link" href="<?= base_url('admin/loans/study-programs') ?>"><i class="fas fa-graduation-cap"></i> <span>Master Program Studi</span></a>
+      </li>
+      <?php endif; ?>
+
+      <?php if (activeGroupCan('lending.master.units.manage')): ?>
+      <li class="<?= isMenuActive('admin/loans/units') ?>">
+        <a class="nav-link" href="<?= base_url('admin/loans/units') ?>"><i class="fas fa-ruler"></i> <span>Master Satuan</span></a>
+      </li>
+      <?php endif; ?>
+
+      <?php if (activeGroupCan('lending.master.labs.manage')): ?>
+      <li class="menu-header">Ruangan &amp; Lab</li>
+      <li class="<?= (strpos(uri_string(), 'admin/loans/labs') === 0 && ! preg_match('#admin/loans/labs/(archive|qr|condition-history|\d+/photos|\d+/qr)#', uri_string())) ? 'active' : '' ?>">
+        <a class="nav-link" href="<?= base_url('admin/loans/labs') ?>"><i class="fas fa-door-open"></i> <span>Daftar Lab Aktif</span></a>
+      </li>
+      <li class="<?= isMenuActive('admin/loans/labs/archive') ?>">
+        <a class="nav-link" href="<?= base_url('admin/loans/labs/archive') ?>"><i class="fas fa-archive"></i> <span>Arsip Lab</span></a>
+      </li>
+      <li class="<?= preg_match('#admin/loans/labs/\d+/photos#', uri_string()) ? 'active' : '' ?>">
+        <a class="nav-link" href="<?= base_url('admin/loans/labs') ?>"><i class="fas fa-images"></i> <span>Galeri Foto</span></a>
+      </li>
+      <li class="<?= isMenuActive('admin/loans/labs/qr') ?>">
+        <a class="nav-link" href="<?= base_url('admin/loans/labs/qr') ?>"><i class="fas fa-qrcode"></i> <span>QR Codes</span></a>
+      </li>
+      <li class="<?= isMenuActive('admin/loans/labs/condition-history') ?>">
+        <a class="nav-link" href="<?= base_url('admin/loans/labs/condition-history') ?>"><i class="fas fa-history"></i> <span>Riwayat Kondisi</span></a>
+      </li>
+      <?php endif; ?>
+
+      <?php if (activeGroupCan('lending.master.manage') || activeGroupCan('lending.master.movements.manage') || activeGroupCan('lending.master.maintenances.manage') || activeGroupCan('lending.master.documents.manage')): ?>
+      <li class="menu-header">Manajemen Aset</li>
+      <?php endif; ?>
+
+      <?php if (activeGroupCan('lending.master.manage')): ?>
+      <li class="<?= isMenuActive('admin/loans/asset-categories') ?>">
+        <a class="nav-link" href="<?= base_url('admin/loans/asset-categories') ?>"><i class="fas fa-tags"></i> <span>Kategori Alat</span></a>
+      </li>
+      <?php endif; ?>
+
+      <?php if (activeGroupCan('lending.master.manage')): ?>
+      <li class="<?= isMenuActive('admin/loans/assets') ?>">
+        <a class="nav-link" href="<?= base_url('admin/loans/assets') ?>"><i class="fas fa-tools"></i> <span>Daftar Alat</span></a>
+      </li>
+      <?php endif; ?>
+
+      <?php if (activeGroupCan('lending.master.movements.manage')): ?>
+      <li class="<?= isMenuActive('admin/loans/movements') ?>">
+        <a class="nav-link" href="<?= base_url('admin/loans/movements') ?>"><i class="fas fa-exchange-alt"></i> <span>Mutasi Aset</span></a>
+      </li>
+      <?php endif; ?>
+
+      <?php if (activeGroupCan('lending.master.maintenances.manage')): ?>
+      <li class="<?= isMenuActive('admin/loans/maintenances') ?>">
+        <a class="nav-link" href="<?= base_url('admin/loans/maintenances') ?>"><i class="fas fa-wrench"></i> <span>Perawatan Aset</span></a>
+      </li>
+      <?php endif; ?>
+
+      <?php if (activeGroupCan('lending.master.documents.manage')): ?>
+      <li class="<?= isMenuActive('admin/loans/documents') ?>">
+        <a class="nav-link" href="<?= base_url('admin/loans/documents') ?>"><i class="fas fa-folder-open"></i> <span>Dokumen Aset</span></a>
+      </li>
+      <?php endif; ?>
+      <?php endif; ?>
+
+      <!-- Visitor Log -->
+      <?php if (activeGroupCan('visits.list')): ?>
+      <li class="menu-header">Kunjungan</li>
+      <li class="<?= isMenuActive('admin/visits') ?>">
+        <a class="nav-link" href="<?= base_url('admin/visits') ?>"><i class="fas fa-book-open"></i> <span>Buku Kunjungan</span></a>
+      </li>
       <?php endif; ?>
 
       <!-- Profil -->
