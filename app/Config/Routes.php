@@ -9,7 +9,12 @@ use CodeIgniter\Router\RouteCollection;
 // ---------------------------------------------------------------
 // Auth Routes (Shield)
 // ---------------------------------------------------------------
-service('auth')->routes($routes);
+// Exclude register routes so we can override with our custom controller
+service('auth')->routes($routes, ['except' => ['register']]);
+
+// Custom register routes with email domain guard
+$routes->get('register', 'RegisterController::registerView', ['as' => 'register']);
+$routes->post('register', 'RegisterController::registerAction');
 
 // ---------------------------------------------------------------
 // Public Routes

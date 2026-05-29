@@ -293,6 +293,20 @@ $s = function (string $key) use ($settings) {
                 </div>
               </div>
 
+              <div class="form-group row">
+                <label for="allowed_email_domains" class="col-sm-3 col-form-label">Domain Email yang Diizinkan</label>
+                <div class="col-sm-9">
+                  <input type="text" class="form-control" id="allowed_email_domains" name="allowed_email_domains"
+                         value="<?= esc(old('allowed_email_domains', $settings['App.allowedEmailDomains'] ?? '')) ?>"
+                         placeholder="telkomuniversity.ac.id, student.telkomuniversity.ac.id">
+                  <small class="form-text text-muted">
+                    Masukkan domain email yang diizinkan untuk registrasi, pisahkan dengan koma. Contoh:
+                    <code>telkomuniversity.ac.id, student.telkomuniversity.ac.id</code><br>
+                    Kosongkan untuk mengizinkan semua email.
+                  </small>
+                </div>
+              </div>
+
               <hr>
               <h6 class="text-muted mb-3"><i class="fas fa-tools"></i> Mode Pemeliharaan</h6>
 

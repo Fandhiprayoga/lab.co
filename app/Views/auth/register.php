@@ -20,14 +20,21 @@
   <div class="card-header"><h4>Daftar Akun Baru</h4></div>
 
   <div class="card-body">
-    <?php if (session('error') !== null) : ?>
-      <div class="alert alert-danger"><?= session('error') ?></div>
-    <?php endif ?>
-
-    <?php if (session('errors') !== null) : ?>
+    <?php
+      $allErrors = [];
+      if (session('error') !== null) {
+          $allErrors[] = session('error');
+      }
+      if (session('errors') !== null) {
+          foreach ((array) session('errors') as $e) {
+              $allErrors[] = $e;
+          }
+      }
+    ?>
+    <?php if (! empty($allErrors)) : ?>
       <div class="alert alert-danger">
-        <?php foreach (session('errors') as $error) : ?>
-          <p><?= $error ?></p>
+        <?php foreach ($allErrors as $e) : ?>
+          <p class="mb-0"><?= esc($e) ?></p>
         <?php endforeach ?>
       </div>
     <?php endif ?>
@@ -43,6 +50,15 @@
       <div class="form-group">
         <label for="email">Email</label>
         <input id="email" type="email" class="form-control" name="email" value="<?= old('email') ?>" required>
+        <?php
+          $allowedDomains = setting('App.allowedEmailDomains');
+          if (! empty($allowedDomains)):
+            $domainList = implode(', @', array_map('trim', explode(',', $allowedDomains)));
+        ?>
+        <small class="form-text text-muted">
+          <i class="fas fa-info-circle"></i> Gunakan email institusi dengan domain: <strong>@<?= esc($domainList) ?></strong>
+        </small>
+        <?php endif; ?>
       </div>
 
       <div class="form-group">

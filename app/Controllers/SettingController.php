@@ -18,7 +18,8 @@ class SettingController extends BaseController
         'App.maintenanceMode' => '0',
         'App.maintenanceMsg'  => 'Sistem sedang dalam pemeliharaan. Silakan coba beberapa saat lagi.',
         'App.defaultRole'     => 'user',
-        'Auth.allowRegistration' => true,
+        'Auth.allowRegistration'    => true,
+        'App.allowedEmailDomains'  => 'telkomuniversity.ac.id, student.telkomuniversity.ac.id',
         'Mail.protocol'       => 'smtp',
         'Mail.hostname'       => '',
         'Mail.port'           => '587',
@@ -101,6 +102,7 @@ class SettingController extends BaseController
 
         setting('App.defaultRole', $this->request->getPost('default_role'));
         setting('Auth.allowRegistration', $this->request->getPost('allow_registration') ? true : false);
+        setting('App.allowedEmailDomains', $this->request->getPost('allowed_email_domains') ?? '');
         setting('App.maintenanceMode', $this->request->getPost('maintenance_mode') ? '1' : '0');
         setting('App.maintenanceMsg', $this->request->getPost('maintenance_msg') ?? '');
 
@@ -309,7 +311,7 @@ class SettingController extends BaseController
         // Tentukan key mana yang di-reset berdasarkan tab
         $keysToReset = match ($tab) {
             'general' => ['App.siteName', 'App.siteNameShort', 'App.siteDescription', 'App.siteFooter', 'App.siteVersion', 'App.siteLogo', 'App.siteFavicon'],
-            'auth'    => ['App.defaultRole', 'Auth.allowRegistration', 'App.maintenanceMode', 'App.maintenanceMsg'],
+            'auth'    => ['App.defaultRole', 'Auth.allowRegistration', 'App.allowedEmailDomains', 'App.maintenanceMode', 'App.maintenanceMsg'],
             'mail'       => ['Mail.protocol', 'Mail.hostname', 'Mail.port', 'Mail.username', 'Mail.password', 'Mail.encryption', 'Mail.fromEmail', 'Mail.fromName', 'Email.protocol', 'Email.SMTPHost', 'Email.SMTPPort', 'Email.SMTPUser', 'Email.SMTPPass', 'Email.SMTPCrypto', 'Email.fromEmail', 'Email.fromName'],
             'appearance' => ['App.navbarBg', 'App.sidebarActive'],
             default      => array_keys($this->defaults),

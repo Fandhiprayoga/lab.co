@@ -199,4 +199,11 @@ class App extends BaseConfig
      * @see http://www.w3.org/TR/CSP/
      */
     public bool $CSPEnabled = false;
+
+    /**
+     * Allowed email domains for registration (comma-separated).
+     * Leave empty to allow all email domains.
+     * Example: 'telkomuniversity.ac.id, student.telkomuniversity.ac.id'
+     */
+    public string $allowedEmailDomains = 'telkomuniversity.ac.id, student.telkomuniversity.ac.id';
 }
