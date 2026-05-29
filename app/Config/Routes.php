@@ -110,6 +110,13 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
             $routes->post('delete/(:num)', 'LoanAssetController::delete/$1');
             // Download
             $routes->get('download', 'LoanAssetController::download');
+            // Import (page-based flow)
+            $routes->get('import', 'LoanAssetController::importForm');
+            $routes->get('import/template', 'LoanAssetController::downloadImportTemplate');
+            $routes->get('import/sample', 'LoanAssetController::downloadSampleImport');
+            $routes->post('import/preview', 'LoanAssetController::importPreview');
+            $routes->post('import/process', 'LoanAssetController::importProcess');
+            $routes->post('import', 'LoanAssetController::import');
             // QR Code routes
             $routes->get('qr', 'LoanAssetController::qrIndex');
             $routes->get('qr/bulk', 'LoanAssetController::qrBulkPrint');

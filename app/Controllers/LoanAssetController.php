@@ -836,4 +836,543 @@ class LoanAssetController extends BaseController
             ->setHeader('Cache-Control', 'no-store, no-cache')
             ->setBody($html);
     }
+
+    // -------------------------------------------------------------------------
+    // Import
+    // -------------------------------------------------------------------------
+
+    public function downloadImportTemplate()
+    {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
+        $headers = [
+            'Nama Alat*',
+            'Nama Lab*',
+            'Kategori*',
+            'Kondisi* (baik/perlu_perbaikan/rusak)',
+            'Stok Total*',
+            'Stok Tersedia*',
+            'Maks Jam Pinjam* (0=Unlimited)',
+            'Merk',
+            'Model',
+            'No. Seri',
+            'Kode Aset (kosong=otomatis)',
+            'Satuan (simbol)',
+            'Sumber Perolehan (pembelian/hibah/pinjaman/produksi)',
+            'Tanggal Perolehan (YYYY-MM-DD)',
+            'Harga Beli',
+            'Supplier',
+            'Sumber Dana',
+            'Garansi Hingga (YYYY-MM-DD)',
+            'Status Inventaris (aktif/dipinjam/dalam_perbaikan/dihapuskan/hilang)',
+            'Boleh Dipinjam (Ya/Tidak)',
+            'Status Aktif (Ya/Tidak)',
+            'Stok Minimum',
+            'Spesifikasi',
+            'Catatan',
+        ];
+
+        $sample = [
+            'Mikroskop Binokuler',
+            'Lab Biologi',
+            'Alat Optik',
+            'baik',
+            '5',
+            '5',
+            '8',
+            'Olympus',
+            'CX23',
+            'SN-001',
+            '',
+            'unit',
+            'pembelian',
+            '2024-01-15',
+            '15000000',
+            'PT Optik Jaya',
+            'APBN',
+            '2027-01-15',
+            'aktif',
+            'Ya',
+            'Ya',
+            '1',
+            'Pembesaran 40x-1000x',
+            '',
+        ];
+
+        // Fetch reference data from DB for the reference section
+        $db   = db_connect();
+        $labs = $db->table('labs')->where('is_active', 1)->orderBy('name', 'ASC')->get()->getColumn('name');
+        $categories = $this->categoryModel->where('is_active', 1)->orderBy('name', 'ASC')->findColumn('name');
+        $units = $db->table('units')->where('is_active', 1)->orderBy('name', 'ASC')->get()->getResultArray();
+
+        ob_start();
+        $out = fopen('php://output', 'w');
+        fwrite($out, "\xEF\xBB\xBF");
+        fputcsv($out, $headers);
+        fputcsv($out, $sample);
+
+        // Reference section — rows starting with # are ignored by the parser
+        fputcsv($out, ['']);
+        fputcsv($out, ['# ===== REFERENSI (baris ini diabaikan saat import) =====']);
+        fputcsv($out, ['# DAFTAR NAMA LAB AKTIF (gunakan persis untuk kolom "Nama Lab*"):']);
+        foreach (($labs ?? []) as $labName) {
+            fputcsv($out, ['# LAB', $labName]);
+        }
+        fputcsv($out, ['# DAFTAR KATEGORI AKTIF (gunakan persis untuk kolom "Kategori*"):']);
+        foreach (($categories ?? []) as $catName) {
+            fputcsv($out, ['# KATEGORI', $catName]);
+        }
+        fputcsv($out, ['# DAFTAR SATUAN AKTIF (gunakan simbol untuk kolom "Satuan"):']);
+        foreach (($units ?? []) as $unit) {
+            fputcsv($out, ['# SATUAN', $unit['symbol'], $unit['name']]);
+        }
+        fputcsv($out, ['# KONDISI: baik | perlu_perbaikan | rusak']);
+        fputcsv($out, ['# SUMBER PEROLEHAN: pembelian | hibah | pinjaman | produksi']);
+        fputcsv($out, ['# STATUS INVENTARIS: aktif | dipinjam | dalam_perbaikan | dihapuskan | hilang']);
+        fputcsv($out, ['# BOLEH DIPINJAM / STATUS AKTIF: Ya | Tidak']);
+        fputcsv($out, ['# FORMAT TANGGAL: YYYY-MM-DD  (contoh: 2025-01-15)']);
+
+        fclose($out);
+        $csv = ob_get_clean();
+
+        return $this->response
+            ->setHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->setHeader('Content-Disposition', 'attachment; filename="template-import-alat.csv"')
+            ->setHeader('Cache-Control', 'no-store, no-cache')
+            ->setBody($csv);
+    }
+
+    public function import()
+    {
+        return redirect()->to('/admin/loans/assets/import');
+    }
+
+    public function downloadSampleImport()
+    {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
+        $db   = db_connect();
+        $labs = $db->table('labs')->where('is_active', 1)->orderBy('name', 'ASC')->get()->getColumn('name');
+        $cats = $this->categoryModel->where('is_active', 1)->orderBy('name', 'ASC')->findColumn('name');
+
+        if (empty($labs) || empty($cats)) {
+            return redirect()->to('/admin/loans/assets/import')
+                ->with('error', 'Tidak bisa generate sample: tidak ada lab atau kategori aktif di database.');
+        }
+
+        $headers = [
+            'Nama Alat*', 'Nama Lab*', 'Kategori*',
+            'Kondisi* (baik/perlu_perbaikan/rusak)', 'Stok Total*', 'Stok Tersedia*',
+            'Maks Jam Pinjam* (0=Unlimited)', 'Merk', 'Model', 'No. Seri',
+            'Kode Aset (kosong=otomatis)', 'Satuan (simbol)',
+            'Sumber Perolehan (pembelian/hibah/pinjaman/produksi)',
+            'Tanggal Perolehan (YYYY-MM-DD)', 'Harga Beli', 'Supplier', 'Sumber Dana',
+            'Garansi Hingga (YYYY-MM-DD)',
+            'Status Inventaris (aktif/dipinjam/dalam_perbaikan/dihapuskan/hilang)',
+            'Boleh Dipinjam (Ya/Tidak)', 'Status Aktif (Ya/Tidak)',
+            'Stok Minimum', 'Spesifikasi', 'Catatan',
+        ];
+
+        // Pick up to 3 labs & 2 categories from DB
+        $lab0 = $labs[0];
+        $lab1 = $labs[1] ?? $labs[0];
+        $lab2 = $labs[2] ?? $labs[0];
+        $cat0 = $cats[0];
+        $cat1 = $cats[1] ?? $cats[0];
+
+        $sampleRows = [
+            // 1 — normal, auto asset code
+            [$lab0, $cat0, 'baik',            '10', '10', '8',  'Dell',   'OptiPlex 3080', 'SN-PC-001', '',           'unit', 'pembelian',  '2023-06-01', '12000000', 'PT Solusi Komputer', 'APBN',       '2026-06-01', 'aktif',          'Ya',   'Ya',   '2', 'Intel Core i5, RAM 8GB, SSD 256GB',  ''],
+            // 2 — stok partial
+            [$lab0, $cat0, 'baik',            '5',  '3',  '4',  'Logitech','MK235',        'SN-KB-001', '',           'set', 'pembelian',  '2022-03-10', '350000',   'Tokopedia',          'APBN',       '',           'aktif',          'Ya',   'Ya',   '1', 'Keyboard + mouse wireless',          'Perlu penggantian baterai'],
+            // 3 — perlu perbaikan
+            [$lab1, $cat0, 'perlu_perbaikan', '3',  '1',  '0',  'Cisco',  'Catalyst 2960', 'SN-SW-001', '',           'unit', 'pembelian',  '2021-01-15', '8500000',  'PT Jaringan Nusantara','Hibah',  '2024-01-15', 'dalam_perbaikan','Tidak', 'Ya',  '1', 'Switch 24 port managed',             '2 port tidak berfungsi'],
+            // 4 — hibah, no brand
+            [$lab1, $cat1, 'baik',            '8',  '8',  '0',  '',       '',              '',          '',           'unit', 'hibah',      '2020-07-17', '',         '',                   'Hibah Industri','',       'aktif',          'Ya',   'Ya',   '0', '',                                   'Hibah dari alumni'],
+            // 5 — explicit asset code
+            [$lab2, $cat0, 'baik',            '2',  '2',  '6',  'Epson',  'EB-X51',        'SN-PRJ-001','PRJ-001',    'unit', 'pembelian',  '2024-02-20', '7200000',  'PT Optik Prima',     'BOPTN',      '2027-02-20', 'aktif',          'Ya',   'Ya',   '1', 'Projector XGA 3800 lumen',           ''],
+            // 6 — Maks Jam 0 (Unlimited)
+            [$lab2, $cat1, 'baik',            '30', '25', '0',  '',       'Lipat 3x1m',    '',          '',           'pcs', 'pembelian',  '2023-09-01', '150000',   'Toko Perlengkapan',  'APBN',       '',           'aktif',          'Tidak','Ya',   '5', 'Meja lipat serbaguna',               ''],
+            // 7 — rusak, tidak boleh dipinjam
+            [$lab0, $cat0, 'rusak',           '1',  '0',  '0',  'HP',     'LaserJet M402n','SN-PRN-007','',           'unit', 'pembelian',  '2019-05-12', '3500000',  'Bhinneka',           'APBN',       '',           'dihapuskan',     'Tidak','Ya',   '0', 'Printer laser A4',                   'Rusak total, menunggu penghapusan'],
+            // 8 — unlimited pinjam, stok besar
+            [$lab1, $cat0, 'baik',            '15', '15', '0',  'TP-Link','TL-WA901ND',    '',          '',           'unit', 'pembelian',  '2022-11-05', '450000',   'Shopee',             'APBN',       '2025-11-05', 'aktif',          'Ya',   'Ya',   '3', 'Access point 450 Mbps dual band',    ''],
+            // 9 — stok minimum, produksi
+            [$lab2, $cat0, 'baik',            '4',  '4',  '2',  '',       'Prototipe Sensor','',        '',           'pcs', 'produksi',   '2025-01-01', '',         '',                   'Dana Penelitian','',      'aktif',          'Ya',   'Ya',   '1', 'Sensor suhu & kelembaban buatan lab','Prototipe internal'],
+            // 10 — pinjaman
+            [$lab1, $cat1, 'baik',            '6',  '6',  '4',  'ASUS',   'VA24DQ',        'SN-MON-010','',           'unit', 'pinjaman',   '2024-08-01', '2100000',  'Peminjam Eksternal', 'Pinjaman',   '2025-08-01', 'dipinjam',       'Ya',   'Ya',   '1', 'Monitor IPS 24 inch Full HD',        'Dipinjam dari institusi mitra'],
+        ];
+
+        $today  = date('Y');
+        $future = ($today + 3) . '-01-01';
+
+        ob_start();
+        $out = fopen('php://output', 'w');
+        fwrite($out, "\xEF\xBB\xBF");
+        fputcsv($out, $headers);
+
+        foreach ($sampleRows as $i => $cols) {
+            [$labName, $catName, $condition,
+             $stockTotal, $stockAvail, $maxHour, $brand, $model, $serial, $code,
+             $unitSymbol, $acqSrc, $acqDate, $price, $supplier, $fund, $warranty,
+             $invStatus, $isLoanable, $isActive, $minStock, $spec, $notes] = $cols;
+
+            fputcsv($out, [
+                "Alat Contoh " . ($i + 1),  // Nama Alat
+                $labName, $catName, $condition,
+                $stockTotal, $stockAvail, $maxHour,
+                $brand, $model, $serial, $code, $unitSymbol, $acqSrc, $acqDate,
+                $price, $supplier, $fund, $warranty, $invStatus,
+                $isLoanable, $isActive, $minStock, $spec, $notes,
+            ]);
+        }
+
+        fclose($out);
+        $csv = ob_get_clean();
+
+        return $this->response
+            ->setHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->setHeader('Content-Disposition', 'attachment; filename="sample-import-alat.csv"')
+            ->setHeader('Cache-Control', 'no-store, no-cache')
+            ->setBody($csv);
+    }
+
+    public function importForm()
+    {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
+        $db   = db_connect();
+        $labs = $db->table('labs')->where('is_active', 1)->orderBy('name', 'ASC')->get()->getResultArray();
+        $categories = $this->categoryModel->where('is_active', 1)->orderBy('name', 'ASC')->findAll();
+        $units = $db->table('units')->where('is_active', 1)->orderBy('name', 'ASC')->get()->getResultArray();
+
+        return $this->renderView('loans/assets/import_form', [
+            'title'      => 'Import Master Alat',
+            'page_title' => 'Import Data Master Alat',
+            'labs'       => $labs,
+            'categories' => $categories,
+            'units'      => $units,
+        ]);
+    }
+
+    public function importPreview()
+    {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
+        $file = $this->request->getFile('import_file');
+        if (! $file || ! $file->isValid() || $file->hasMoved()) {
+            return redirect()->to('/admin/loans/assets/import')->with('error', 'File import tidak valid.');
+        }
+
+        if (strtolower($file->getClientExtension()) !== 'csv') {
+            return redirect()->to('/admin/loans/assets/import')->with('error', 'Hanya file CSV yang didukung.');
+        }
+
+        if ($file->getSize() > 2 * 1024 * 1024) {
+            return redirect()->to('/admin/loans/assets/import')->with('error', 'Ukuran file terlalu besar (maks 2 MB).');
+        }
+
+        // Move uploaded file to a known writable location for the next step
+        $tmpDir = WRITEPATH . 'uploads/import_tmp/';
+        if (! is_dir($tmpDir)) {
+            mkdir($tmpDir, 0755, true);
+        }
+        $tmpName = 'import_assets_' . (int) auth()->id() . '_' . time() . '.csv';
+        $file->move($tmpDir, $tmpName);
+        $tmpPath = $tmpDir . $tmpName;
+
+        // Store path in session for importProcess()
+        session()->set('import_assets_tmp', $tmpPath);
+
+        $rows = $this->parseImportFile($tmpPath);
+
+        if (empty($rows)) {
+            return redirect()->to('/admin/loans/assets/import')->with('error', 'File import kosong atau tidak dapat dibaca.');
+        }
+
+        $validCount = count(array_filter($rows, static fn ($r) => $r['valid']));
+        $errorCount = count($rows) - $validCount;
+
+        return $this->renderView('loans/assets/import_preview', [
+            'title'      => 'Preview Import Alat',
+            'page_title' => 'Preview Import Data Master Alat',
+            'rows'       => $rows,
+            'validCount' => $validCount,
+            'errorCount' => $errorCount,
+            'totalCount' => count($rows),
+        ]);
+    }
+
+    public function importProcess()
+    {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
+        $tmpPath = session()->get('import_assets_tmp');
+        if (! $tmpPath || ! file_exists($tmpPath)) {
+            return redirect()->to('/admin/loans/assets/import')
+                ->with('error', 'Sesi import tidak ditemukan atau sudah kadaluarsa. Silakan upload ulang file.');
+        }
+
+        $rows = $this->parseImportFile($tmpPath);
+
+        // Clean up temp file
+        @unlink($tmpPath);
+        session()->remove('import_assets_tmp');
+
+        $successRows = [];
+        $errorRows   = [];
+
+        foreach ($rows as $row) {
+            if (! $row['valid']) {
+                $errorRows[] = $row;
+                continue;
+            }
+
+            $assetCode = $row['asset_code'];
+            if ($assetCode === '') {
+                $assetCode = $this->generateAssetCode($row['lab_id'], $row['resolved_category']);
+            }
+
+            $this->assetModel->insert(array_merge($row['payload'], [
+                'asset_code' => $assetCode,
+                'created_by' => auth()->id(),
+            ]));
+
+            $successRows[] = array_merge($row, ['asset_code' => $assetCode]);
+        }
+
+        return $this->renderView('loans/assets/import_result', [
+            'title'        => 'Hasil Import Alat',
+            'page_title'   => 'Hasil Import Data Master Alat',
+            'successRows'  => $successRows,
+            'errorRows'    => $errorRows,
+            'successCount' => count($successRows),
+            'errorCount'   => count($errorRows),
+        ]);
+    }
+
+    private function parseImportFile(string $filePath): array
+    {
+        $handle = fopen($filePath, 'r');
+        if (! $handle) {
+            return [];
+        }
+
+        // Strip UTF-8 BOM
+        $bom = fread($handle, 3);
+        if ($bom !== "\xEF\xBB\xBF") {
+            rewind($handle);
+        }
+
+        // Skip header row
+        $headerRow = fgetcsv($handle);
+        if (! $headerRow) {
+            fclose($handle);
+            return [];
+        }
+
+        // Preload lookups
+        $db   = db_connect();
+        $labs = $db->table('labs')->where('is_active', 1)->get()->getResultArray();
+        $labMap = [];
+        foreach ($labs as $lab) {
+            $labMap[strtolower(trim($lab['name']))] = (int) $lab['id'];
+        }
+
+        $units = $db->table('units')->where('is_active', 1)->get()->getResultArray();
+        $unitMap = [];
+        foreach ($units as $unit) {
+            $unitMap[strtolower(trim($unit['symbol']))] = (int) $unit['id'];
+        }
+
+        $categories = $this->categoryModel->where('is_active', 1)->findAll();
+        $catMap = [];
+        foreach ($categories as $cat) {
+            $catMap[strtolower(trim($cat['name']))] = $cat['name'];
+        }
+
+        $rows       = [];
+        $rowNum     = 1;
+        $seenCodes  = [];
+
+        while (($row = fgetcsv($handle)) !== false) {
+            $rowNum++;
+
+            // Skip empty rows
+            if (count(array_filter($row, static fn ($v) => trim($v) !== '')) === 0) {
+                continue;
+            }
+
+            // Skip reference/comment rows (start with #)
+            if (isset($row[0]) && str_starts_with(ltrim($row[0]), '#')) {
+                continue;
+            }
+
+            $row = array_pad($row, 24, '');
+
+            [
+                $name, $labName, $category, $conditionStatus,
+                $stockTotal, $stockAvailable, $maxLoanHours,
+                $brand, $model, $serialNumber, $assetCode,
+                $unitSymbol, $acquisitionSource, $acquisitionDate,
+                $purchasePrice, $supplier, $fundingSource, $warrantyUntil,
+                $inventoryStatus, $isLoanable, $isActive,
+                $minimumStock, $specifications, $notes,
+            ] = $row;
+
+            $name            = trim($name);
+            $labName         = trim($labName);
+            $category        = trim($category);
+            $conditionStatus = strtolower(trim($conditionStatus));
+            $assetCodeTrim   = trim($assetCode);
+
+            $errors = [];
+
+            if ($name === '') {
+                $errors[] = 'Nama alat wajib diisi';
+            }
+            if ($labName === '') {
+                $errors[] = 'Nama lab wajib diisi';
+            }
+            if ($category === '') {
+                $errors[] = 'Kategori wajib diisi';
+            }
+
+            $labId = $labMap[strtolower($labName)] ?? null;
+            if ($labName !== '' && $labId === null) {
+                $errors[] = "Lab '{$labName}' tidak ditemukan atau tidak aktif";
+            }
+
+            $resolvedCategory = $catMap[strtolower($category)] ?? null;
+            if ($category !== '' && $resolvedCategory === null) {
+                $errors[] = "Kategori '{$category}' tidak ditemukan atau tidak aktif";
+            }
+
+            if ($conditionStatus === '') {
+                $errors[] = 'Kondisi wajib diisi';
+            } elseif (! in_array($conditionStatus, ['baik', 'perlu_perbaikan', 'rusak'], true)) {
+                $errors[] = "Kondisi '{$conditionStatus}' tidak valid — gunakan: baik / perlu_perbaikan / rusak";
+            }
+
+            // Asset code duplicate check
+            if ($assetCodeTrim !== '') {
+                if (isset($seenCodes[$assetCodeTrim])) {
+                    $errors[] = "Kode aset '{$assetCodeTrim}' duplikat dalam file (sama dengan baris {$seenCodes[$assetCodeTrim]})";
+                } elseif ($this->isDuplicateAssetCode($assetCodeTrim)) {
+                    $errors[] = "Kode aset '{$assetCodeTrim}' sudah ada di database";
+                } else {
+                    $seenCodes[$assetCodeTrim] = $rowNum;
+                }
+            }
+
+            $stockTotalInt   = max(1, (int) $stockTotal);
+            $stockAvailInt   = max(0, (int) $stockAvailable);
+            if ($stockAvailInt > $stockTotalInt) {
+                $errors[] = "Stok tersedia ({$stockAvailInt}) melebihi stok total ({$stockTotalInt})";
+                $stockAvailInt = $stockTotalInt;
+            }
+            $maxLoanHoursInt = max(0, (int) $maxLoanHours);
+
+            $unitId = null;
+            $unitSymbolTrim = strtolower(trim($unitSymbol));
+            if ($unitSymbolTrim !== '') {
+                $unitId = $unitMap[$unitSymbolTrim] ?? null;
+            }
+
+            $acquisitionSourceTrim = strtolower(trim($acquisitionSource));
+            if (! in_array($acquisitionSourceTrim, self::ACQUISITION_SOURCES, true)) {
+                $acquisitionSourceTrim = 'pembelian';
+            }
+
+            $inventoryStatusTrim = strtolower(trim($inventoryStatus));
+            if (! in_array($inventoryStatusTrim, self::INVENTORY_STATUSES, true)) {
+                $inventoryStatusTrim = 'aktif';
+            }
+
+            $isLoanableInt = (strtolower(trim($isLoanable)) === 'ya') ? 1 : 0;
+            if ($conditionStatus === self::CONDITION_RUSAK) {
+                $isLoanableInt = 0;
+            }
+
+            $isActiveInt      = (strtolower(trim($isActive)) !== 'tidak') ? 1 : 0;
+            $purchasePriceVal = (trim($purchasePrice) !== '') ? (float) $purchasePrice : null;
+            $minimumStockInt  = max(0, (int) $minimumStock);
+
+            $emptyToNull = static fn (string $v): ?string => trim($v) === '' ? null : trim($v);
+
+            $acquisitionDateVal = $emptyToNull($acquisitionDate);
+            $warrantyUntilVal   = $emptyToNull($warrantyUntil);
+
+            if ($acquisitionDateVal !== null && ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $acquisitionDateVal)) {
+                $acquisitionDateVal = null;
+            }
+            if ($warrantyUntilVal !== null && ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $warrantyUntilVal)) {
+                $warrantyUntilVal = null;
+            }
+
+            $valid   = empty($errors);
+            $payload = null;
+
+            if ($valid && $labId !== null && $resolvedCategory !== null) {
+                $payload = [
+                    'name'               => $name,
+                    'lab_id'             => $labId,
+                    'asset_type'         => 'equipment',
+                    'category'           => $resolvedCategory,
+                    'location'           => null,
+                    'specifications'     => $emptyToNull($specifications),
+                    'max_loan_hours'     => $maxLoanHoursInt,
+                    'stock_total'        => $stockTotalInt,
+                    'stock_available'    => $stockAvailInt,
+                    'is_active'          => $isActiveInt,
+                    'is_loanable'        => $isLoanableInt,
+                    'condition_status'   => $conditionStatus,
+                    'serial_number'      => $emptyToNull($serialNumber),
+                    'brand'              => $emptyToNull($brand),
+                    'model'              => $emptyToNull($model),
+                    'unit_id'            => $unitId,
+                    'acquisition_date'   => $acquisitionDateVal,
+                    'acquisition_source' => $acquisitionSourceTrim,
+                    'purchase_price'     => $purchasePriceVal,
+                    'supplier'           => $emptyToNull($supplier),
+                    'funding_source'     => $emptyToNull($fundingSource),
+                    'warranty_until'     => $warrantyUntilVal,
+                    'inventory_status'   => $inventoryStatusTrim,
+                    'minimum_stock'      => $minimumStockInt,
+                    'notes'              => $emptyToNull($notes),
+                ];
+            }
+
+            $rows[] = [
+                'row_num'          => $rowNum,
+                'name'             => $name,
+                'lab_name'         => $labName,
+                'lab_id'           => $labId,
+                'category'         => $category,
+                'resolved_category'=> $resolvedCategory,
+                'condition_status' => $conditionStatus,
+                'stock_total'      => $stockTotalInt,
+                'stock_available'  => $stockAvailInt,
+                'asset_code'       => $assetCodeTrim,
+                'brand'            => trim($brand),
+                'model'            => trim($model),
+                'errors'           => $errors,
+                'valid'            => $valid,
+                'payload'          => $payload,
+            ];
+        }
+
+        fclose($handle);
+        return $rows;
+    }
 }

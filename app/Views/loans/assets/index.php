@@ -127,6 +127,9 @@ sort($categoryOptions);
           <button type="button" class="btn btn-outline-success mr-2" data-target="#modal-download">
             <i class="fas fa-download"></i> Download
           </button>
+          <a href="<?= base_url('admin/loans/assets/import') ?>" class="btn btn-outline-primary mr-2">
+            <i class="fas fa-file-import"></i> Import
+          </a>
           <a href="<?= base_url('admin/loans/assets/create') ?>" class="btn btn-primary">
             <i class="fas fa-plus"></i> Tambah Alat
           </a>
