@@ -74,6 +74,7 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
         // User Management
         $routes->group('users', static function ($routes) {
             $routes->get('/', 'UserController::index', ['filter' => 'permission:users.list']);
+            $routes->get('datatable', 'UserController::datatable', ['filter' => 'permission:users.list']);
             $routes->get('create', 'UserController::create', ['filter' => 'permission:users.create']);
             $routes->post('store', 'UserController::store', ['filter' => 'permission:users.create']);
             $routes->get('edit/(:num)', 'UserController::edit/$1', ['filter' => 'permission:users.edit']);

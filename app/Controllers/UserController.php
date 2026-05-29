@@ -19,20 +19,158 @@ class UserController extends BaseController
      */
     public function index()
     {
-        $users = $this->userModel->findAll();
-
-        // Tambahkan info group untuk setiap user
-        foreach ($users as $user) {
-            $user->groups = $user->getGroups();
-        }
+        $authGroups = config('AuthGroups');
 
         $data = [
             'title'      => 'Manajemen User',
             'page_title' => 'Daftar User',
-            'users'      => $users,
+            'groups'     => $authGroups->groups,
         ];
 
         return $this->renderView('users/index', $data);
+    }
+
+    /**
+     * Server-side DataTables endpoint: GET /admin/users/datatable
+     */
+    public function datatable()
+    {
+        if (! activeGroupCan('users.list')) {
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Forbidden']);
+        }
+
+        $req    = $this->request;
+        $draw   = (int) $req->getGet('draw');
+        $start  = max(0, (int) $req->getGet('start'));
+        $length = (int) $req->getGet('length');
+        if ($length <= 0) { $length = 10; }
+
+        $search   = (string) ($req->getGet('search')['value'] ?? '');
+        $orderCol = (int) ($req->getGet('order')[0]['column'] ?? 0);
+        $orderDir = strtolower((string) ($req->getGet('order')[0]['dir'] ?? 'asc')) === 'desc' ? 'DESC' : 'ASC';
+
+        // Custom filters
+        $filterGroup  = $req->getGet('filter_group');
+        $filterStatus = $req->getGet('filter_status');
+
+        $colMap = [
+            1 => 'u.username',
+            2 => 'ai.secret',
+        ];
+        $orderField = $colMap[$orderCol] ?? 'u.id';
+
+        $db = db_connect();
+
+        $recordsTotal = $db->table('users')->countAllResults();
+
+        // Filtered count query
+        $countBase = $db->table('users u')
+            ->select('COUNT(DISTINCT u.id) AS cnt')
+            ->join('auth_identities ai', "ai.user_id = u.id AND ai.type = 'email_password'", 'left')
+            ->join('auth_groups_users agu', 'agu.user_id = u.id', 'left');
+
+        if ($search !== '') {
+            $countBase->groupStart()
+                ->like('u.username', $search)
+                ->orLike('ai.secret', $search)
+                ->groupEnd();
+        }
+        if (! empty($filterGroup)) {
+            $countBase->where('agu.group', $filterGroup);
+        }
+        if ($filterStatus !== null && $filterStatus !== '') {
+            $countBase->where('u.active', (int) $filterStatus);
+        }
+
+        $recordsFiltered = (int) ($countBase->get()->getRow()->cnt ?? 0);
+
+        // Data query
+        $dataBase = $db->table('users u')
+            ->select('u.id, u.username, u.active, ai.secret AS email, GROUP_CONCAT(DISTINCT agu.group ORDER BY agu.group SEPARATOR ",") AS groups')
+            ->join('auth_identities ai', "ai.user_id = u.id AND ai.type = 'email_password'", 'left')
+            ->join('auth_groups_users agu', 'agu.user_id = u.id', 'left')
+            ->groupBy('u.id, u.username, u.active, ai.secret');
+
+        if ($search !== '') {
+            $dataBase->groupStart()
+                ->like('u.username', $search)
+                ->orLike('ai.secret', $search)
+                ->groupEnd();
+        }
+        if (! empty($filterGroup)) {
+            $dataBase->where('agu.group', $filterGroup);
+        }
+        if ($filterStatus !== null && $filterStatus !== '') {
+            $dataBase->where('u.active', (int) $filterStatus);
+        }
+
+        $rows = $dataBase->orderBy($orderField, $orderDir)->limit($length, $start)->get()->getResultArray();
+
+        $badgeMap = [
+            'superadmin' => 'badge-danger',
+            'laboran'    => 'badge-warning',
+            'asisten'    => 'badge-info',
+            'kepala_lab' => 'badge-success',
+            'dosen'      => 'badge-primary',
+            'mahasiswa'  => 'badge-secondary',
+        ];
+
+        $csrfName = csrf_token();
+        $csrfHash = csrf_hash();
+
+        $data = [];
+        foreach ($rows as $i => $row) {
+            // Groups badges
+            $groupBadges = '';
+            if (! empty($row['groups'])) {
+                foreach (explode(',', $row['groups']) as $g) {
+                    $g           = trim($g);
+                    $badgeClass  = $badgeMap[$g] ?? 'badge-secondary';
+                    $groupBadges .= '<span class="badge ' . $badgeClass . '">' . esc(ucfirst($g)) . '</span> ';
+                }
+            } else {
+                $groupBadges = '<span class="badge badge-secondary">No Role</span>';
+            }
+
+            // Status badge
+            $statusBadge = $row['active']
+                ? '<span class="badge badge-success">Aktif</span>'
+                : '<span class="badge badge-danger">Nonaktif</span>';
+
+            // Actions
+            $actions = '';
+            if (activeGroupCan('users.edit')) {
+                $actions .= '<a href="' . base_url('admin/users/edit/' . (int) $row['id']) . '" class="btn btn-sm btn-info mr-1" title="Edit"><i class="fas fa-edit"></i></a>';
+            }
+            if (activeGroupCan('users.delete') && (int) $row['id'] !== (int) auth()->id()) {
+                $actions .= '<form action="' . base_url('admin/users/delete/' . (int) $row['id']) . '" method="post" class="d-inline js-swal-delete-form"'
+                    . ' data-swal-title="Hapus user?"'
+                    . ' data-swal-text="User \'' . esc($row['username']) . '\' akan dihapus permanen."'
+                    . ' data-swal-confirm="Ya, hapus" data-swal-cancel="Batal">'
+                    . '<input type="hidden" name="' . $csrfName . '" value="' . $csrfHash . '">'
+                    . '<button type="submit" class="btn btn-sm btn-danger" title="Hapus"><i class="fas fa-trash"></i></button>'
+                    . '</form>';
+            }
+
+            $avatarUrl  = base_url('assets/img/avatar/avatar-1.png');
+            $usernameHtml = '<img alt="avatar" src="' . $avatarUrl . '" class="rounded-circle mr-1" width="35">' . esc($row['username']);
+
+            $data[] = [
+                '',
+                $usernameHtml,
+                esc($row['email'] ?? '-'),
+                $groupBadges,
+                $statusBadge,
+                $actions,
+            ];
+        }
+
+        return $this->response->setJSON([
+            'draw'            => $draw,
+            'recordsTotal'    => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'data'            => $data,
+        ]);
     }
 
     /**
