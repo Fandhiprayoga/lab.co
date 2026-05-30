@@ -68,7 +68,7 @@ function isDropdownActive(array $paths): string {
       </li>
 
       <?php if (activeGroupCan('bhp.catalog.view')): ?>
-      <li class="<?= (strpos(uri_string(), 'consumables') === 0 && !strpos(uri_string(), 'consumables/requests') && !strpos(uri_string(), 'consumables/analytics') && !strpos(uri_string(), 'consumables/adjustments') && !strpos(uri_string(), 'admin/consumables')) ? 'active' : '' ?>">
+      <li class="<?= rtrim(uri_string(), '/') === 'consumables' ? 'active' : '' ?>">
         <a class="nav-link" href="<?= base_url('consumables') ?>"><i class="fas fa-flask"></i> <span>Katalog Bahan</span></a>
       </li>
       <?php endif; ?>

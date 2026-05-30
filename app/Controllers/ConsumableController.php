@@ -73,6 +73,170 @@ class ConsumableController extends BaseController
     }
 
     // ------------------------------------------------------------------
+    // AJAX: DataTables server-side untuk katalog bahan
+    // ------------------------------------------------------------------
+
+    public function datatableItems()
+    {
+        if (! activeGroupCan('bhp.catalog.view')) {
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Forbidden']);
+        }
+
+        $req    = $this->request;
+        $draw   = (int) $req->getGet('draw');
+        $start  = max(0, (int) $req->getGet('start'));
+        $length = (int) $req->getGet('length');
+        if ($length <= 0) { $length = 25; }
+
+        $search         = trim((string) ($req->getGet('search')['value'] ?? ''));
+        $orderCol       = (int) ($req->getGet('order')[0]['column'] ?? 1);
+        $orderDir       = strtolower((string) ($req->getGet('order')[0]['dir'] ?? 'asc')) === 'desc' ? 'DESC' : 'ASC';
+        $filterLab      = (int) ($req->getGet('filter_lab')      ?? 0);
+        $filterCategory = (int) ($req->getGet('filter_category') ?? 0);
+        $filterStatus   = (string) ($req->getGet('filter_status') ?? '');
+
+        $colMap = [
+            1 => 'ci.name',
+            2 => 'consumable_categories.name',
+            3 => 'labs.name',
+            4 => 'ci.stock_available',
+            7 => 'ci.expiry_date',
+        ];
+        $orderField = $colMap[$orderCol] ?? 'ci.name';
+
+        $db    = db_connect();
+        $today = date('Y-m-d');
+
+        $recordsTotal = (int) $db->table('consumable_items')->where('is_active', 1)->countAllResults();
+
+        // ---- Count filtered ----
+        $cnt = $db->table('consumable_items ci')
+            ->select('COUNT(DISTINCT ci.id) AS cnt')
+            ->join('consumable_categories', 'consumable_categories.id = ci.category_id', 'left')
+            ->join('labs', 'labs.id = ci.lab_id', 'left')
+            ->where('ci.is_active', 1);
+        $this->applyConsumableFilters($cnt, $search, $filterLab, $filterCategory, $filterStatus, $today);
+        $recordsFiltered = (int) ($cnt->get()->getRow()->cnt ?? 0);
+
+        // ---- Data ----
+        $qb = $db->table('consumable_items ci')
+            ->select('ci.id, ci.name, ci.stock_available, ci.min_stock, ci.location, ci.expiry_date, ci.requires_approval,
+                      consumable_categories.name AS category_name,
+                      units.symbol AS unit_symbol,
+                      labs.name AS lab_name')
+            ->join('consumable_categories', 'consumable_categories.id = ci.category_id', 'left')
+            ->join('units', 'units.id = ci.unit_id', 'left')
+            ->join('labs', 'labs.id = ci.lab_id', 'left')
+            ->where('ci.is_active', 1);
+        $this->applyConsumableFilters($qb, $search, $filterLab, $filterCategory, $filterStatus, $today);
+        $rows = $qb->orderBy($orderField, $orderDir)->limit($length, $start)->get()->getResultArray();
+
+        $canAdjust = activeGroupCan('bhp.stock.adjust');
+        $data      = [];
+
+        foreach ($rows as $i => $row) {
+            $isLow     = (float) $row['stock_available'] <= (float) $row['min_stock'];
+            $isExpired = ! empty($row['expiry_date']) && $row['expiry_date'] < $today;
+
+            // Badge status
+            if ($isLow && $isExpired) {
+                $badge = '<span class="badge badge-danger">Kritis</span>';
+            } elseif ($isLow) {
+                $badge = '<span class="badge badge-warning">Stok Rendah</span>';
+            } elseif ($isExpired) {
+                $badge = '<span class="badge badge-danger">Kedaluwarsa</span>';
+            } else {
+                $badge = '<span class="badge badge-success">Tersedia</span>';
+            }
+
+            // Stok
+            $sym     = esc($row['unit_symbol'] ?? '');
+            $stockTxt = rtrim(rtrim(number_format((float) $row['stock_available'], 4), '0'), '.') . ' ' . $sym;
+            $stockHtml = $isLow
+                ? '<span class="text-danger font-weight-bold">' . $stockTxt . '</span>'
+                : $stockTxt;
+
+            // Kedaluwarsa
+            if (empty($row['expiry_date'])) {
+                $expiryHtml = '<span class="text-muted">—</span>';
+            } elseif ($isExpired) {
+                $expiryHtml = '<span class="text-danger"><i class="fas fa-exclamation-triangle mr-1"></i>' . esc($row['expiry_date']) . '</span>';
+            } else {
+                $expiryHtml = esc($row['expiry_date']);
+            }
+
+            // Nama + badge approval
+            $nameHtml = '<strong>' . esc($row['name']) . '</strong>';
+            if ($row['requires_approval']) {
+                $nameHtml .= ' <span class="badge badge-info" style="font-size:10px;">Approval</span>';
+            }
+
+            // Aksi
+            $actions = '';
+            if ($canAdjust) {
+                $actions = '<a href="' . site_url('consumables/adjustments/' . $row['id'] . '/create') . '" '
+                    . 'class="btn btn-xs btn-light" title="Penyesuaian Stok">'
+                    . '<i class="fas fa-sliders-h"></i></a>';
+            }
+
+            $data[] = [
+                $start + $i + 1,
+                $nameHtml,
+                esc($row['category_name'] ?? '—'),
+                esc($row['lab_name'] ?? '—'),
+                $stockHtml,
+                rtrim(rtrim(number_format((float) $row['min_stock'], 4), '0'), '.') . ' ' . $sym,
+                esc($row['location'] ?? '—'),
+                $expiryHtml,
+                $badge,
+                $actions,
+            ];
+        }
+
+        return $this->response->setJSON([
+            'draw'            => $draw,
+            'recordsTotal'    => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'data'            => $data,
+        ]);
+    }
+
+    /** Terapkan filter ke query builder katalog bahan. */
+    private function applyConsumableFilters(
+        $builder,
+        string $search,
+        int $filterLab,
+        int $filterCategory,
+        string $filterStatus,
+        string $today
+    ): void {
+        if ($search !== '') {
+            $builder->groupStart()
+                ->like('ci.name', $search)
+                ->orLike('consumable_categories.name', $search)
+                ->orLike('labs.name', $search)
+                ->orLike('ci.location', $search)
+                ->groupEnd();
+        }
+
+        if ($filterLab > 0)      { $builder->where('ci.lab_id', $filterLab); }
+        if ($filterCategory > 0) { $builder->where('ci.category_id', $filterCategory); }
+
+        if ($filterStatus === 'low_stock') {
+            $builder->where('ci.stock_available <= ci.min_stock', null, false);
+        } elseif ($filterStatus === 'expired') {
+            $builder->where('ci.expiry_date IS NOT NULL', null, false)
+                    ->where('ci.expiry_date <', $today);
+        } elseif ($filterStatus === 'ok') {
+            $builder->where('ci.stock_available > ci.min_stock', null, false)
+                    ->groupStart()
+                        ->where('ci.expiry_date IS NULL', null, false)
+                        ->orWhere('ci.expiry_date >=', $today)
+                    ->groupEnd();
+        }
+    }
+
+    // ------------------------------------------------------------------
     // Katalog bahan
     // ------------------------------------------------------------------
 
@@ -82,41 +246,19 @@ class ConsumableController extends BaseController
             return redirect()->to('/dashboard')->with('error', 'Akses ditolak.');
         }
 
-        $labId      = (int) ($this->request->getGet('lab_id') ?? 0);
-        $categoryId = (int) ($this->request->getGet('category_id') ?? 0);
-        $lowStock   = (bool) $this->request->getGet('low_stock');
-
-        $builder = db_connect()->table('consumable_items ci')
-            ->select('ci.*, consumable_categories.name AS category_name, units.symbol AS unit_symbol, labs.name AS lab_name')
-            ->join('consumable_categories', 'consumable_categories.id = ci.category_id', 'left')
-            ->join('units', 'units.id = ci.unit_id', 'left')
-            ->join('labs', 'labs.id = ci.lab_id', 'left')
-            ->where('ci.is_active', 1)
-            ->orderBy('ci.name', 'ASC');
-
-        if ($labId > 0) {
-            $builder->where('ci.lab_id', $labId);
-        }
-
-        if ($categoryId > 0) {
-            $builder->where('ci.category_id', $categoryId);
-        }
-
-        if ($lowStock) {
-            $builder->where('ci.stock_available <=', 'ci.min_stock', false);
-        }
-
-        $items      = $builder->get()->getResultArray();
         $labs       = $this->labModel->where('is_active', 1)->orderBy('name', 'ASC')->findAll();
-        $categories = db_connect()->table('consumable_categories')->where('is_active', 1)->orderBy('sort_order', 'ASC')->orderBy('name', 'ASC')->get()->getResultArray();
+        $categories = db_connect()
+            ->table('consumable_categories')
+            ->where('is_active', 1)
+            ->orderBy('sort_order', 'ASC')
+            ->orderBy('name', 'ASC')
+            ->get()->getResultArray();
 
         return $this->renderView('consumables/index', [
-            'title'      => 'Bahan Habis Pakai',
+            'title'      => 'Katalog Bahan Habis Pakai',
             'page_title' => 'Katalog Bahan Habis Pakai',
-            'items'      => $items,
             'labs'       => $labs,
             'categories' => $categories,
-            'filter'     => compact('labId', 'categoryId', 'lowStock'),
         ]);
     }
 

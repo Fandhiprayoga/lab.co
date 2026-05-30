@@ -68,6 +68,7 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
     // Consumable (BHP) Module
     $routes->group('consumables', ['filter' => 'permission:bhp.access'], static function ($routes) {
         $routes->get('/', 'ConsumableController::index', ['filter' => 'permission:bhp.catalog.view']);
+        $routes->get('datatable', 'ConsumableController::datatableItems');
         $routes->get('beranda', 'ConsumableController::beranda');
         $routes->get('api/items-by-lab', 'ConsumableController::itemsByLab');
         $routes->get('requests', 'ConsumableController::requests', ['filter' => 'permission:bhp.request.track']);
