@@ -106,6 +106,21 @@ class AuthGroups extends ShieldAuthGroups
         // Visitor log
         'visits.list'   => 'Dapat melihat buku kunjungan lab',
         'visits.manage' => 'Dapat mengelola data kunjungan lab',
+
+        // BHP (Bahan Habis Pakai) module
+        'bhp.access'             => 'Dapat mengakses modul bahan habis pakai',
+        'bhp.catalog.view'       => 'Dapat melihat katalog bahan habis pakai',
+        'bhp.request.create'     => 'Dapat membuat permintaan penggunaan bahan',
+        'bhp.request.submit'     => 'Dapat mengirim permintaan bahan ke approval',
+        'bhp.request.cancel'     => 'Dapat membatalkan permintaan bahan',
+        'bhp.request.track'      => 'Dapat melacak status dan detail permintaan bahan',
+        'bhp.request.manage-all' => 'Dapat mengelola seluruh permintaan bahan',
+        'bhp.approval'           => 'Dapat menyetujui/menolak permintaan bahan (Ka. Lab)',
+        'bhp.disburse'           => 'Dapat memproses pengeluaran bahan dari stok',
+        'bhp.realize'            => 'Dapat mencatat realisasi penggunaan bahan',
+        'bhp.stock.adjust'       => 'Dapat mencatat penyesuaian stok bahan',
+        'bhp.analytics.view'     => 'Dapat melihat analitik konsumsi bahan',
+        'bhp.master.manage'      => 'Dapat mengelola master data bahan habis pakai',
     ];
 
     /**
@@ -122,6 +137,7 @@ class AuthGroups extends ShieldAuthGroups
             'reports.*',
             'lending.*',
             'visits.*',
+            'bhp.*',
         ],
         'laboran' => [
             'admin.access',
@@ -146,6 +162,18 @@ class AuthGroups extends ShieldAuthGroups
             'lending.master.documents.manage',
             'visits.list',
             'visits.manage',
+            'bhp.access',
+            'bhp.catalog.view',
+            'bhp.request.create',
+            'bhp.request.submit',
+            'bhp.request.cancel',
+            'bhp.request.track',
+            'bhp.request.manage-all',
+            'bhp.disburse',
+            'bhp.realize',
+            'bhp.stock.adjust',
+            'bhp.analytics.view',
+            'bhp.master.manage',
         ],
         'asisten' => [
             'admin.access',
@@ -172,6 +200,11 @@ class AuthGroups extends ShieldAuthGroups
             'lending.approval.l2',
             'lending.analytics.view',
             'visits.list',
+            'bhp.access',
+            'bhp.catalog.view',
+            'bhp.request.track',
+            'bhp.approval',
+            'bhp.analytics.view',
         ],
         'dosen' => [
             'dashboard.access',

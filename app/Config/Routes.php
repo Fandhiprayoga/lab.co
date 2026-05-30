@@ -65,6 +65,27 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
         $routes->post('(:num)/reject-l2', 'LoanProposalController::rejectL2/$1', ['filter' => 'permission:lending.approval.l2']);
     });
 
+    // Consumable (BHP) Module
+    $routes->group('consumables', ['filter' => 'permission:bhp.access'], static function ($routes) {
+        $routes->get('/', 'ConsumableController::index', ['filter' => 'permission:bhp.catalog.view']);
+        $routes->get('beranda', 'ConsumableController::beranda');
+        $routes->get('api/items-by-lab', 'ConsumableController::itemsByLab');
+        $routes->get('requests', 'ConsumableController::requests', ['filter' => 'permission:bhp.request.track']);
+        $routes->get('requests/create', 'ConsumableController::create', ['filter' => 'permission:bhp.request.create']);
+        $routes->post('requests', 'ConsumableController::store', ['filter' => 'permission:bhp.request.create']);
+        $routes->get('requests/(:num)', 'ConsumableController::show/$1', ['filter' => 'permission:bhp.request.track']);
+        $routes->post('requests/(:num)/submit', 'ConsumableController::submit/$1', ['filter' => 'permission:bhp.request.submit']);
+        $routes->post('requests/(:num)/approve', 'ConsumableController::approve/$1', ['filter' => 'permission:bhp.approval']);
+        $routes->post('requests/(:num)/reject', 'ConsumableController::reject/$1', ['filter' => 'permission:bhp.approval']);
+        $routes->post('requests/(:num)/disburse', 'ConsumableController::disburse/$1', ['filter' => 'permission:bhp.disburse']);
+        $routes->get('requests/(:num)/realize', 'ConsumableController::realize/$1', ['filter' => 'permission:bhp.realize']);
+        $routes->post('requests/(:num)/realize', 'ConsumableController::storeRealization/$1', ['filter' => 'permission:bhp.realize']);
+        $routes->post('requests/(:num)/cancel', 'ConsumableController::cancel/$1', ['filter' => 'permission:bhp.request.cancel']);
+        $routes->get('analytics', 'ConsumableController::analytics', ['filter' => 'permission:bhp.analytics.view']);
+        $routes->get('adjustments/(:num)/create', 'ConsumableAdjustmentController::create/$1', ['filter' => 'permission:bhp.stock.adjust']);
+        $routes->post('adjustments/(:num)', 'ConsumableAdjustmentController::store/$1', ['filter' => 'permission:bhp.stock.adjust']);
+    });
+
     // Switch Active Group
     $routes->post('switch-group', 'GroupSwitchController::switch');
 
@@ -199,6 +220,25 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
             $routes->get('datatable', 'LabController::datatable');
             $routes->get('condition-history', 'LabController::conditionHistoryAll');
             $routes->get('(:num)/condition-history', 'LabController::conditionHistory/$1');
+        });
+
+        // Consumable (BHP) Admin Master Data
+        $routes->group('consumables', ['filter' => 'permission:bhp.master.manage'], static function ($routes) {
+            // Categories
+            $routes->get('categories', 'ConsumableCategoryController::index');
+            $routes->get('categories/create', 'ConsumableCategoryController::create');
+            $routes->post('categories', 'ConsumableCategoryController::store');
+            $routes->get('categories/(:num)/edit', 'ConsumableCategoryController::edit/$1');
+            $routes->post('categories/(:num)/update', 'ConsumableCategoryController::update/$1');
+            $routes->post('categories/(:num)/delete', 'ConsumableCategoryController::delete/$1');
+            // Items
+            $routes->get('items', 'ConsumableItemController::index');
+            $routes->get('items/create', 'ConsumableItemController::create');
+            $routes->post('items', 'ConsumableItemController::store');
+            $routes->get('items/(:num)/edit', 'ConsumableItemController::edit/$1');
+            $routes->post('items/(:num)/update', 'ConsumableItemController::update/$1');
+            $routes->post('items/(:num)/toggle', 'ConsumableItemController::toggleStatus/$1');
+            $routes->post('items/(:num)/delete', 'ConsumableItemController::delete/$1');
         });
 
         // Loan Faculties Master Data

@@ -60,6 +60,59 @@ class MenuRegistry
             ],
 
             // -------------------------------------------------------
+            // Bahan Habis Pakai
+            // -------------------------------------------------------
+            [
+                'label'      => 'Beranda BHP',
+                'url'        => 'consumables/beranda',
+                'icon'       => 'fas fa-home',
+                'permission' => 'bhp.access',
+                'group'      => null,
+            ],
+            [
+                'label'      => 'Katalog Bahan',
+                'url'        => 'consumables',
+                'icon'       => 'fas fa-flask',
+                'permission' => 'bhp.catalog.view',
+                'group'      => null,
+            ],
+            [
+                'label'      => 'Permintaan BHP',
+                'url'        => 'consumables/requests',
+                'icon'       => 'fas fa-clipboard-list',
+                'permission' => 'bhp.request.track',
+                'group'      => null,
+            ],
+            [
+                'label'      => 'Penyesuaian Stok',
+                'url'        => 'consumables',
+                'icon'       => 'fas fa-sliders-h',
+                'permission' => 'bhp.stock.adjust',
+                'group'      => null,
+            ],
+            [
+                'label'      => 'Analitik Konsumsi',
+                'url'        => 'consumables/analytics',
+                'icon'       => 'fas fa-chart-bar',
+                'permission' => 'bhp.analytics.view',
+                'group'      => null,
+            ],
+            [
+                'label'      => 'Kategori BHP',
+                'url'        => 'admin/consumables/categories',
+                'icon'       => 'fas fa-tags',
+                'permission' => 'bhp.master.manage',
+                'group'      => null,
+            ],
+            [
+                'label'      => 'Master Bahan',
+                'url'        => 'admin/consumables/items',
+                'icon'       => 'fas fa-vials',
+                'permission' => 'bhp.master.manage',
+                'group'      => null,
+            ],
+
+            // -------------------------------------------------------
             // Administrasi
             // -------------------------------------------------------
             [

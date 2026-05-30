@@ -59,6 +59,42 @@ function isDropdownActive(array $paths): string {
       <?php endif; ?>
       <?php endif; ?>
 
+      <!-- BHP Module -->
+      <?php if (activeGroupCan('bhp.access')): ?>
+      <li class="menu-header">Bahan Habis Pakai</li>
+
+      <li class="<?= isMenuActive('consumables/beranda') ?>">
+        <a class="nav-link" href="<?= base_url('consumables/beranda') ?>"><i class="fas fa-home"></i> <span>Beranda BHP</span></a>
+      </li>
+
+      <?php if (activeGroupCan('bhp.catalog.view')): ?>
+      <li class="<?= (strpos(uri_string(), 'consumables') === 0 && !strpos(uri_string(), 'consumables/requests') && !strpos(uri_string(), 'consumables/analytics') && !strpos(uri_string(), 'consumables/adjustments') && !strpos(uri_string(), 'admin/consumables')) ? 'active' : '' ?>">
+        <a class="nav-link" href="<?= base_url('consumables') ?>"><i class="fas fa-flask"></i> <span>Katalog Bahan</span></a>
+      </li>
+      <?php endif; ?>
+
+      <?php if (activeGroupCan('bhp.request.track')): ?>
+      <li class="<?= isMenuActive('consumables/requests') ?>">
+        <a class="nav-link" href="<?= base_url('consumables/requests') ?>"><i class="fas fa-clipboard-list"></i> <span>Permintaan BHP</span></a>
+      </li>
+      <?php endif; ?>
+
+      <?php if (activeGroupCan('bhp.analytics.view')): ?>
+      <li class="<?= isMenuActive('consumables/analytics') ?>">
+        <a class="nav-link" href="<?= base_url('consumables/analytics') ?>"><i class="fas fa-chart-bar"></i> <span>Analitik Konsumsi</span></a>
+      </li>
+      <?php endif; ?>
+
+      <?php if (activeGroupCan('bhp.master.manage')): ?>
+      <li class="<?= isMenuActive('admin/consumables/categories') ?>">
+        <a class="nav-link" href="<?= base_url('admin/consumables/categories') ?>"><i class="fas fa-tags"></i> <span>Kategori BHP</span></a>
+      </li>
+      <li class="<?= isMenuActive('admin/consumables/items') ?>">
+        <a class="nav-link" href="<?= base_url('admin/consumables/items') ?>"><i class="fas fa-vials"></i> <span>Master Bahan</span></a>
+      </li>
+      <?php endif; ?>
+      <?php endif; ?>
+
       <!-- Admin Menu (hanya untuk active group yang punya akses admin) -->
       <?php if (activeGroupCan('admin.access')): ?>
       <li class="menu-header">Administrasi</li>
