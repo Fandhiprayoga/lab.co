@@ -158,14 +158,14 @@ function isDropdownActive(array $paths): string {
 
       <?php if (activeGroupCan('lending.master.labs.manage')): ?>
       <li class="menu-header">Ruangan &amp; Lab</li>
-      <li class="<?= (strpos(uri_string(), 'admin/loans/labs') === 0 && ! preg_match('#admin/loans/labs/(archive|qr|condition-history|\d+/photos|\d+/qr)#', uri_string())) ? 'active' : '' ?>">
+      <li class="<?= (strpos(uri_string(), 'admin/loans/labs') === 0 && ! preg_match('#admin/loans/labs/(archive|photos|qr|condition-history|\d+/photos|\d+/qr)#', uri_string())) ? 'active' : '' ?>">
         <a class="nav-link" href="<?= base_url('admin/loans/labs') ?>"><i class="fas fa-door-open"></i> <span>Daftar Lab Aktif</span></a>
       </li>
       <li class="<?= isMenuActive('admin/loans/labs/archive') ?>">
         <a class="nav-link" href="<?= base_url('admin/loans/labs/archive') ?>"><i class="fas fa-archive"></i> <span>Arsip Lab</span></a>
       </li>
-      <li class="<?= preg_match('#admin/loans/labs/\d+/photos#', uri_string()) ? 'active' : '' ?>">
-        <a class="nav-link" href="<?= base_url('admin/loans/labs') ?>"><i class="fas fa-images"></i> <span>Galeri Foto</span></a>
+      <li class="<?= preg_match('#admin/loans/labs/\d+/photos#', uri_string()) || uri_string() === 'admin/loans/labs/photos' ? 'active' : '' ?>">
+        <a class="nav-link" href="<?= base_url('admin/loans/labs/photos') ?>"><i class="fas fa-images"></i> <span>Galeri Foto</span></a>
       </li>
       <li class="<?= isMenuActive('admin/loans/labs/qr') ?>">
         <a class="nav-link" href="<?= base_url('admin/loans/labs/qr') ?>"><i class="fas fa-qrcode"></i> <span>QR Codes</span></a>

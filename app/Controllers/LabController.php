@@ -272,6 +272,40 @@ class LabController extends BaseController
         return redirect()->to('/admin/loans/labs/archive')->with('success', 'Master lab berhasil dihapus permanen.');
     }
 
+    public function photoIndex()
+    {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
+        $labs = $this->labModel->orderBy('name', 'ASC')->findAll();
+
+        // Get photo counts per lab
+        $db = \Config\Database::connect();
+        $photoCounts = $db->table('lab_photos')
+            ->select('lab_id, COUNT(*) as total')
+            ->groupBy('lab_id')
+            ->get()
+            ->getResultArray();
+        $photoCountMap = array_column($photoCounts, 'total', 'lab_id');
+
+        // Get primary photos per lab
+        $primaryPhotos = $this->labPhotoModel->where('is_primary', 1)->findAll();
+        $primaryMap = array_column($primaryPhotos, null, 'lab_id');
+
+        foreach ($labs as &$lab) {
+            $lab['photo_total'] = (int) ($photoCountMap[$lab['id']] ?? 0);
+            $lab['primary_photo'] = $primaryMap[$lab['id']] ?? null;
+        }
+        unset($lab);
+
+        return $this->renderView('loans/labs/photo_index', [
+            'title'      => 'Galeri Foto Lab',
+            'page_title' => 'Galeri Foto Lab',
+            'labs'       => $labs,
+        ]);
+    }
+
     public function photos(int $id)
     {
         if ($guard = $this->guardAccess()) {
@@ -540,7 +574,7 @@ class LabController extends BaseController
         $data = [];
         foreach ($labs as $lab) {
             $id    = (int) $lab['id'];
-            $thumb = $primaryMap[$id] ?? ($lab['logo'] ?? null);
+            $thumb = $lab['logo'] ?? null;
             $thumbUrl = ! empty($thumb) ? base_url($thumb) : base_url('assets/img/stisla-fill.svg');
 
             $loanableBadge  = (int) $lab['is_loanable'] === 1

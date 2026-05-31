@@ -228,6 +228,7 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
             $routes->get('archive', 'LabController::archive');
             $routes->post('restore/(:num)', 'LabController::restore/$1');
             $routes->post('force-delete/(:num)', 'LabController::forceDelete/$1');
+            $routes->get('photos', 'LabController::photoIndex');
             $routes->get('(:num)/photos', 'LabController::photos/$1');
             $routes->post('(:num)/photos/upload', 'LabController::uploadPhoto/$1');
             $routes->post('(:num)/photos/(:num)/delete', 'LabController::deletePhoto/$1/$2');
