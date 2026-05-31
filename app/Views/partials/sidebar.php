@@ -250,8 +250,8 @@ function isDropdownActive(array $paths): string {
       <li class="<?= isMenuActive('notifications') ?>">
         <a class="nav-link" href="<?= base_url('notifications') ?>">
           <i class="far fa-bell"></i>
-          <span>Notifikasi</span>
-          <span class="badge badge-danger sidebar-notif-badge d-none" id="sidebar-notif-badge" style="margin-left:4px;"></span>
+          <span class="notif-menu-label">Notifikasi</span>
+          <span class="badge badge-danger sidebar-notif-badge d-none" id="sidebar-notif-badge"></span>
         </a>
       </li>
       <li class="<?= isMenuActive('profile') ?>">
