@@ -272,13 +272,134 @@ class ConsumableController extends BaseController
             return redirect()->to('/dashboard')->with('error', 'Akses ditolak.');
         }
 
-        $ownOnly = ! activeGroupCan('bhp.request.manage-all');
-        $requests = $this->requestModel->getList($ownOnly, (int) auth()->id());
+        $statusLabels = [
+            'draft'            => 'Draft',
+            'waiting_approval' => 'Menunggu Persetujuan',
+            'approved'         => 'Disetujui',
+            'rejected'         => 'Ditolak',
+            'disbursed'        => 'Dikeluarkan',
+            'completed'        => 'Selesai',
+            'canceled'         => 'Dibatalkan',
+            'problematic'      => 'Bermasalah',
+        ];
 
         return $this->renderView('consumables/requests/index', [
-            'title'      => 'Permintaan BHP',
-            'page_title' => 'Daftar Permintaan Bahan Habis Pakai',
-            'requests'   => $requests,
+            'title'        => 'Permintaan BHP',
+            'page_title'   => 'Daftar Permintaan Bahan Habis Pakai',
+            'canManageAll' => activeGroupCan('bhp.request.manage-all'),
+            'statusLabels' => $statusLabels,
+        ]);
+    }
+
+    // ------------------------------------------------------------------
+    // AJAX: DataTables server-side untuk daftar permintaan
+    // ------------------------------------------------------------------
+
+    public function datatableRequests()
+    {
+        if (! activeGroupCan('bhp.request.track')) {
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Forbidden']);
+        }
+
+        $req    = $this->request;
+        $draw   = (int) $req->getGet('draw');
+        $start  = max(0, (int) $req->getGet('start'));
+        $length = (int) $req->getGet('length');
+        if ($length <= 0) { $length = 25; }
+
+        $search       = trim((string) ($req->getGet('search')['value'] ?? ''));
+        $orderCol     = (int) ($req->getGet('order')[0]['column'] ?? 7);
+        $orderDir     = strtolower((string) ($req->getGet('order')[0]['dir'] ?? 'desc')) === 'asc' ? 'ASC' : 'DESC';
+        $filterStatus = (string) ($req->getGet('filter_status') ?? '');
+        $filterFrom   = (string) ($req->getGet('filter_from')   ?? '');
+        $filterUntil  = (string) ($req->getGet('filter_until')  ?? '');
+
+        $ownOnly = ! activeGroupCan('bhp.request.manage-all');
+        $userId  = (int) auth()->id();
+
+        $colMap = [
+            1 => 'r.request_code',
+            2 => 'u.username',
+            3 => 'l.name',
+            5 => 'r.scheduled_date',
+            7 => 'r.created_at',
+        ];
+        $orderField = $colMap[$orderCol] ?? 'r.created_at';
+
+        $db = db_connect();
+
+        $applyFilters = function ($builder) use ($search, $filterStatus, $filterFrom, $filterUntil, $ownOnly, $userId) {
+            if ($ownOnly) { $builder->where('r.requester_id', $userId); }
+            if ($search !== '') {
+                $builder->groupStart()
+                    ->like('r.request_code', $search)
+                    ->orLike('u.username', $search)
+                    ->orLike('l.name', $search)
+                    ->orLike('r.purpose', $search)
+                    ->groupEnd();
+            }
+            if ($filterStatus !== '') { $builder->where('r.status', $filterStatus); }
+            if ($filterFrom !== '')   { $builder->where('DATE(r.created_at) >=', $filterFrom); }
+            if ($filterUntil !== '')  { $builder->where('DATE(r.created_at) <=', $filterUntil); }
+        };
+
+        $joins = function ($builder) {
+            $builder->join('users u', 'u.id = r.requester_id', 'left')
+                    ->join('labs l',  'l.id = r.lab_id',       'left');
+        };
+
+        // Total unfiltered (respect ownOnly)
+        $cntTotal = $db->table('consumable_requests r');
+        if ($ownOnly) { $cntTotal->where('r.requester_id', $userId); }
+        $recordsTotal = (int) $cntTotal->countAllResults();
+
+        // Count filtered
+        $cnt = $db->table('consumable_requests r')->select('COUNT(r.id) AS cnt');
+        $joins($cnt);
+        $applyFilters($cnt);
+        $recordsFiltered = (int) ($cnt->get()->getRow()->cnt ?? 0);
+
+        // Data
+        $qb = $db->table('consumable_requests r')
+            ->select('r.id, r.request_code, r.purpose, r.scheduled_date, r.status, r.created_at,
+                      u.username AS requester_name, l.name AS lab_name');
+        $joins($qb);
+        $applyFilters($qb);
+        $rows = $qb->orderBy($orderField, $orderDir)->limit($length, $start)->get()->getResultArray();
+
+        $statusBadge = [
+            'draft'            => ['label' => 'Draft',                'class' => 'badge-secondary'],
+            'waiting_approval' => ['label' => 'Menunggu Persetujuan', 'class' => 'badge-warning'],
+            'approved'         => ['label' => 'Disetujui',            'class' => 'badge-success'],
+            'rejected'         => ['label' => 'Ditolak',              'class' => 'badge-danger'],
+            'disbursed'        => ['label' => 'Dikeluarkan',          'class' => 'badge-info'],
+            'completed'        => ['label' => 'Selesai',              'class' => 'badge-primary'],
+            'canceled'         => ['label' => 'Dibatalkan',           'class' => 'badge-dark'],
+            'problematic'      => ['label' => 'Bermasalah',           'class' => 'badge-danger'],
+        ];
+
+        $data = [];
+        foreach ($rows as $i => $row) {
+            $s  = $row['status'] ?? '';
+            $sb = $statusBadge[$s] ?? ['label' => $s, 'class' => 'badge-secondary'];
+            $data[] = [
+                $start + $i + 1,
+                '<code>' . esc($row['request_code']) . '</code>',
+                esc($row['requester_name'] ?? '—'),
+                esc($row['lab_name']       ?? '—'),
+                '<span class="d-block text-truncate" style="max-width:240px;" title="' . esc($row['purpose'] ?? '') . '">' . esc(mb_strimwidth($row['purpose'] ?? '', 0, 70, '…')) . '</span>',
+                $row['scheduled_date'] ? esc($row['scheduled_date']) : '<span class="text-muted">—</span>',
+                '<span class="badge ' . $sb['class'] . '">' . $sb['label'] . '</span>',
+                esc(substr($row['created_at'] ?? '', 0, 16)),
+                '<a href="' . site_url('consumables/requests/' . $row['id']) . '" class="btn btn-xs btn-primary" title="Detail"><i class="fas fa-eye"></i></a>',
+            ];
+        }
+
+        return $this->response->setJSON([
+            'draw'            => $draw,
+            'recordsTotal'    => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'data'            => $data,
         ]);
     }
 

@@ -73,6 +73,7 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
         $routes->get('api/items-by-lab', 'ConsumableController::itemsByLab');
         $routes->get('requests', 'ConsumableController::requests', ['filter' => 'permission:bhp.request.track']);
         $routes->get('requests/create', 'ConsumableController::create', ['filter' => 'permission:bhp.request.create']);
+        $routes->get('requests/datatable', 'ConsumableController::datatableRequests', ['filter' => 'permission:bhp.request.track']);
         $routes->post('requests', 'ConsumableController::store', ['filter' => 'permission:bhp.request.create']);
         $routes->get('requests/(:num)', 'ConsumableController::show/$1', ['filter' => 'permission:bhp.request.track']);
         $routes->post('requests/(:num)/submit', 'ConsumableController::submit/$1', ['filter' => 'permission:bhp.request.submit']);
