@@ -43,6 +43,7 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
     // Visitor Log
     $routes->get('admin/visits', 'LabVisitController::index', ['filter' => 'permission:visits.list']);
     $routes->get('admin/visits/datatable', 'LabVisitController::datatable', ['filter' => 'permission:visits.list']);
+    $routes->post('admin/visits/(:num)/force-checkout', 'LabVisitController::forceCheckout/$1', ['filter' => 'permission:visits.list']);
     $routes->get('admin/loans/labs/(:num)/visits', 'LabVisitController::labVisits/$1', ['filter' => 'permission:visits.list']);
 
     // Loan Module

@@ -144,6 +144,11 @@ class LabVisitController extends BaseController
             $checkinFmt  = date('d/m/Y H:i', strtotime($v['checked_in_at']));
             $checkoutFmt = $isIn ? '<span class="text-muted">—</span>' : date('d/m/Y H:i', strtotime($v['checked_out_at']));
 
+            $actionBtn = $isIn
+                ? '<button class="btn btn-sm btn-warning force-checkout-btn" data-id="' . (int) $v['id'] . '" data-name="' . esc($v['visitor_name'], 'attr') . '">'
+                  . '<i class="fas fa-sign-out-alt mr-1"></i>Checkout</button>'
+                : '<span class="text-muted">—</span>';
+
             $data[] = [
                 '',   // row number (client-side)
                 $labHtml,
@@ -154,6 +159,7 @@ class LabVisitController extends BaseController
                 '<span class="small">' . $checkoutFmt . '</span>',
                 $durHtml,
                 $statusBadge,
+                $actionBtn,
             ];
         }
 
@@ -163,6 +169,30 @@ class LabVisitController extends BaseController
             'recordsFiltered' => $recordsFiltered,
             'data'            => $data,
         ]);
+    }
+
+    /**
+     * Force checkout: isi checked_out_at = now() untuk kunjungan yang belum checkout.
+     * POST admin/visits/(:num)/force-checkout
+     */
+    public function forceCheckout(int $id)
+    {
+        if (! activeGroupCan('visits.list')) {
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Forbidden']);
+        }
+
+        $visit = $this->visitModel->find($id);
+        if (! $visit) {
+            return $this->response->setStatusCode(404)->setJSON(['error' => 'Data kunjungan tidak ditemukan.']);
+        }
+        if (! empty($visit['checked_out_at'])) {
+            return $this->response->setStatusCode(422)->setJSON(['error' => 'Pengunjung sudah checkout.']);
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $this->visitModel->update($id, ['checked_out_at' => $now]);
+
+        return $this->response->setJSON(['success' => true, 'checked_out_at' => $now]);
     }
 
     /**

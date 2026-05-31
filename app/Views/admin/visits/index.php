@@ -139,6 +139,7 @@
             <th>Waktu Keluar</th>
             <th>Durasi</th>
             <th>Status</th>
+            <th width="100">Aksi</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -264,8 +265,8 @@ $(function () {
       }
     },
     columnDefs: [
-      { targets: [0, 4, 7, 8], orderable: false, searchable: false },
-      { targets: [6],           searchable: false },
+      { targets: [0, 4, 7, 8, 9], orderable: false, searchable: false },
+      { targets: [6],              searchable: false },
     ],
     drawCallback: function () {
       var api   = this.api();
@@ -313,6 +314,44 @@ $(function () {
 
   $(document).on('keydown', function (e) {
     if (e.key === 'Escape') setDrawerState(false);
+  });
+
+  /* ── Force Checkout ─────────────────────── */
+  var csrfToken = '<?= csrf_token() ?>';
+  var csrfHash  = '<?= csrf_hash() ?>';
+
+  $(document).on('click', '.force-checkout-btn', function () {
+    var btn     = $(this);
+    var visitId = btn.data('id');
+    var name    = btn.data('name');
+
+    if (! confirm('Force checkout untuk "' + name + '"?\nWaktu keluar akan diisi dengan waktu sekarang.')) {
+      return;
+    }
+
+    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+    var postData = {};
+    postData[csrfToken] = csrfHash;
+
+    $.ajax({
+      url     : '<?= base_url('admin/visits/') ?>' + visitId + '/force-checkout',
+      method  : 'POST',
+      data    : postData,
+      dataType: 'json',
+      success : function (res) {
+        if (res.success) {
+          table.ajax.reload(null, false);
+        }
+      },
+      error   : function (xhr) {
+        var msg = (xhr.responseJSON && xhr.responseJSON.error)
+          ? xhr.responseJSON.error
+          : 'Gagal melakukan force checkout.';
+        alert(msg);
+        btn.prop('disabled', false).html('<i class="fas fa-sign-out-alt mr-1"></i>Checkout');
+      }
+    });
   });
 });
 </script>
