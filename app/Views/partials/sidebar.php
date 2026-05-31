@@ -63,6 +63,10 @@ function isDropdownActive(array $paths): string {
       <?php if (activeGroupCan('clearance.access')): ?>
       <li class="menu-header">Surat Bebas Lab</li>
 
+      <li class="<?= isMenuActive('clearance/beranda') ?>">
+        <a class="nav-link" href="<?= base_url('clearance/beranda') ?>"><i class="fas fa-home"></i> <span>Beranda</span></a>
+      </li>
+
       <?php if (activeGroupCan('clearance.request.create')): ?>
       <li class="<?= isMenuActive('clearance/create') ?>">
         <a class="nav-link" href="<?= base_url('clearance/create') ?>"><i class="fas fa-file-signature"></i> <span>Ajukan Surat Bebas</span></a>
@@ -70,7 +74,7 @@ function isDropdownActive(array $paths): string {
       <?php endif; ?>
 
       <?php if (activeGroupCan('clearance.request.track')): ?>
-      <li class="<?= (strpos($currentUrl, 'clearance') === 0) && !isMenuActive('clearance/create') ? 'active' : '' ?>">
+      <li class="<?= (strpos($currentUrl, 'clearance') === 0) && !isMenuActive('clearance/create') && !isMenuActive('clearance/beranda') ? 'active' : '' ?>">
         <a class="nav-link" href="<?= base_url('clearance') ?>"><i class="fas fa-clipboard-check"></i> <span><?= activeGroupCan('clearance.request.manage-all') ? 'Verifikasi Surat Bebas' : 'Surat Bebas Saya' ?></span></a>
       </li>
       <?php endif; ?>

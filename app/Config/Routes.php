@@ -82,6 +82,7 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
     // Surat Bebas Lab (Clearance) Module
     $routes->group('clearance', ['filter' => 'permission:clearance.access'], static function ($routes) {
         $routes->get('/', 'LabClearanceController::index', ['filter' => 'permission:clearance.request.track']);
+        $routes->get('beranda', 'LabClearanceController::beranda', ['filter' => 'permission:clearance.access']);
         $routes->get('datatable', 'LabClearanceController::datatable', ['filter' => 'permission:clearance.request.track']);
         $routes->get('export', 'LabClearanceController::exportHistory', ['filter' => 'permission:clearance.request.track']);
         $routes->get('create', 'LabClearanceController::create', ['filter' => 'permission:clearance.request.create']);

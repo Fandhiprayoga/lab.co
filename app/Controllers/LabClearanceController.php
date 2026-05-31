@@ -24,6 +24,47 @@ class LabClearanceController extends BaseController
         $this->labModel       = new LabModel();
     }
 
+    /**
+     * Beranda / Dashboard modul Surat Bebas Lab.
+     * Menjelaskan fungsi modul, role yang terlibat, dan alur pengajuan,
+     * dilengkapi ringkasan statistik sesuai hak akses pengguna.
+     */
+    public function beranda()
+    {
+        $isManager = $this->canManageAll();
+        $isAlumni  = activeGroupIs('alumni');
+
+        $db = db_connect();
+
+        $base = $db->table('lab_clearance_requests c');
+        if (! $isManager) {
+            $base->where('c.requester_id', auth()->id());
+        }
+
+        $countByStatus = static function (string $status) use ($isManager) {
+            $b = db_connect()->table('lab_clearance_requests')->where('status', $status);
+            if (! $isManager) {
+                $b->where('requester_id', auth()->id());
+            }
+            return $b->countAllResults();
+        };
+
+        $stats = [
+            'total'     => $base->countAllResults(),
+            'submitted' => $countByStatus(self::STATUS_SUBMITTED),
+            'approved'  => $countByStatus(self::STATUS_APPROVED),
+            'rejected'  => $countByStatus(self::STATUS_REJECTED),
+        ];
+
+        return $this->renderView('clearance/beranda', [
+            'title'      => 'Beranda Surat Bebas Lab',
+            'page_title' => 'Beranda Surat Bebas Lab',
+            'isManager'  => $isManager,
+            'isAlumni'   => $isAlumni,
+            'stats'      => $stats,
+        ]);
+    }
+
     public function index()
     {
         $isManager = $this->canManageAll();
