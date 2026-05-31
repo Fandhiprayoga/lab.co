@@ -28,35 +28,14 @@ class ConsumableItemController extends BaseController
             return $guard;
         }
 
-        $labId      = (int) ($this->request->getGet('lab_id') ?? 0);
-        $categoryId = (int) ($this->request->getGet('category_id') ?? 0);
-
-        $builder = db_connect()->table('consumable_items ci')
-            ->select('ci.*, consumable_categories.name AS category_name, units.symbol AS unit_symbol, labs.name AS lab_name')
-            ->join('consumable_categories', 'consumable_categories.id = ci.category_id', 'left')
-            ->join('units', 'units.id = ci.unit_id', 'left')
-            ->join('labs', 'labs.id = ci.lab_id', 'left')
-            ->orderBy('ci.name', 'ASC');
-
-        if ($labId > 0) {
-            $builder->where('ci.lab_id', $labId);
-        }
-
-        if ($categoryId > 0) {
-            $builder->where('ci.category_id', $categoryId);
-        }
-
-        $items      = $builder->get()->getResultArray();
         $labs       = $this->labModel->where('is_active', 1)->orderBy('name', 'ASC')->findAll();
         $categories = $this->categoryModel->where('is_active', 1)->orderBy('sort_order', 'ASC')->findAll();
 
         return $this->renderView('consumables/items/index', [
             'title'      => 'Master Bahan',
             'page_title' => 'Master Bahan Habis Pakai',
-            'items'      => $items,
             'labs'       => $labs,
             'categories' => $categories,
-            'filter'     => compact('labId', 'categoryId'),
         ]);
     }
 
