@@ -14,7 +14,212 @@ $badgeColors = [
     'dosen'      => 'primary',
     'mahasiswa'  => 'secondary',
 ];
+
+// Role pill styles (bg / text color)
+$roleStyle = [
+    'superadmin' => 'background:#fee2e2;color:#dc2626',
+    'laboran'    => 'background:#fef3c7;color:#b45309',
+    'asisten'    => 'background:#dbeafe;color:#1d4ed8',
+    'kepala_lab' => 'background:#d1fae5;color:#059669',
+    'dosen'      => 'background:#ede9fe;color:#6d28d9',
+    'mahasiswa'  => 'background:#f1f5f9;color:#475569',
+];
+$roleCheckBg = [
+    'superadmin' => '#dc2626',
+    'laboran'    => '#b45309',
+    'asisten'    => '#1d4ed8',
+    'kepala_lab' => '#059669',
+    'dosen'      => '#6d28d9',
+    'mahasiswa'  => '#475569',
+];
 ?>
+<style>
+/* ── Navbar User Dropdown ── */
+.ud-menu {
+  min-width: 240px;
+  padding: 0;
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(15,23,42,.14);
+  overflow: hidden;
+}
+.ud-header {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 14px 16px 12px;
+  background: #f8fafc;
+  border-bottom: 1px solid #f1f5f9;
+}
+.ud-avatar {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid #e2e8f0;
+}
+.ud-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+.ud-email {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+.ud-role-section {
+  padding: 10px 16px 10px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.ud-role-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #cbd5e1;
+  margin-bottom: 6px;
+}
+.ud-role-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px 3px 7px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.7;
+}
+.ud-role-pill .rp-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .7;
+  flex-shrink: 0;
+}
+.ud-role-switch-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #cbd5e1;
+  padding: 2px 0 4px;
+}
+.ud-rs-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
+  background: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: background .12s, border-color .12s;
+}
+.ud-rs-btn:hover { background: #f1f5f9; border-color: #cbd5e1; color: #0f172a; }
+.ud-rs-ring {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  border: 2px solid #cbd5e1;
+  flex-shrink: 0;
+  transition: border-color .12s;
+}
+.ud-rs-btn:hover .ud-rs-ring { border-color: #94a3b8; }
+.ud-menu-actions { padding: 6px 0; }
+.ud-menu-actions .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: #334155;
+  transition: background .12s;
+}
+.ud-menu-actions .dropdown-item:hover { background: #f8fafc; color: #0f172a; }
+.ud-menu-actions .dropdown-item i { width: 16px; text-align: center; color: #94a3b8; font-size: 13px; }
+.ud-menu-actions .dropdown-item.text-danger { color: #ef4444 !important; }
+.ud-menu-actions .dropdown-item.text-danger i { color: #ef4444; }
+.ud-menu-actions .dropdown-divider { margin: 4px 16px; border-color: #f1f5f9; }
+
+/* ── Group Switcher Nav Item ── */
+.rs-menu {
+  min-width: 210px;
+  padding: 0;
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(15,23,42,.14);
+  overflow: hidden;
+}
+.rs-menu-head {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #94a3b8;
+  padding: 12px 16px 6px;
+  background: #f8fafc;
+  border-bottom: 1px solid #f1f5f9;
+}
+.rs-active-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  background: #f1f5f9;
+  pointer-events: none;
+}
+.rs-check-circle {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: #fff;
+  flex-shrink: 0;
+}
+.rs-switch-form .rs-switch-btn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 9px 16px;
+  font-size: 13px;
+  color: #64748b;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background .12s, color .12s;
+}
+.rs-switch-form .rs-switch-btn:hover { background: #f8fafc; color: #0f172a; }
+.rs-ring {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  border: 2px solid #e2e8f0;
+  flex-shrink: 0;
+  transition: border-color .12s;
+}
+.rs-switch-form .rs-switch-btn:hover .rs-ring { border-color: #94a3b8; }
+</style>
 <nav class="navbar navbar-expand-lg main-navbar">
   <form class="form-inline mr-auto">
     <ul class="navbar-nav mr-3">
@@ -157,26 +362,29 @@ $badgeColors = [
     <!-- Group Switcher -->
     <?php if (count($userGroups) > 1): ?>
     <li class="dropdown">
-      <a href="#" data-toggle="dropdown" class="nav-link dropdown-toggle nav-link-lg">
-        <i class="fas fa-user-shield"></i>
-        <span class="badge badge-<?= $badgeColors[$active] ?? 'secondary' ?>">
+      <a href="#" data-toggle="dropdown" class="nav-link dropdown-toggle nav-link-lg" title="Ganti Role">
+        <span class="ud-role-pill" style="<?= $roleStyle[$active] ?? 'background:#f1f5f9;color:#475569' ?>; font-size:12px; padding:3px 10px 3px 7px;">
+          <span class="rp-dot"></span>
           <?= esc($authGroups->groups[$active]['title'] ?? ucfirst($active)) ?>
         </span>
+        <i class="fas fa-chevron-down ml-1" style="font-size:10px;opacity:.6;"></i>
       </a>
-      <div class="dropdown-menu dropdown-menu-right">
-        <div class="dropdown-title">Switch Role</div>
+      <div class="dropdown-menu dropdown-menu-right rs-menu">
+        <div class="rs-menu-head">Ganti Role</div>
         <?php foreach ($userGroups as $grp): ?>
           <?php if ($grp === $active): ?>
-            <span class="dropdown-item active disabled">
-              <i class="fas fa-check mr-1"></i>
+            <div class="rs-active-row">
+              <span class="rs-check-circle" style="background:<?= $roleCheckBg[$grp] ?? '#475569' ?>">
+                <i class="fas fa-check"></i>
+              </span>
               <?= esc($authGroups->groups[$grp]['title'] ?? ucfirst($grp)) ?>
-            </span>
+            </div>
           <?php else: ?>
-            <form action="<?= base_url('switch-group') ?>" method="post" class="d-inline">
+            <form action="<?= base_url('switch-group') ?>" method="post" class="rs-switch-form">
               <?= csrf_field() ?>
               <input type="hidden" name="group" value="<?= $grp ?>">
-              <button type="submit" class="dropdown-item">
-                <i class="far fa-circle mr-1"></i>
+              <button type="submit" class="rs-switch-btn">
+                <span class="rs-ring"></span>
                 <?= esc($authGroups->groups[$grp]['title'] ?? ucfirst($grp)) ?>
               </button>
             </form>
@@ -331,28 +539,62 @@ $badgeColors = [
     </script>
 
     <!-- User Menu -->
-    <li class="dropdown"><a href="#" data-toggle="dropdown" class="nav-link dropdown-toggle nav-link-lg nav-link-user">
-      <img alt="image" src="<?= base_url('assets/img/avatar/avatar-1.png') ?>" class="rounded-circle mr-1">
-      <div class="d-sm-none d-lg-inline-block">Hi, <?= esc($currentUser->username ?? 'User') ?></div></a>
-      <div class="dropdown-menu dropdown-menu-right">
-        <div class="dropdown-title">Logged in as <?= esc($currentUser->username ?? 'User') ?></div>
-        <?php if (count($userGroups) === 1): ?>
-        <div class="dropdown-item disabled text-muted">
-          <i class="fas fa-user-shield"></i> Role: <span class="badge badge-<?= $badgeColors[$active] ?? 'secondary' ?>"><?= esc(activeGroupTitle()) ?></span>
+    <li class="dropdown">
+      <a href="#" data-toggle="dropdown" class="nav-link dropdown-toggle nav-link-lg nav-link-user">
+        <img alt="avatar" src="<?= base_url('assets/img/avatar/avatar-1.png') ?>" class="rounded-circle mr-1">
+        <div class="d-sm-none d-lg-inline-block">Hi, <?= esc($currentUser->username ?? 'User') ?></div>
+      </a>
+      <div class="dropdown-menu dropdown-menu-right ud-menu">
+
+        <!-- Header: avatar + name + email -->
+        <div class="ud-header">
+          <img src="<?= base_url('assets/img/avatar/avatar-1.png') ?>" class="ud-avatar" alt="avatar">
+          <div style="min-width:0;">
+            <div class="ud-name"><?= esc($currentUser->username ?? 'User') ?></div>
+            <div class="ud-email"><?= esc($currentUser->email ?? '') ?></div>
+          </div>
         </div>
-        <?php endif; ?>
-        <a href="<?= base_url('profile') ?>" class="dropdown-item has-icon">
-          <i class="far fa-user"></i> Profil
-        </a>
-        <?php if (activeGroupCan('admin.settings')): ?>
-        <a href="<?= base_url('admin/settings') ?>" class="dropdown-item has-icon">
-          <i class="fas fa-cog"></i> Pengaturan
-        </a>
-        <?php endif; ?>
-        <div class="dropdown-divider"></div>
-        <a href="<?= base_url('logout') ?>" class="dropdown-item has-icon text-danger">
-          <i class="fas fa-sign-out-alt"></i> Logout
-        </a>
+
+        <!-- Role section -->
+        <div class="ud-role-section">
+          <div class="ud-role-label">Role Aktif</div>
+          <span class="ud-role-pill" style="<?= $roleStyle[$active] ?? 'background:#f1f5f9;color:#475569' ?>">
+            <span class="rp-dot"></span>
+            <?= esc($authGroups->groups[$active]['title'] ?? ucfirst($active)) ?>
+          </span>
+          <?php if (count($userGroups) > 1): ?>
+            <div class="ud-role-switch-label mt-2">Ganti ke</div>
+            <?php foreach ($userGroups as $grp): ?>
+              <?php if ($grp !== $active): ?>
+                <form action="<?= base_url('switch-group') ?>" method="post" style="margin:0;">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="group" value="<?= $grp ?>">
+                  <button type="submit" class="ud-rs-btn">
+                    <span class="ud-rs-ring"></span>
+                    <?= esc($authGroups->groups[$grp]['title'] ?? ucfirst($grp)) ?>
+                  </button>
+                </form>
+              <?php endif; ?>
+            <?php endforeach; ?>
+          <?php endif; ?>
+        </div>
+
+        <!-- Action links -->
+        <div class="ud-menu-actions">
+          <a href="<?= base_url('profile') ?>" class="dropdown-item">
+            <i class="far fa-user"></i> Profil
+          </a>
+          <?php if (activeGroupCan('admin.settings')): ?>
+          <a href="<?= base_url('admin/settings') ?>" class="dropdown-item">
+            <i class="fas fa-cog"></i> Pengaturan
+          </a>
+          <?php endif; ?>
+          <hr class="dropdown-divider">
+          <a href="<?= base_url('logout') ?>" class="dropdown-item text-danger">
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </a>
+        </div>
+
       </div>
     </li>
   </ul>
