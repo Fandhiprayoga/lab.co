@@ -146,6 +146,11 @@ function isDropdownActive(array $paths): string {
           </li>
         </ul>
       </li>
+
+      <!-- Penetapan Kepala Lab (superadmin only) -->
+      <li class="<?= isMenuActive('admin/kepala-lab') ?>">
+        <a class="nav-link" href="<?= base_url('admin/kepala-lab') ?>"><i class="fas fa-user-tie"></i> <span>Kepala Lab</span></a>
+      </li>
       <?php endif; ?>
 
       <!-- Settings -->

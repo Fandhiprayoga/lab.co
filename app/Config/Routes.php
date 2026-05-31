@@ -164,6 +164,12 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
             $routes->get('permissions', 'RoleController::permissions');
         });
 
+        // Penetapan Kepala Lab (superadmin only, singleton)
+        $routes->group('kepala-lab', ['filter' => 'role:superadmin'], static function ($routes) {
+            $routes->get('/', 'KepalaLabController::index');
+            $routes->post('assign', 'KepalaLabController::assign');
+        });
+
         // Settings
         $routes->group('settings', ['filter' => 'permission:admin.settings'], static function ($routes) {
             $routes->get('/', 'SettingController::index');

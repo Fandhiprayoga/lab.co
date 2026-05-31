@@ -132,6 +132,14 @@ class NotificationService
             'icon'    => 'fas fa-times-circle',
             'color'   => 'danger',
         ],
+
+        // ---- Penetapan Peran ----
+        'role.kepala_lab_assigned' => [
+            'title'   => 'Anda Ditetapkan sebagai Kepala Lab',
+            'message' => 'Anda kini menjabat sebagai Kepala Lab dan bertanggung jawab atas seluruh lab.',
+            'icon'    => 'fas fa-user-tie',
+            'color'   => 'success',
+        ],
     ];
 
     protected NotificationModel $model;
