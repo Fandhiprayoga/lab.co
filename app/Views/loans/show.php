@@ -5,7 +5,7 @@ $actorNames     = $actorNames ?? [];
 $proposalStatus = $proposal['status'] ?? '-';
 $loanType       = $proposal['loan_type'] ?? 'equipment';
 $isEquipment    = $loanType === 'equipment';
-$proposalId     = (int) ($proposal['id'] ?? 0);
+$proposalPublicId = (string) ($proposal['public_id'] ?? '');
 
 $accentColor  = $isEquipment ? '#0288d1' : '#388e3c';
 $accentBg     = $isEquipment ? 'rgba(79,195,247,.1)'  : 'rgba(129,199,132,.1)';
@@ -14,14 +14,20 @@ $typeLabel    = $isEquipment ? 'Alat'                 : 'Laboratorium';
 $typeIcon     = $isEquipment ? 'fa-tools'             : 'fa-door-open';
 
 $statusMap = [
-    'draft'      => ['label' => 'Draft',            'class' => 'secondary', 'icon' => 'fa-file-alt'],
-    'waiting_l1' => ['label' => 'Menunggu Laboran',  'class' => 'warning',   'icon' => 'fa-clock'],
-    'waiting_l2' => ['label' => 'Menunggu Ka.Lab',   'class' => 'info',      'icon' => 'fa-user-check'],
-    'approved'   => ['label' => 'Disetujui',          'class' => 'success',   'icon' => 'fa-check-circle'],
-    'rejected'   => ['label' => 'Ditolak',            'class' => 'danger',    'icon' => 'fa-times-circle'],
-    'canceled'   => ['label' => 'Dibatalkan',         'class' => 'dark',      'icon' => 'fa-ban'],
+    'draft'      => ['label' => 'Draft',            'tone' => 'neutral',  'icon' => 'fa-file-alt'],
+    'waiting_l1' => ['label' => 'Menunggu Laboran', 'tone' => 'waiting',  'icon' => 'fa-clock'],
+    'waiting_l2' => ['label' => 'Menunggu Ka.Lab',  'tone' => 'review',   'icon' => 'fa-user-check'],
+    'approved'   => ['label' => 'Disetujui',        'tone' => 'success',  'icon' => 'fa-check-circle'],
+    'borrowed'   => ['label' => 'Dipinjam',         'tone' => 'active',   'icon' => 'fa-hand-holding'],
+    'late'       => ['label' => 'Terlambat',        'tone' => 'warning',  'icon' => 'fa-exclamation-triangle'],
+    'returned'   => ['label' => 'Dikembalikan',     'tone' => 'success',  'icon' => 'fa-undo'],
+    'problematic'=> ['label' => 'Bermasalah',       'tone' => 'danger',   'icon' => 'fa-exclamation-circle'],
+    'in_use'     => ['label' => 'Sedang Digunakan', 'tone' => 'active',   'icon' => 'fa-play-circle'],
+    'completed'  => ['label' => 'Selesai',          'tone' => 'success',  'icon' => 'fa-flag-checkered'],
+    'rejected'   => ['label' => 'Ditolak',          'tone' => 'danger',   'icon' => 'fa-times-circle'],
+    'canceled'   => ['label' => 'Dibatalkan',       'tone' => 'dark',     'icon' => 'fa-ban'],
 ];
-$statusInfo = $statusMap[$proposalStatus] ?? ['label' => $proposalStatus, 'class' => 'secondary', 'icon' => 'fa-question'];
+$statusInfo = $statusMap[$proposalStatus] ?? ['label' => $proposalStatus, 'tone' => 'neutral', 'icon' => 'fa-question'];
 
 // Build timeline from proposal fields
 $timeline = [];
@@ -88,6 +94,60 @@ if (! empty($proposal['canceled_at'])) {
     ];
 }
 
+if (! empty($proposal['checkout_at'])) {
+  $checkoutActor = $actorNames[(int)($proposal['checkout_by'] ?? 0)] ?? 'Petugas';
+  $checkoutCondition = isset($proposal['checkout_condition'])
+    ? ucwords(str_replace('_', ' ', (string) $proposal['checkout_condition']))
+    : '';
+  $timeline[] = [
+    'time'   => $proposal['checkout_at'],
+    'label'  => 'Check-out Alat',
+    'detail' => esc($checkoutActor) . (! empty($checkoutCondition) ? ': kondisi awal ' . esc($checkoutCondition) : ''),
+    'remark' => '',
+    'color'  => 'primary',
+    'icon'   => 'fa-hand-holding',
+  ];
+}
+
+if (! empty($proposal['checkin_at'])) {
+  $checkinActor = $actorNames[(int)($proposal['checkin_by'] ?? 0)] ?? 'Petugas';
+  $checkinCondition = isset($proposal['checkin_condition'])
+    ? ucwords(str_replace('_', ' ', (string) $proposal['checkin_condition']))
+    : '';
+  $timeline[] = [
+    'time'   => $proposal['checkin_at'],
+    'label'  => (($proposal['status'] ?? '') === 'problematic') ? 'Check-in (Bermasalah)' : 'Check-in Alat',
+    'detail' => esc($checkinActor) . (! empty($checkinCondition) ? ': kondisi akhir ' . esc($checkinCondition) : ''),
+    'remark' => $proposal['issue_note'] ?? '',
+    'color'  => (($proposal['status'] ?? '') === 'problematic') ? 'danger' : 'success',
+    'icon'   => (($proposal['status'] ?? '') === 'problematic') ? 'fa-exclamation-circle' : 'fa-undo',
+  ];
+}
+
+if (! empty($proposal['started_use_at'])) {
+  $startUseActor = $actorNames[(int)($proposal['started_use_by'] ?? 0)] ?? 'Petugas';
+  $timeline[] = [
+    'time'   => $proposal['started_use_at'],
+    'label'  => 'Penggunaan Ruangan Dimulai',
+    'detail' => 'Diverifikasi oleh ' . esc($startUseActor),
+    'remark' => '',
+    'color'  => 'primary',
+    'icon'   => 'fa-play-circle',
+  ];
+}
+
+if (! empty($proposal['finished_use_at'])) {
+  $finishUseActor = $actorNames[(int)($proposal['finished_use_by'] ?? 0)] ?? 'Petugas';
+  $timeline[] = [
+    'time'   => $proposal['finished_use_at'],
+    'label'  => 'Penggunaan Ruangan Selesai',
+    'detail' => 'Diverifikasi oleh ' . esc($finishUseActor),
+    'remark' => '',
+    'color'  => 'success',
+    'icon'   => 'fa-flag-checkered',
+  ];
+}
+
 usort($timeline, fn($a, $b) => strcmp($a['time'], $b['time']));
 
 $dotColors = [
@@ -98,411 +158,758 @@ $dotColors = [
 $fmtDt = fn(?string $dt) => $dt ? date('d M Y, H:i', strtotime($dt)) : '-';
 $fmtD  = fn(?string $dt) => $dt ? date('d M Y', strtotime($dt)) : '-';
 ?>
+<style>
+  .loan-show-page {
+    --surface: #ffffff;
+    --surface-soft: #f6f8fb;
+    --line: #e5e9f2;
+    --ink: #0f172a;
+    --ink-soft: #6b7280;
+    --brand: <?= $accentColor ?>;
+    --brand-soft: <?= $accentBg ?>;
+    font-family: Manrope, "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--ink);
+  }
+  .loan-show-page .chip {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 999px;
+    color: var(--ink-soft);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 0.3rem 0.65rem;
+    text-transform: uppercase;
+  }
+  .loan-show-page .status-badge {
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    padding: 0.4rem 0.75rem;
+    text-transform: uppercase;
+  }
+  .loan-show-page .ux-status {
+    border: 1px solid transparent;
+  }
+  .loan-show-page .ux-status--neutral { background:#eef2f6; border-color:#dde4ec; color:#475467; }
+  .loan-show-page .ux-status--waiting { background:#fff6db; border-color:#ffe3a3; color:#8a6a13; }
+  .loan-show-page .ux-status--review  { background:#e8f4ff; border-color:#cce6ff; color:#0f5c8e; }
+  .loan-show-page .ux-status--active  { background:#e8f0ff; border-color:#cfdcff; color:#1e4eb7; }
+  .loan-show-page .ux-status--success { background:#e8f8ef; border-color:#cdeed9; color:#1f7a3d; }
+  .loan-show-page .ux-status--warning { background:#fff6db; border-color:#ffe3a3; color:#8a6a13; }
+  .loan-show-page .ux-status--danger  { background:#ffefef; border-color:#ffd5d5; color:#b42318; }
+  .loan-show-page .ux-status--dark    { background:#edf0f5; border-color:#d6dce7; color:#344054; }
+  .loan-show-page .modern-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+    margin-bottom: 1rem;
+    overflow: hidden;
+  }
+  .loan-show-page .modern-card .card-head {
+    align-items: center;
+    border-bottom: 1px solid #eef1f6;
+    display: flex;
+    justify-content: space-between;
+    padding: 0.85rem 1rem;
+  }
+  .loan-show-page .modern-card .card-head h6 {
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    margin: 0;
+    text-transform: uppercase;
+  }
+  .loan-show-page .card-body-modern {
+    padding: 1rem;
+  }
+  .loan-show-page .meta-grid {
+    display: grid;
+    gap: 0.65rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .loan-show-page .meta-item {
+    background: var(--surface-soft);
+    border: 1px solid #edf2f7;
+    border-radius: 12px;
+    padding: 0.7rem 0.75rem;
+  }
+  .loan-show-page .meta-label {
+    color: var(--ink-soft);
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.18rem;
+    text-transform: uppercase;
+  }
+  .loan-show-page .meta-value {
+    color: var(--ink);
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+  .loan-show-page .objective-box {
+    background: #fcfdff;
+    border: 1px solid #e8edf5;
+    border-radius: 12px;
+    color: #374151;
+    font-size: 0.86rem;
+    line-height: 1.62;
+    margin-top: 0.9rem;
+    padding: 0.8rem 0.85rem;
+  }
+  .loan-show-page .modern-shell {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+    margin-bottom: 0.72rem;
+    overflow: hidden;
+  }
+  .loan-show-page .modern-shell .shell-body {
+    padding: .95rem;
+  }
+  .loan-show-page .focus-tabs {
+    display: grid;
+    gap: .6rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .loan-show-page .focus-tab-btn {
+    align-items: flex-start;
+    background: #fff;
+    border: 1px solid #e1e7f0;
+    border-radius: 12px;
+    color: #475467;
+    display: flex;
+    flex-direction: column;
+    font-size: .74rem;
+    font-weight: 700;
+    gap: .35rem;
+    letter-spacing: .02em;
+    min-height: 86px;
+    padding: .62rem .72rem;
+    text-align: left;
+    text-decoration: none;
+    transition: all .18s ease;
+  }
+  .loan-show-page .focus-tab-btn i {
+    color: var(--brand);
+    font-size: .92rem;
+  }
+  .loan-show-page .focus-tab-title {
+    color: #111827;
+    font-size: .76rem;
+    font-weight: 800;
+    line-height: 1.35;
+  }
+  .loan-show-page .focus-tab-sub {
+    color: #667085;
+    font-size: .7rem;
+    line-height: 1.35;
+  }
+  .loan-show-page .focus-tab-count {
+    align-items: center;
+    background: #eef2f7;
+    border: 1px solid #d9e1ee;
+    border-radius: 999px;
+    color: #344054;
+    display: inline-flex;
+    font-size: .68rem;
+    font-weight: 800;
+    line-height: 1;
+    min-width: 1.45rem;
+    padding: .22rem .45rem;
+  }
+  .loan-show-page .focus-tab-btn.active .focus-tab-count {
+    background: rgba(255,255,255,.88);
+    border-color: rgba(31, 111, 235, 0.28);
+    color: var(--brand);
+  }
+  .loan-show-page .focus-tab-btn:hover {
+    border-color: #c8d3e6;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    color: #344054;
+    text-decoration: none;
+    transform: translateY(-1px);
+  }
+  .loan-show-page .focus-tab-btn.active {
+    background: linear-gradient(165deg, #ffffff, var(--brand-soft));
+    border-color: rgba(31, 111, 235, 0.28);
+    box-shadow: inset 0 0 0 1px rgba(31, 111, 235, 0.12);
+    color: #1d4f91;
+  }
+  .loan-show-page .focus-panel {
+    display: none;
+  }
+  .loan-show-page .focus-panel.is-visible {
+    display: block;
+  }
+  .loan-show-page .item-row {
+    align-items: center;
+    border-bottom: 1px dashed #e7ebf2;
+    display: flex;
+    gap: 0.65rem;
+    padding: 0.7rem 0;
+  }
+  .loan-show-page .item-row:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+  .loan-show-page .item-index {
+    align-items: center;
+    background: var(--brand);
+    border-radius: 999px;
+    color: #fff;
+    display: inline-flex;
+    font-size: 0.72rem;
+    font-weight: 800;
+    height: 24px;
+    justify-content: center;
+    width: 24px;
+  }
+  .loan-show-page .item-name {
+    font-size: 0.87rem;
+    font-weight: 700;
+    margin-bottom: 0.14rem;
+  }
+  .loan-show-page .item-note {
+    color: var(--ink-soft);
+    font-size: 0.76rem;
+  }
+  .loan-show-page .timeline-wrap {
+    padding-left: 1.8rem;
+    position: relative;
+  }
+  .loan-show-page .timeline-block {
+    margin-bottom: 0.9rem;
+    position: relative;
+  }
+  .loan-show-page .timeline-block:last-child {
+    margin-bottom: 0;
+  }
+  .loan-show-page .timeline-dot {
+    align-items: center;
+    border-radius: 999px;
+    color: #fff;
+    display: inline-flex;
+    font-size: 0.62rem;
+    height: 24px;
+    justify-content: center;
+    left: -1.8rem;
+    position: absolute;
+    top: 0.2rem;
+    width: 24px;
+  }
+  .loan-show-page .timeline-card {
+    background: #f8faff;
+    border: 1px solid #e7edf7;
+    border-left-width: 3px;
+    border-radius: 12px;
+    padding: 0.72rem 0.78rem;
+  }
+  .loan-show-page .timeline-title {
+    font-size: 0.82rem;
+    font-weight: 800;
+  }
+  .loan-show-page .timeline-time {
+    color: var(--ink-soft);
+    font-size: 0.72rem;
+  }
+  .loan-show-page .timeline-detail {
+    color: #556073;
+    font-size: 0.76rem;
+    margin-top: 0.22rem;
+  }
+  .loan-show-page .remark-box {
+    background: #fff5f5;
+    border-left: 3px solid #dc3545;
+    border-radius: 8px;
+    color: #b42318;
+    font-size: 0.75rem;
+    margin-top: 0.42rem;
+    padding: 0.45rem 0.55rem;
+  }
+  .loan-show-page .action-col {
+    position: sticky;
+    top: 0.9rem;
+  }
+  .loan-show-page .action-panel {
+    background: #ffffff;
+    border: 1px solid #e6ebf3;
+    border-radius: 14px;
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.07);
+    margin-bottom: 0.8rem;
+    overflow: hidden;
+  }
+  .loan-show-page .action-panel .panel-head {
+    background: #f8fbff;
+    border-bottom: 1px solid #edf2f9;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    padding: 0.62rem 0.78rem;
+    text-transform: uppercase;
+  }
+  .loan-show-page .action-panel .panel-body {
+    padding: 0.78rem;
+  }
+  .loan-show-page .action-panel .form-group label {
+    color: #667085;
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-bottom: 0.28rem;
+  }
+  .loan-show-page .action-panel .form-control {
+    border-radius: 10px;
+    font-size: 0.84rem;
+  }
+  .loan-show-page .action-panel .btn {
+    border-radius: 10px;
+    font-size: 0.79rem;
+    font-weight: 700;
+  }
+  .loan-show-page .btn-action {
+    border-radius: 10px;
+    font-size: 0.79rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+  .loan-show-page .btn-outline-secondary.btn-action {
+    background: #ffffff !important;
+    border-color: #cfd7e6 !important;
+    color: #344054 !important;
+  }
+  .loan-show-page .btn-outline-secondary.btn-action:hover,
+  .loan-show-page .btn-outline-secondary.btn-action:focus,
+  .loan-show-page .btn-outline-secondary.btn-action:active {
+    background: #f2f5fb !important;
+    border-color: #b9c5db !important;
+    color: #1f2937 !important;
+  }
+  .loan-show-page .notice {
+    background: #fff9e8;
+    border: 1px solid #ffe3a5;
+    border-radius: 12px;
+    color: #8a6a13;
+    font-size: 0.78rem;
+    margin-bottom: 0.8rem;
+    padding: 0.65rem 0.75rem;
+  }
+  @media (max-width: 991.98px) {
+    .loan-show-page .action-col {
+      position: static;
+      top: auto;
+    }
+    .loan-show-page .meta-grid {
+      grid-template-columns: 1fr;
+    }
+    .loan-show-page .focus-tabs {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 575.98px) {
+    .loan-show-page .focus-tabs {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
 
-<?php /* ── STEP WIZARD ── */ ?>
-<div class="card border-0 shadow-sm mb-4">
-  <div class="card-body py-3 px-4">
-    <div class="d-flex align-items-center">
-      <div class="d-flex align-items-center flex-shrink-0">
-        <div class="d-flex align-items-center justify-content-center rounded-circle bg-success text-white"
-             style="width:32px;height:32px;font-size:.8rem;flex-shrink:0">
-          <i class="fas fa-check"></i>
-        </div>
-        <div class="ml-2">
-          <div class="font-weight-bold small text-success">Step 1</div>
-          <div class="text-muted" style="font-size:.72rem">Info Proposal</div>
-        </div>
-      </div>
-      <div class="flex-grow-1 mx-2" style="height:2px;background:#28a745"></div>
-      <div class="d-flex align-items-center flex-shrink-0">
-        <div class="d-flex align-items-center justify-content-center rounded-circle bg-success text-white"
-             style="width:32px;height:32px;font-size:.8rem;flex-shrink:0">
-          <i class="fas fa-check"></i>
-        </div>
-        <div class="ml-2">
-          <div class="font-weight-bold small text-success">Step 2</div>
-          <div class="text-muted" style="font-size:.72rem">Pilih <?= $typeLabel ?></div>
-        </div>
-      </div>
-      <div class="flex-grow-1 mx-2" style="height:2px;background:#28a745"></div>
-      <div class="d-flex align-items-center flex-shrink-0">
-        <div class="d-flex align-items-center justify-content-center rounded-circle text-white font-weight-bold"
-             style="width:32px;height:32px;font-size:.82rem;background:#6777ef;flex-shrink:0">3</div>
-        <div class="ml-2">
-          <div class="font-weight-bold small" style="color:#6777ef">Step 3</div>
-          <div class="text-muted" style="font-size:.72rem">Kirim &amp; Approval</div>
-        </div>
+<div class="loan-show-page">
+  <div class="modern-shell">
+    <div class="shell-body py-2">
+      <div class="focus-tabs" id="focus-tabs-show">
+        <button type="button" class="focus-tab-btn active" data-focus-tab="summary">
+          <i class="fas fa-file-alt"></i>
+          <span class="focus-tab-title">Ringkasan Proposal</span>
+          <span class="focus-tab-sub">Informasi utama pengajuan.</span>
+        </button>
+        <button type="button" class="focus-tab-btn" data-focus-tab="items">
+          <i class="fas <?= $typeIcon ?>"></i>
+          <span class="d-flex align-items-center" style="gap:.35rem;">
+            <span class="focus-tab-title">Item <?= esc($typeLabel) ?></span>
+            <span class="focus-tab-count"><?= count($items) ?></span>
+          </span>
+          <span class="focus-tab-sub">Daftar item dalam proposal.</span>
+        </button>
+        <button type="button" class="focus-tab-btn" data-focus-tab="timeline">
+          <i class="fas fa-history"></i>
+          <span class="d-flex align-items-center" style="gap:.35rem;">
+            <span class="focus-tab-title">Timeline Proses</span>
+            <span class="focus-tab-count"><?= count($timeline) ?></span>
+          </span>
+          <span class="focus-tab-sub">Riwayat tahapan proposal.</span>
+        </button>
+        <button type="button" class="focus-tab-btn" data-focus-tab="actions">
+          <i class="fas fa-bolt"></i>
+          <span class="focus-tab-title">Panel Aksi</span>
+          <span class="focus-tab-sub">Approval, verifikasi, dan navigasi.</span>
+        </button>
       </div>
     </div>
   </div>
-</div>
 
-<?php /* ── PROPOSAL HEADER CARD ── */ ?>
-<div class="card border-0 shadow-sm mb-4" style="border-left:4px solid <?= $accentColor ?>!important">
-  <div class="card-body py-3 px-4">
-    <div class="row align-items-center">
-      <div class="col-md-8">
-        <div class="d-flex align-items-center">
-          <div class="rounded-circle d-flex align-items-center justify-content-center mr-3 flex-shrink-0"
-               style="width:44px;height:44px;background:<?= $accentBg ?>">
-            <i class="fas <?= $typeIcon ?> fa-lg" style="color:<?= $accentColor ?>"></i>
+  <div class="row">
+    <div class="col-lg-8" id="focus-left-col">
+      <section class="modern-card focus-panel is-visible" id="focus-panel-summary">
+        <div class="card-head">
+          <h6>Ringkasan Proposal</h6>
+        </div>
+        <div class="card-body-modern">
+          <div class="meta-grid">
+            <div class="meta-item">
+              <div class="meta-label">Tipe Peminjaman</div>
+              <div class="meta-value"><i class="fas <?= $typeIcon ?> mr-1"></i><?= esc($typeLabel) ?></div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-label">Status Saat Ini</div>
+              <div class="meta-value"><?= esc($statusInfo['label']) ?></div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-label">Waktu Mulai</div>
+              <div class="meta-value"><?= $fmtDt($proposal['start_at'] ?? null) ?></div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-label">Waktu Selesai</div>
+              <div class="meta-value"><?= $fmtDt($proposal['end_at'] ?? null) ?></div>
+            </div>
           </div>
-          <div>
-            <h5 class="mb-0 font-weight-bold"><?= esc($proposal['title'] ?? '-') ?></h5>
-            <span class="text-muted small mr-2"><?= esc($proposal['proposal_code'] ?? '-') ?></span>
-            <span class="badge badge-<?= $isEquipment ? 'primary' : 'success' ?>">
-              <i class="fas <?= $typeIcon ?> mr-1"></i><?= $typeLabel ?>
-            </span>
+          <div class="objective-box">
+            <?= nl2br(esc($proposal['objective'] ?? '-')) ?>
           </div>
         </div>
-      </div>
-      <div class="col-md-4 text-md-right mt-2 mt-md-0">
-        <span class="badge badge-<?= $statusInfo['class'] ?> px-3 py-2" style="font-size:.85rem">
-          <i class="fas <?= $statusInfo['icon'] ?> mr-1"></i><?= $statusInfo['label'] ?>
-        </span>
-        <div class="text-muted small mt-1">
-          <i class="fas fa-user mr-1"></i><?= esc($proposal['proposer_name'] ?? '-') ?>
-          &nbsp;&bull;&nbsp;
-          <i class="fas fa-calendar-alt mr-1"></i><?= $fmtD($proposal['created_at'] ?? null) ?>
+      </section>
+
+      <section class="modern-card focus-panel" id="focus-panel-items">
+        <div class="card-head">
+          <h6>Item <?= esc($typeLabel) ?></h6>
+          <span class="chip"><?= count($items) ?> item</span>
         </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<?php /* ── MAIN ROW ── */ ?>
-<div class="row">
-
-  <?php /* ── LEFT: Tabs ── */ ?>
-  <div class="col-lg-8 mb-4">
-    <div class="card border-0 shadow-sm">
-      <div class="card-header bg-white px-4 pb-0 pt-3">
-        <ul class="nav nav-tabs card-header-tabs" id="proposalTabs" role="tablist">
-          <li class="nav-item">
-            <a class="nav-link active" data-toggle="tab" href="#pane-detail" role="tab">
-              <i class="fas fa-info-circle mr-1"></i>Detail
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" data-toggle="tab" href="#pane-history" role="tab">
-              <i class="fas fa-history mr-1"></i>Riwayat
-              <span class="badge badge-light ml-1"><?= count($timeline) ?></span>
-            </a>
-          </li>
-        </ul>
-      </div>
-
-      <div class="tab-content">
-
-        <?php /* ── TAB: Detail ── */ ?>
-        <div class="tab-pane fade show active p-4" id="pane-detail" role="tabpanel">
-
-          <h6 class="text-muted text-uppercase font-weight-bold mb-3" style="font-size:.7rem;letter-spacing:.08em">
-            Informasi Proposal
-          </h6>
-          <div class="row small mb-4">
-            <div class="col-sm-6 mb-3">
-              <div class="text-muted mb-1">Pengusul</div>
-              <div class="font-weight-semibold"><?= esc($proposal['proposer_name'] ?? '-') ?></div>
-            </div>
-            <div class="col-sm-6 mb-3">
-              <div class="text-muted mb-1">Tipe Peminjaman</div>
-              <span class="badge badge-<?= $isEquipment ? 'primary' : 'success' ?>">
-                <i class="fas <?= $typeIcon ?> mr-1"></i><?= $typeLabel ?>
-              </span>
-            </div>
-            <div class="col-sm-6 mb-3">
-              <div class="text-muted mb-1"><i class="fas fa-calendar-check mr-1 text-success"></i>Mulai</div>
-              <div><?= $fmtDt($proposal['start_at'] ?? null) ?></div>
-            </div>
-            <div class="col-sm-6 mb-3">
-              <div class="text-muted mb-1"><i class="fas fa-calendar-times mr-1 text-danger"></i>Selesai</div>
-              <div><?= $fmtDt($proposal['end_at'] ?? null) ?></div>
-            </div>
-            <div class="col-12">
-              <div class="text-muted mb-1">Tujuan / Deskripsi</div>
-              <div class="p-3 rounded" style="background:#f8f9fa;font-size:.88rem;line-height:1.7">
-                <?= nl2br(esc($proposal['objective'] ?? '-')) ?>
-              </div>
-            </div>
-          </div>
-
-          <hr class="my-0 mb-4">
-
-          <h6 class="text-muted text-uppercase font-weight-bold mb-3" style="font-size:.7rem;letter-spacing:.08em">
-            Item <?= $typeLabel ?> dalam Proposal
-            <span class="badge badge-light border ml-1"><?= count($items) ?></span>
-          </h6>
-
+        <div class="card-body-modern">
           <?php if (empty($items)): ?>
-          <div class="text-center py-4 text-muted">
-            <i class="fas fa-inbox fa-2x mb-2 d-block" style="opacity:.3"></i>
-            Tidak ada item dalam proposal ini.
-          </div>
+            <div class="text-center text-muted py-3">
+              <i class="fas fa-box-open d-block mb-2" style="font-size:1.2rem;opacity:.45"></i>
+              Tidak ada item dalam proposal ini.
+            </div>
           <?php else: ?>
-          <div class="list-group list-group-flush rounded" style="border:1px solid #e9ecef">
             <?php foreach ($items as $idx => $item): ?>
-            <div class="list-group-item py-3">
-              <div class="d-flex align-items-center">
-                <div class="d-flex align-items-center justify-content-center rounded-circle text-white flex-shrink-0 mr-3"
-                     style="width:28px;height:28px;font-size:.75rem;font-weight:700;background:<?= $accentColor ?>">
-                  <?= $idx + 1 ?>
-                </div>
+              <div class="item-row">
+                <span class="item-index"><?= $idx + 1 ?></span>
                 <div class="flex-grow-1">
-                  <div class="small font-weight-semibold">
-                    <?= esc($isEquipment ? ($item['equipment_name'] ?? '-') : ($item['lab_name'] ?? '-')) ?>
-                  </div>
-                  <div class="text-muted" style="font-size:.75rem">
+                  <div class="item-name"><?= esc($isEquipment ? ($item['equipment_name'] ?? '-') : ($item['lab_name'] ?? '-')) ?></div>
+                  <div class="item-note">
                     <?php if ($isEquipment): ?>
-                      <span class="badge badge-light border">Qty: <?= (int)$item['qty'] ?></span>
+                      Qty: <?= (int) ($item['qty'] ?? 0) ?>
                     <?php endif; ?>
                     <?php if (! empty($item['note'])): ?>
-                      <span class="ml-1"><?= esc($item['note']) ?></span>
+                      <?php if ($isEquipment): ?> &middot; <?php endif; ?><?= esc($item['note']) ?>
                     <?php endif; ?>
                   </div>
                 </div>
               </div>
-            </div>
             <?php endforeach; ?>
-          </div>
           <?php endif; ?>
+        </div>
+      </section>
 
-        </div><!-- /pane-detail -->
-
-        <?php /* ── TAB: Riwayat ── */ ?>
-        <div class="tab-pane fade p-4" id="pane-history" role="tabpanel">
-
-          <h6 class="text-muted text-uppercase font-weight-bold mb-4" style="font-size:.7rem;letter-spacing:.08em">
-            Riwayat Status &amp; Approval
-          </h6>
-
+      <section class="modern-card focus-panel" id="focus-panel-timeline">
+        <div class="card-head">
+          <h6>Timeline Proses</h6>
+          <span class="chip"><?= count($timeline) ?> event</span>
+        </div>
+        <div class="card-body-modern">
           <?php if (empty($timeline)): ?>
-          <div class="text-center py-4 text-muted">
-            <i class="fas fa-history fa-2x mb-2 d-block" style="opacity:.3"></i>Belum ada riwayat.
-          </div>
-          <?php else: ?>
-          <div style="position:relative;padding-left:2.5rem">
-            <?php foreach ($timeline as $i => $ev):
-              $isLast  = ($i === count($timeline) - 1);
-              $dotClr  = $dotColors[$ev['color']] ?? '#6c757d';
-            ?>
-            <div style="position:relative;margin-bottom:<?= $isLast ? '0' : '1.75rem' ?>">
-
-              <?php /* vertical connector */ ?>
-              <?php if (! $isLast): ?>
-              <div style="position:absolute;left:-1.75rem;top:1.75rem;bottom:-1.75rem;width:2px;background:#e9ecef;z-index:0"></div>
-              <?php endif; ?>
-
-              <?php /* icon dot */ ?>
-              <div class="d-flex align-items-center justify-content-center rounded-circle text-white"
-                   style="position:absolute;left:-2.5rem;top:.2rem;width:1.5rem;height:1.5rem;font-size:.6rem;
-                          background:<?= $dotClr ?>;z-index:1;box-shadow:0 0 0 3px #fff,0 0 0 4px <?= $dotClr ?>3a">
-                <i class="fas <?= $ev['icon'] ?>"></i>
-              </div>
-
-              <div class="rounded p-3" style="background:#f8f9fa;border-left:3px solid <?= $dotClr ?>">
-                <div class="d-flex align-items-start justify-content-between">
-                  <span class="font-weight-bold small"><?= $ev['label'] ?></span>
-                  <span class="text-muted flex-shrink-0 ml-2" style="font-size:.72rem;white-space:nowrap">
-                    <?= $fmtDt($ev['time']) ?>
-                  </span>
-                </div>
-                <?php if (! empty($ev['detail'])): ?>
-                <div class="text-muted small mt-1"><?= $ev['detail'] ?></div>
-                <?php endif; ?>
-                <?php if (! empty($ev['remark'])): ?>
-                <div class="mt-2 p-2 rounded small" style="background:#fff5f5;border-left:3px solid #dc3545">
-                  <div class="font-weight-bold text-muted mb-1" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.06em">
-                    Alasan / Catatan
-                  </div>
-                  <div class="text-danger"><?= esc($ev['remark']) ?></div>
-                </div>
-                <?php endif; ?>
-              </div>
-
+            <div class="text-center text-muted py-3">
+              <i class="fas fa-history d-block mb-2" style="font-size:1.2rem;opacity:.45"></i>
+              Belum ada riwayat proses.
             </div>
-            <?php endforeach; ?>
-          </div>
-          <?php endif; ?>
-
-        </div><!-- /pane-history -->
-
-      </div><!-- /tab-content -->
-    </div>
-  </div>
-
-  <?php /* ── RIGHT: Action Panel ── */ ?>
-  <div class="col-lg-4">
-
-    <?php /* Rejection alert */ ?>
-    <?php if ($proposalStatus === 'rejected' && ! empty($proposal['rejected_reason'])): ?>
-    <div class="alert alert-danger border-0 shadow-sm mb-3" role="alert">
-      <div class="font-weight-bold mb-1 small">
-        <i class="fas fa-times-circle mr-1"></i>Alasan Penolakan
-      </div>
-      <div style="font-size:.88rem"><?= esc($proposal['rejected_reason']) ?></div>
-    </div>
-    <?php endif; ?>
-
-    <?php /* Cancellation alert */ ?>
-    <?php if ($proposalStatus === 'canceled' && ! empty($proposal['cancel_reason'])): ?>
-    <div class="alert alert-secondary border-0 shadow-sm mb-3" role="alert">
-      <div class="font-weight-bold mb-1 small">
-        <i class="fas fa-ban mr-1"></i>Alasan Pembatalan
-      </div>
-      <div style="font-size:.88rem"><?= esc($proposal['cancel_reason']) ?></div>
-    </div>
-    <?php endif; ?>
-
-    <?php /* Approved summary card */ ?>
-    <?php if ($proposalStatus === 'approved'): ?>
-    <div class="card border-0 shadow-sm mb-3" style="border-top:3px solid #28a745!important">
-      <div class="card-body p-3 text-center">
-        <i class="fas fa-check-circle fa-2x text-success mb-2 d-block"></i>
-        <div class="font-weight-bold text-success">Proposal Disetujui</div>
-        <?php if (! empty($proposal['approval_l1_at'])): ?>
-        <div class="text-muted small mt-1">
-          L1: <?= $fmtD($proposal['approval_l1_at']) ?>
-          <?php if (! empty($proposal['approval_l2_at'])): ?>
-            &bull; L2: <?= $fmtD($proposal['approval_l2_at']) ?>
+          <?php else: ?>
+            <div class="timeline-wrap">
+              <?php foreach ($timeline as $ev): ?>
+                <?php $dotClr = $dotColors[$ev['color']] ?? '#6c757d'; ?>
+                <article class="timeline-block">
+                  <span class="timeline-dot" style="background:<?= $dotClr ?>"><i class="fas <?= esc($ev['icon']) ?>"></i></span>
+                  <div class="timeline-card" style="border-left-color:<?= $dotClr ?>">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div class="timeline-title"><?= esc($ev['label']) ?></div>
+                      <div class="timeline-time"><?= $fmtDt($ev['time']) ?></div>
+                    </div>
+                    <?php if (! empty($ev['detail'])): ?>
+                      <div class="timeline-detail"><?= $ev['detail'] ?></div>
+                    <?php endif; ?>
+                    <?php if (! empty($ev['remark'])): ?>
+                      <div class="remark-box"><?= esc($ev['remark']) ?></div>
+                    <?php endif; ?>
+                  </div>
+                </article>
+              <?php endforeach; ?>
+            </div>
           <?php endif; ?>
         </div>
-        <?php endif; ?>
-        <?php if (! empty($proposal['approval_l1_note']) || ! empty($proposal['approval_l2_note'])): ?>
-        <div class="mt-2 text-left p-2 rounded" style="background:#f1f8f1;font-size:.78rem">
-          <?php if (! empty($proposal['approval_l1_note'])): ?>
-          <div class="text-muted"><strong>Laboran:</strong> <?= esc($proposal['approval_l1_note']) ?></div>
-          <?php endif; ?>
-          <?php if (! empty($proposal['approval_l2_note'])): ?>
-          <div class="text-muted mt-1"><strong>Ka.Lab:</strong> <?= esc($proposal['approval_l2_note']) ?></div>
-          <?php endif; ?>
-        </div>
-        <?php endif; ?>
-      </div>
+      </section>
     </div>
-    <?php endif; ?>
 
-    <?php /* Waiting notice */ ?>
-    <?php if (in_array($proposalStatus, ['waiting_l1', 'waiting_l2'])): ?>
-    <div class="card border-0 shadow-sm mb-3" style="background:#fffde7;border-left:3px solid #ffc107!important">
-      <div class="card-body p-3">
-        <div class="font-weight-bold small mb-1" style="color:#856404">
-          <i class="fas fa-hourglass-half mr-1"></i>Menunggu Persetujuan
+    <div class="col-lg-4 action-col focus-panel" id="focus-panel-actions">
+      <?php if ($proposalStatus === 'rejected' && ! empty($proposal['rejected_reason'])): ?>
+        <div class="notice">
+          <strong><i class="fas fa-times-circle mr-1"></i>Alasan Penolakan:</strong>
+          <div class="mt-1"><?= esc($proposal['rejected_reason']) ?></div>
         </div>
-        <div class="text-muted small">
-          <?= $proposalStatus === 'waiting_l1'
+      <?php endif; ?>
+
+      <?php if ($proposalStatus === 'canceled' && ! empty($proposal['cancel_reason'])): ?>
+        <div class="notice" style="background:#f5f7fa;border-color:#dbe3ef;color:#475467;">
+          <strong><i class="fas fa-ban mr-1"></i>Alasan Pembatalan:</strong>
+          <div class="mt-1"><?= esc($proposal['cancel_reason']) ?></div>
+        </div>
+      <?php endif; ?>
+
+      <?php if (in_array($proposalStatus, ['waiting_l1', 'waiting_l2'], true)): ?>
+        <div class="notice">
+          <strong><i class="fas fa-hourglass-half mr-1"></i>Menunggu Persetujuan</strong>
+          <div class="mt-1">
+            <?= $proposalStatus === 'waiting_l1'
               ? 'Proposal sedang menunggu persetujuan Laboran.'
-              : 'Sudah disetujui Laboran. Menunggu persetujuan Kepala Lab.' ?>
+              : 'Sudah disetujui Laboran dan menunggu persetujuan Kepala Lab.' ?>
+          </div>
         </div>
-      </div>
-    </div>
-    <?php endif; ?>
+      <?php endif; ?>
 
-    <?php /* L1 Approval panel */ ?>
-    <?php if (activeGroupCan('lending.approval.l1') && $proposalStatus === 'waiting_l1'): ?>
-    <div class="card border-0 shadow-sm mb-3" style="border-top:3px solid #28a745!important">
-      <div class="card-header bg-white py-2 px-3">
-        <h6 class="mb-0 font-weight-bold small">
-          <i class="fas fa-user-check mr-2 text-success"></i>Approval Laboran
-        </h6>
-      </div>
-      <div class="card-body p-3">
-        <form action="<?= base_url('loans/' . $proposalId . '/approve-l1') ?>" method="post" class="mb-3">
-          <?= csrf_field() ?>
-          <div class="form-group mb-2">
-            <label class="small text-muted">Catatan (opsional)</label>
-            <input type="text" name="approval_l1_note" class="form-control form-control-sm"
-                   placeholder="Tambahkan catatan...">
+      <?php if ($isEquipment && activeGroupCan('lending.checkout') && $proposalStatus === 'approved'): ?>
+        <section class="action-panel">
+          <div class="panel-head"><i class="fas fa-hand-holding mr-1"></i>Check-out Alat</div>
+          <div class="panel-body">
+            <form action="<?= base_url('loans/' . $proposalPublicId . '/checkout') ?>" method="post">
+              <?= csrf_field() ?>
+              <div class="form-group">
+                <label>Kondisi Awal</label>
+                <select name="checkout_condition" class="form-control form-control-sm" required>
+                  <option value="baik">Baik</option>
+                  <option value="siap_pakai">Siap Pakai</option>
+                  <option value="catatan">Perlu Catatan</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm btn-block btn-action">
+                <i class="fas fa-hand-holding mr-1"></i>Proses Check-out
+              </button>
+            </form>
           </div>
-          <button type="submit" class="btn btn-success btn-sm btn-block">
-            <i class="fas fa-check mr-1"></i>Setujui Proposal
-          </button>
-        </form>
-        <div class="divider text-center mb-3"><span class="bg-white px-2 text-muted small">atau</span><hr class="mt-n3"></div>
-        <form action="<?= base_url('loans/' . $proposalId . '/reject-l1') ?>" method="post">
-          <?= csrf_field() ?>
-          <div class="form-group mb-2">
-            <label class="small text-muted">Alasan Penolakan <span class="text-danger">*</span></label>
-            <textarea name="rejected_reason" class="form-control form-control-sm" rows="3"
-                      placeholder="Jelaskan alasan penolakan..." required></textarea>
-          </div>
-          <button type="submit" class="btn btn-danger btn-sm btn-block">
-            <i class="fas fa-times mr-1"></i>Tolak Proposal
-          </button>
-        </form>
-      </div>
-    </div>
-    <?php endif; ?>
+        </section>
+      <?php endif; ?>
 
-    <?php /* L2 Approval panel */ ?>
-    <?php if (activeGroupCan('lending.approval.l2') && $proposalStatus === 'waiting_l2'): ?>
-    <div class="card border-0 shadow-sm mb-3" style="border-top:3px solid #17a2b8!important">
-      <div class="card-header bg-white py-2 px-3">
-        <h6 class="mb-0 font-weight-bold small">
-          <i class="fas fa-user-shield mr-2 text-info"></i>Approval Kepala Lab
-        </h6>
-      </div>
-      <div class="card-body p-3">
-        <form action="<?= base_url('loans/' . $proposalId . '/approve-l2') ?>" method="post" class="mb-3">
-          <?= csrf_field() ?>
-          <div class="form-group mb-2">
-            <label class="small text-muted">Catatan (opsional)</label>
-            <input type="text" name="approval_l2_note" class="form-control form-control-sm"
-                   placeholder="Tambahkan catatan...">
+      <?php if ($isEquipment && activeGroupCan('lending.checkin') && in_array($proposalStatus, ['borrowed', 'late'], true)): ?>
+        <section class="action-panel">
+          <div class="panel-head"><i class="fas fa-undo mr-1"></i>Check-in Alat</div>
+          <div class="panel-body">
+            <form action="<?= base_url('loans/' . $proposalPublicId . '/checkin') ?>" method="post">
+              <?= csrf_field() ?>
+              <div class="form-group">
+                <label>Kondisi Akhir</label>
+                <select name="checkin_condition" class="form-control form-control-sm" required>
+                  <option value="baik">Baik</option>
+                  <option value="rusak_ringan">Rusak Ringan</option>
+                  <option value="rusak_berat">Rusak Berat</option>
+                  <option value="hilang">Hilang</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Catatan Masalah (opsional)</label>
+                <textarea name="issue_note" class="form-control form-control-sm" rows="2" placeholder="Isi jika ada kerusakan/kehilangan"></textarea>
+              </div>
+              <button type="submit" class="btn btn-success btn-sm btn-block btn-action">
+                <i class="fas fa-undo mr-1"></i>Proses Check-in
+              </button>
+            </form>
           </div>
-          <button type="submit" class="btn btn-success btn-sm btn-block">
-            <i class="fas fa-check mr-1"></i>Setujui Proposal
-          </button>
-        </form>
-        <div class="divider text-center mb-3"><span class="bg-white px-2 text-muted small">atau</span><hr class="mt-n3"></div>
-        <form action="<?= base_url('loans/' . $proposalId . '/reject-l2') ?>" method="post">
-          <?= csrf_field() ?>
-          <div class="form-group mb-2">
-            <label class="small text-muted">Alasan Penolakan <span class="text-danger">*</span></label>
-            <textarea name="rejected_reason" class="form-control form-control-sm" rows="3"
-                      placeholder="Jelaskan alasan penolakan..." required></textarea>
-          </div>
-          <button type="submit" class="btn btn-danger btn-sm btn-block">
-            <i class="fas fa-times mr-1"></i>Tolak Proposal
-          </button>
-        </form>
-      </div>
-    </div>
-    <?php endif; ?>
+        </section>
+      <?php endif; ?>
 
-    <?php /* Cancel button */ ?>
-    <?php if (
+      <?php if (! $isEquipment && activeGroupCan('lending.checkout') && $proposalStatus === 'approved'): ?>
+        <section class="action-panel">
+          <div class="panel-head"><i class="fas fa-play mr-1"></i>Mulai Penggunaan</div>
+          <div class="panel-body">
+            <p class="text-muted small mb-2">Verifikasi bahwa ruangan mulai digunakan.</p>
+            <form action="<?= base_url('loans/' . $proposalPublicId . '/usage/start') ?>" method="post">
+              <?= csrf_field() ?>
+              <button type="submit" class="btn btn-primary btn-sm btn-block btn-action">
+                <i class="fas fa-play mr-1"></i>Mulai Penggunaan
+              </button>
+            </form>
+          </div>
+        </section>
+      <?php endif; ?>
+
+      <?php if (! $isEquipment && activeGroupCan('lending.checkin') && $proposalStatus === 'in_use'): ?>
+        <section class="action-panel">
+          <div class="panel-head"><i class="fas fa-flag-checkered mr-1"></i>Selesaikan Penggunaan</div>
+          <div class="panel-body">
+            <p class="text-muted small mb-2">Verifikasi penggunaan ruangan sudah selesai.</p>
+            <form action="<?= base_url('loans/' . $proposalPublicId . '/usage/finish') ?>" method="post">
+              <?= csrf_field() ?>
+              <button type="submit" class="btn btn-success btn-sm btn-block btn-action">
+                <i class="fas fa-flag-checkered mr-1"></i>Selesaikan Penggunaan
+              </button>
+            </form>
+          </div>
+        </section>
+      <?php endif; ?>
+
+      <?php if (activeGroupCan('lending.approval.l1') && $proposalStatus === 'waiting_l1'): ?>
+        <section class="action-panel">
+          <div class="panel-head"><i class="fas fa-user-check mr-1"></i>Approval Laboran</div>
+          <div class="panel-body">
+            <form action="<?= base_url('loans/' . $proposalPublicId . '/approve-l1') ?>" method="post" class="mb-3">
+              <?= csrf_field() ?>
+              <div class="form-group mb-2">
+                <label>Catatan (opsional)</label>
+                <input type="text" name="approval_l1_note" class="form-control form-control-sm" placeholder="Tambahkan catatan...">
+              </div>
+              <button type="submit" class="btn btn-success btn-sm btn-block btn-action"><i class="fas fa-check mr-1"></i>Setujui Proposal</button>
+            </form>
+
+            <form action="<?= base_url('loans/' . $proposalPublicId . '/reject-l1') ?>" method="post">
+              <?= csrf_field() ?>
+              <div class="form-group mb-2">
+                <label>Alasan Penolakan <span class="text-danger">*</span></label>
+                <textarea name="rejected_reason" class="form-control form-control-sm" rows="3" placeholder="Jelaskan alasan penolakan..." required></textarea>
+              </div>
+              <button type="submit" class="btn btn-danger btn-sm btn-block btn-action"><i class="fas fa-times mr-1"></i>Tolak Proposal</button>
+            </form>
+          </div>
+        </section>
+      <?php endif; ?>
+
+      <?php if (activeGroupCan('lending.approval.l2') && $proposalStatus === 'waiting_l2'): ?>
+        <section class="action-panel">
+          <div class="panel-head"><i class="fas fa-user-shield mr-1"></i>Approval Kepala Lab</div>
+          <div class="panel-body">
+            <form action="<?= base_url('loans/' . $proposalPublicId . '/approve-l2') ?>" method="post" class="mb-3">
+              <?= csrf_field() ?>
+              <div class="form-group mb-2">
+                <label>Catatan (opsional)</label>
+                <input type="text" name="approval_l2_note" class="form-control form-control-sm" placeholder="Tambahkan catatan...">
+              </div>
+              <button type="submit" class="btn btn-success btn-sm btn-block btn-action"><i class="fas fa-check mr-1"></i>Setujui Proposal</button>
+            </form>
+
+            <form action="<?= base_url('loans/' . $proposalPublicId . '/reject-l2') ?>" method="post">
+              <?= csrf_field() ?>
+              <div class="form-group mb-2">
+                <label>Alasan Penolakan <span class="text-danger">*</span></label>
+                <textarea name="rejected_reason" class="form-control form-control-sm" rows="3" placeholder="Jelaskan alasan penolakan..." required></textarea>
+              </div>
+              <button type="submit" class="btn btn-danger btn-sm btn-block btn-action"><i class="fas fa-times mr-1"></i>Tolak Proposal</button>
+            </form>
+          </div>
+        </section>
+      <?php endif; ?>
+
+      <?php if (
         activeGroupCan('lending.request.cancel')
         && in_array($proposalStatus, ['waiting_l1', 'waiting_l2'], true)
         && ((int)($proposal['proposer_id'] ?? 0) === (int)auth()->id() || activeGroupCan('lending.request.manage-all'))
-    ): ?>
-    <div class="card border-0 shadow-sm mb-3">
-      <div class="card-body p-3">
-        <button class="btn btn-outline-danger btn-sm btn-block" data-toggle="collapse" data-target="#cancel-form">
-          <i class="fas fa-ban mr-1"></i>Batalkan Proposal
-        </button>
-        <div class="collapse mt-3" id="cancel-form">
-          <form action="<?= base_url('loans/' . $proposalId . '/cancel') ?>" method="post">
-            <?= csrf_field() ?>
-            <div class="form-group mb-2">
-              <label class="small font-weight-bold">Alasan Pembatalan <span class="text-danger">*</span></label>
-              <textarea name="cancel_reason" class="form-control form-control-sm" rows="3"
-                        placeholder="Jelaskan alasan pembatalan..." required></textarea>
-            </div>
-            <button type="submit" class="btn btn-danger btn-sm btn-block">
-              <i class="fas fa-ban mr-1"></i>Konfirmasi Batalkan
-            </button>
-          </form>
-        </div>
-      </div>
+      ): ?>
+        <section class="action-panel">
+          <div class="panel-head"><i class="fas fa-ban mr-1"></i>Batalkan Proposal</div>
+          <div class="panel-body">
+            <form action="<?= base_url('loans/' . $proposalPublicId . '/cancel') ?>" method="post">
+              <?= csrf_field() ?>
+              <div class="form-group mb-2">
+                <label>Alasan Pembatalan <span class="text-danger">*</span></label>
+                <textarea name="cancel_reason" class="form-control form-control-sm" rows="3" placeholder="Jelaskan alasan pembatalan..." required></textarea>
+              </div>
+              <button type="submit" class="btn btn-danger btn-sm btn-block btn-action">
+                <i class="fas fa-ban mr-1"></i>Konfirmasi Batalkan
+              </button>
+            </form>
+          </div>
+        </section>
+      <?php endif; ?>
+
+      <a href="<?= base_url('loans') ?>" class="btn btn-outline-secondary btn-sm btn-block btn-action" style="border-radius:10px;font-weight:700;">
+        <i class="fas fa-arrow-left mr-1"></i>Kembali ke Daftar
+      </a>
     </div>
-    <?php endif; ?>
-
-    <?php /* Back to list */ ?>
-    <a href="<?= base_url('loans') ?>" class="btn btn-outline-secondary btn-sm btn-block">
-      <i class="fas fa-arrow-left mr-1"></i>Kembali ke Daftar
-    </a>
-
   </div>
-
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var focusTabs = document.querySelectorAll('#focus-tabs-show [data-focus-tab]');
+  var summaryPanel = document.getElementById('focus-panel-summary');
+  var itemsPanel = document.getElementById('focus-panel-items');
+  var timelinePanel = document.getElementById('focus-panel-timeline');
+  var actionsPanel = document.getElementById('focus-panel-actions');
+  var leftCol = document.getElementById('focus-left-col');
+  var tabStorageKey = 'loanShowActiveTab';
+
+  function normalizeTabName(tabName) {
+    var allowed = ['summary', 'items', 'timeline', 'actions'];
+    return allowed.indexOf(tabName) !== -1 ? tabName : 'summary';
+  }
+
+  function updateTabInUrl(tabName) {
+    try {
+      var url = new URL(window.location.href);
+      url.searchParams.set('tab', tabName);
+      window.history.replaceState({}, '', url.toString());
+    } catch (e) {
+      // Ignore URL parsing issues.
+    }
+  }
+
+  function setFocusTab(tabName) {
+    tabName = normalizeTabName(tabName);
+
+    focusTabs.forEach(function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-focus-tab') === tabName);
+    });
+
+    if (summaryPanel) summaryPanel.classList.toggle('is-visible', tabName === 'summary');
+    if (itemsPanel) itemsPanel.classList.toggle('is-visible', tabName === 'items');
+    if (timelinePanel) timelinePanel.classList.toggle('is-visible', tabName === 'timeline');
+
+    if (actionsPanel) actionsPanel.classList.toggle('is-visible', tabName === 'actions');
+
+    if (leftCol) {
+      leftCol.classList.toggle('col-lg-8', tabName === 'actions');
+      leftCol.classList.toggle('col-lg-12', tabName !== 'actions');
+    }
+
+    try {
+      localStorage.setItem(tabStorageKey, tabName);
+    } catch (e) {
+      // Ignore storage issues.
+    }
+    updateTabInUrl(tabName);
+  }
+
+  focusTabs.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      setFocusTab(this.getAttribute('data-focus-tab'));
+    });
+  });
+
+  var urlTab = '';
+  try {
+    urlTab = new URL(window.location.href).searchParams.get('tab') || '';
+  } catch (e) {
+    urlTab = '';
+  }
+
+  var savedTab = '';
+  try {
+    savedTab = localStorage.getItem(tabStorageKey) || '';
+  } catch (e) {
+    savedTab = '';
+  }
+
+  setFocusTab(urlTab || savedTab || 'summary');
+});
+</script>

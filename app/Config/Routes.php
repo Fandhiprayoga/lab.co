@@ -65,18 +65,22 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
         $routes->post('store', 'LoanProposalController::store', ['filter' => 'permission:lending.request.create']);
         $routes->get('analytics', 'LoanProposalController::analytics', ['filter' => 'permission:lending.analytics.view']);
 
-        $routes->get('(:num)', 'LoanProposalController::show/$1', ['filter' => 'permission:lending.request.track']);
-        $routes->get('(:num)/items', 'LoanProposalController::selectItems/$1', ['filter' => 'permission:lending.request.create']);
-        $routes->post('(:num)/items/equipment', 'LoanProposalController::addEquipmentItem/$1', ['filter' => 'permission:lending.request.create']);
-        $routes->post('(:num)/items/lab', 'LoanProposalController::addLabItem/$1', ['filter' => 'permission:lending.request.create']);
-        $routes->post('(:num)/items/(:num)/delete', 'LoanProposalController::removeItem/$1/$2', ['filter' => 'permission:lending.request.create']);
-        $routes->post('(:num)/submit', 'LoanProposalController::submit/$1', ['filter' => 'permission:lending.request.submit']);
-        $routes->post('(:num)/cancel', 'LoanProposalController::cancel/$1', ['filter' => 'permission:lending.request.cancel']);
+        $routes->get('(:segment)', 'LoanProposalController::show/$1', ['filter' => 'permission:lending.request.track']);
+        $routes->get('(:segment)/items', 'LoanProposalController::selectItems/$1', ['filter' => 'permission:lending.request.create']);
+        $routes->post('(:segment)/items/equipment', 'LoanProposalController::addEquipmentItem/$1', ['filter' => 'permission:lending.request.create']);
+        $routes->post('(:segment)/items/lab', 'LoanProposalController::addLabItem/$1', ['filter' => 'permission:lending.request.create']);
+        $routes->post('(:segment)/items/(:segment)/delete', 'LoanProposalController::removeItem/$1/$2', ['filter' => 'permission:lending.request.create']);
+        $routes->post('(:segment)/submit', 'LoanProposalController::submit/$1', ['filter' => 'permission:lending.request.submit']);
+        $routes->post('(:segment)/cancel', 'LoanProposalController::cancel/$1', ['filter' => 'permission:lending.request.cancel']);
 
-        $routes->post('(:num)/approve-l1', 'LoanProposalController::approveL1/$1', ['filter' => 'permission:lending.approval.l1']);
-        $routes->post('(:num)/reject-l1', 'LoanProposalController::rejectL1/$1', ['filter' => 'permission:lending.approval.l1']);
-        $routes->post('(:num)/approve-l2', 'LoanProposalController::approveL2/$1', ['filter' => 'permission:lending.approval.l2']);
-        $routes->post('(:num)/reject-l2', 'LoanProposalController::rejectL2/$1', ['filter' => 'permission:lending.approval.l2']);
+        $routes->post('(:segment)/approve-l1', 'LoanProposalController::approveL1/$1', ['filter' => 'permission:lending.approval.l1']);
+        $routes->post('(:segment)/reject-l1', 'LoanProposalController::rejectL1/$1', ['filter' => 'permission:lending.approval.l1']);
+        $routes->post('(:segment)/approve-l2', 'LoanProposalController::approveL2/$1', ['filter' => 'permission:lending.approval.l2']);
+        $routes->post('(:segment)/reject-l2', 'LoanProposalController::rejectL2/$1', ['filter' => 'permission:lending.approval.l2']);
+        $routes->post('(:segment)/checkout', 'LoanProposalController::checkout/$1', ['filter' => 'permission:lending.checkout']);
+        $routes->post('(:segment)/checkin', 'LoanProposalController::checkin/$1', ['filter' => 'permission:lending.checkin']);
+        $routes->post('(:segment)/usage/start', 'LoanProposalController::startUsage/$1', ['filter' => 'permission:lending.checkout']);
+        $routes->post('(:segment)/usage/finish', 'LoanProposalController::finishUsage/$1', ['filter' => 'permission:lending.checkin']);
     });
 
     // Surat Bebas Lab (Clearance) Module

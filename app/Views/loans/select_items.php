@@ -3,10 +3,9 @@ $proposal            = $proposal ?? [];
 $items               = $items ?? [];
 $availableEquipments = $availableEquipments ?? [];
 $availableLabs       = $availableLabs ?? [];
-$proposalStatus      = $proposal['status'] ?? 'draft';
 $loanType            = $proposal['loan_type'] ?? 'equipment';
 $isEquipment         = $loanType === 'equipment';
-$proposalId          = (int) ($proposal['id'] ?? 0);
+$proposalPublicId    = (string) ($proposal['public_id'] ?? '');
 
 $accentColor  = $isEquipment ? '#0288d1' : '#388e3c';
 $accentBg     = $isEquipment ? 'rgba(79,195,247,.08)' : 'rgba(129,199,132,.08)';
@@ -15,160 +14,399 @@ $typeLabel    = $isEquipment ? 'Alat' : 'Laboratorium';
 $typeIcon     = $isEquipment ? 'fa-tools' : 'fa-door-open';
 
 $addedIds = array_column($items, $isEquipment ? 'equipment_id' : 'lab_id');
-
-$statusMap = [
-    'draft'      => ['label' => 'Draft',           'class' => 'secondary'],
-    'waiting_l1' => ['label' => 'Menunggu Laboran', 'class' => 'warning'],
-    'waiting_l2' => ['label' => 'Menunggu Ka.Lab',  'class' => 'info'],
-    'approved'   => ['label' => 'Disetujui',         'class' => 'success'],
-    'rejected'   => ['label' => 'Ditolak',           'class' => 'danger'],
-    'canceled'   => ['label' => 'Dibatalkan',        'class' => 'dark'],
-];
-$statusInfo = $statusMap[$proposalStatus] ?? ['label' => $proposalStatus, 'class' => 'secondary'];
+$itemCount = count($items);
 ?>
+
+<style>
+  .loan-select-page {
+    --surface: #ffffff;
+    --surface-soft: #f6f8fb;
+    --line: #e5e9f2;
+    --ink: #0f172a;
+    --ink-soft: #6b7280;
+    --brand: <?= $accentColor ?>;
+    --brand-soft: <?= $accentBg ?>;
+    font-family: Manrope, "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--ink);
+  }
+  .loan-select-page .modern-shell {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+    margin-bottom: 0.72rem;
+    overflow: hidden;
+  }
+  .loan-select-page .modern-shell .shell-head {
+    border-bottom: 1px solid #eef2f7;
+    padding: .82rem .95rem;
+  }
+  .loan-select-page .modern-shell .shell-body {
+    padding: .95rem;
+  }
+  .loan-select-page .modern-shell .shell-title {
+    font-size: .8rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    margin: 0;
+    text-transform: uppercase;
+  }
+  .loan-select-page .summary-grid {
+    display: grid;
+    gap: .62rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .loan-select-page .summary-item {
+    background: var(--surface-soft);
+    border: 1px solid #edf2f7;
+    border-radius: 12px;
+    padding: .68rem .72rem;
+  }
+  .loan-select-page .summary-label {
+    color: var(--ink-soft);
+    font-size: .7rem;
+    letter-spacing: .04em;
+    margin-bottom: .14rem;
+    text-transform: uppercase;
+  }
+  .loan-select-page .summary-value {
+    color: var(--ink);
+    font-size: .84rem;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+  .loan-select-page .objective-box {
+    background: #fcfdff;
+    border: 1px solid #e8edf5;
+    border-radius: 12px;
+    color: #374151;
+    font-size: .84rem;
+    line-height: 1.6;
+    margin-top: .78rem;
+    padding: .72rem .78rem;
+  }
+  .loan-select-page .catalog-layout {
+    margin-top: .1rem;
+  }
+  .loan-select-page .focus-tabs {
+    display: grid;
+    gap: .6rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .loan-select-page .focus-tab-btn {
+    align-items: flex-start;
+    background: #fff;
+    border: 1px solid #e1e7f0;
+    border-radius: 12px;
+    color: #475467;
+    display: flex;
+    flex-direction: column;
+    font-size: .74rem;
+    font-weight: 700;
+    gap: .35rem;
+    letter-spacing: .02em;
+    min-height: 86px;
+    padding: .62rem .72rem;
+    text-align: left;
+    text-decoration: none;
+    transition: all .18s ease;
+  }
+  .loan-select-page .focus-tab-btn i {
+    color: var(--brand);
+    font-size: .92rem;
+  }
+  .loan-select-page .focus-tab-title {
+    color: #111827;
+    font-size: .76rem;
+    font-weight: 800;
+    line-height: 1.35;
+  }
+  .loan-select-page .focus-tab-sub {
+    color: #667085;
+    font-size: .7rem;
+    line-height: 1.35;
+  }
+  .loan-select-page .focus-tab-count {
+    align-items: center;
+    background: #eef2f7;
+    border: 1px solid #d9e1ee;
+    border-radius: 999px;
+    color: #344054;
+    display: inline-flex;
+    font-size: .68rem;
+    font-weight: 800;
+    line-height: 1;
+    min-width: 1.45rem;
+    padding: .22rem .45rem;
+  }
+  .loan-select-page .focus-tab-btn.active .focus-tab-count {
+    background: rgba(255,255,255,.88);
+    border-color: rgba(31, 111, 235, 0.28);
+    color: var(--brand);
+  }
+  .loan-select-page .focus-tab-btn:hover {
+    border-color: #c8d3e6;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    color: #344054;
+    text-decoration: none;
+    transform: translateY(-1px);
+  }
+  .loan-select-page .focus-tab-btn.active {
+    background: linear-gradient(165deg, #ffffff, var(--brand-soft));
+    border-color: rgba(31, 111, 235, 0.28);
+    box-shadow: inset 0 0 0 1px rgba(31, 111, 235, 0.12);
+    color: #1d4f91;
+  }
+  .loan-select-page .focus-panel {
+    display: none;
+  }
+  .loan-select-page .focus-panel.is-visible {
+    display: block;
+  }
+  .loan-select-page .catalog-card { transition: box-shadow .15s, transform .15s; border:1px solid #e7ebf2; }
+  .loan-select-page .catalog-card:hover { box-shadow: 0 8px 22px rgba(0,0,0,.1) !important; transform: translateY(-2px); }
+  .loan-select-page .catalog-card.added { opacity: .9; }
+  .loan-select-page .catalog-item {
+    margin-bottom: .58rem !important;
+  }
+  .loan-select-page .catalog-grid {
+    row-gap: .08rem;
+  }
+  .loan-select-page .btn-soft {
+    border-radius: 10px;
+    font-size: .8rem;
+    font-weight: 700;
+  }
+  .loan-select-page #catalog-search {
+    border-radius: 999px !important;
+  }
+  .loan-select-page .selected-grid {
+    row-gap: .2rem;
+  }
+  .loan-select-page .selected-item {
+    margin-bottom: .58rem !important;
+  }
+  .loan-select-page .selected-media {
+    position: relative;
+    height: <?= $isEquipment ? '120px' : '130px' ?>;
+    overflow: hidden;
+    border-radius: 4px 4px 0 0;
+    background: <?= $isEquipment
+      ? 'linear-gradient(135deg,rgba(79,195,247,.15),rgba(2,136,209,.1))'
+      : 'linear-gradient(135deg,rgba(129,199,132,.2),rgba(56,142,60,.12))' ?>;
+  }
+  .loan-select-page .selected-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .loan-select-page .selected-media .fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: <?= $isEquipment ? 'rgba(2,136,209,.25)' : 'rgba(56,142,60,.25)' ?>;
+    font-size: 2rem;
+  }
+  .loan-select-page .selected-name {
+    font-size: .86rem;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-bottom: .18rem;
+  }
+  .loan-select-page .selected-meta {
+    color: #667085;
+    font-size: .73rem;
+    margin-bottom: .55rem;
+  }
+  .loan-select-page .action-panel {
+    border: 1px solid #e7ebf2;
+    border-radius: 12px;
+    padding: .82rem;
+    background: #fff;
+  }
+  .loan-select-page .action-meta-grid {
+    display: grid;
+    gap: .55rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-bottom: .75rem;
+  }
+  .loan-select-page .action-meta-card {
+    border: 1px solid #e7ebf2;
+    border-radius: 10px;
+    background: #f9fbff;
+    padding: .55rem .62rem;
+  }
+  .loan-select-page .action-meta-label {
+    color: #667085;
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    margin-bottom: .16rem;
+    text-transform: uppercase;
+  }
+  .loan-select-page .action-meta-value {
+    color: #111827;
+    font-size: .84rem;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+  .loan-select-page .action-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: .2rem;
+  }
+  .loan-select-page .action-divider {
+    border-top: 1px solid #edf1f6;
+    margin: .62rem 0 .58rem;
+  }
+  .loan-select-page .action-btn-group {
+    align-items: center;
+    display: flex;
+    gap: .58rem;
+    margin-left: auto;
+  }
+  .loan-select-page .action-btn-group form {
+    margin: 0;
+  }
+  .loan-select-page .btn-action-unified {
+    border-width: 1px;
+    border-radius: 10px;
+    font-size: .8rem;
+    font-weight: 700;
+    min-width: 168px;
+    padding: .42rem .8rem;
+  }
+  .loan-select-page .btn-submit-soft {
+    color: #137d3f;
+    border-color: #9ed8b3;
+    background: #fff;
+  }
+  .loan-select-page .btn-submit-soft:hover,
+  .loan-select-page .btn-submit-soft:focus {
+    color: #0f6b36;
+    border-color: #86c8a0;
+    background: rgba(40, 167, 69, 0.08);
+    box-shadow: none;
+  }
+  .loan-select-page .btn-cancel-soft {
+    color: #b42318;
+    border-color: #f3c6c3;
+    background: #fff;
+  }
+  .loan-select-page .btn-cancel-soft:hover,
+  .loan-select-page .btn-cancel-soft:focus {
+    color: #991b1b;
+    border-color: #e8aaa6;
+    background: rgba(220, 53, 69, 0.08);
+    box-shadow: none;
+  }
+  .loan-select-page .right-sticky {
+    position: sticky;
+    top: .9rem;
+  }
+  @media (max-width: 991.98px) {
+    .loan-select-page .right-sticky { position: static; }
+    .loan-select-page .focus-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .loan-select-page .summary-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 575.98px) {
+    .loan-select-page .focus-tabs { grid-template-columns: 1fr; }
+    .loan-select-page .action-meta-grid { grid-template-columns: 1fr; }
+    .loan-select-page .action-row { justify-content: stretch; }
+    .loan-select-page .action-btn-group {
+      flex-direction: column;
+      margin-left: 0;
+      width: 100%;
+    }
+    .loan-select-page .action-btn-group form,
+    .loan-select-page .action-btn-group .btn {
+      width: 100%;
+    }
+  }
+</style>
+
+<div class="loan-select-page">
 
 <?php
-function selectItemsStep(int $step, int $current, string $label, string $sublabel): string {
-    if ($step < $current) {
-        $circle = '<div class="d-flex align-items-center justify-content-center rounded-circle bg-success text-white" style="width:32px;height:32px;font-size:.8rem;flex-shrink:0"><i class="fas fa-check"></i></div>';
-        $textClass = 'text-success';
-        $labelStyle = '';
-    } elseif ($step === $current) {
-        $circle = '<div class="d-flex align-items-center justify-content-center rounded-circle text-white font-weight-bold" style="width:32px;height:32px;font-size:.82rem;background:#6777ef;flex-shrink:0">' . $step . '</div>';
-        $textClass  = '';
-        $labelStyle = 'color:#6777ef';
-    } else {
-        $circle = '<div class="d-flex align-items-center justify-content-center rounded-circle bg-light text-muted font-weight-bold border" style="width:32px;height:32px;font-size:.82rem;flex-shrink:0">' . $step . '</div>';
-        $textClass  = 'text-muted';
-        $labelStyle = '';
-    }
-    return '<div class="d-flex align-items-center flex-shrink-0">'
-        . $circle
-        . '<div class="ml-2">'
-        . '<div class="font-weight-bold small ' . $textClass . '" style="' . $labelStyle . '">' . $label . '</div>'
-        . '<div class="text-muted" style="font-size:.72rem">' . $sublabel . '</div>'
-        . '</div></div>';
-}
-$currentStep = 2;
+  $startFmtDetail = ! empty($proposal['start_at']) ? date('d M Y, H:i', strtotime((string) $proposal['start_at'])) : '-';
+  $endFmtDetail   = ! empty($proposal['end_at']) ? date('d M Y, H:i', strtotime((string) $proposal['end_at'])) : '-';
 ?>
 
-<?php /* ============ STEP WIZARD ============ */ ?>
-<div class="card border-0 shadow-sm mb-4">
-  <div class="card-body py-3 px-4">
-    <div class="d-flex align-items-center">
-      <a href="<?= base_url('loans/create?type=' . $loanType) ?>" class="text-decoration-none">
-        <?= selectItemsStep(1, $currentStep, 'Step 1', 'Info Proposal') ?>
-      </a>
-      <div class="flex-grow-1 mx-2" style="height:2px;background:#28a745"></div>
-      <?= selectItemsStep(2, $currentStep, 'Step 2', 'Pilih ' . $typeLabel) ?>
-      <div class="flex-grow-1 mx-2" style="height:2px;background:#e9ecef"></div>
-      <div class="text-decoration-none text-muted">
-        <?= selectItemsStep(3, $currentStep, 'Step 3', 'Kirim Approval') ?>
+<div class="modern-shell">
+  <div class="shell-body py-2">
+    <div class="focus-tabs" id="focus-tabs">
+      <button type="button" class="focus-tab-btn" data-focus-tab="summary">
+        <i class="fas fa-file-alt"></i>
+        <span class="focus-tab-title">Ringkasan Proposal</span>
+        <span class="focus-tab-sub">Lihat pengusul, periode, dan tujuan.</span>
+      </button>
+      <button type="button" class="focus-tab-btn active" data-focus-tab="catalog">
+        <i class="fas <?= $typeIcon ?>"></i>
+        <span class="focus-tab-title">Katalog Item</span>
+        <span class="focus-tab-sub">Cari dan tambahkan item ke proposal.</span>
+      </button>
+      <button type="button" class="focus-tab-btn" data-focus-tab="selected">
+        <i class="fas fa-shopping-cart"></i>
+        <span class="d-flex align-items-center" style="gap:.35rem;">
+          <span class="focus-tab-title">Item Dipilih</span>
+          <span class="focus-tab-count"><?= (int) $itemCount ?></span>
+        </span>
+        <span class="focus-tab-sub">Review item sebelum diajukan.</span>
+      </button>
+      <button type="button" class="focus-tab-btn" data-focus-tab="actions">
+        <i class="fas fa-paper-plane"></i>
+        <span class="focus-tab-title">Kirim/Batal Proposal</span>
+        <span class="focus-tab-sub">Lanjut approval atau batalkan proposal.</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm focus-panel" id="focus-panel-summary">
+  <div class="card-header bg-white py-3" style="border-bottom:1px solid #f0f0f0">
+    <div class="d-flex align-items-center" style="gap:.65rem;">
+      <div class="rounded d-flex align-items-center justify-content-center flex-shrink-0"
+           style="width:34px;height:34px;background:<?= $accentBg ?>">
+        <i class="fas fa-file-alt" style="color:<?= $accentColor ?>;font-size:.85rem"></i>
       </div>
+      <div>
+        <div class="font-weight-bold mb-0" style="font-size:.9rem">Ringkasan Proposal</div>
+        <div class="text-muted" style="font-size:.7rem">Informasi inti pengajuan peminjaman</div>
+      </div>
+    </div>
+  </div>
+  <div class="card-body p-3">
+    <div class="summary-grid">
+      <div class="summary-item">
+        <div class="summary-label">Pengusul</div>
+        <div class="summary-value"><?= esc($proposal['proposer_name'] ?? '-') ?></div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Tipe Peminjaman</div>
+        <div class="summary-value"><i class="fas <?= $typeIcon ?> mr-1"></i><?= esc($typeLabel) ?></div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Waktu Mulai</div>
+        <div class="summary-value"><?= $startFmtDetail ?></div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Waktu Selesai</div>
+        <div class="summary-value"><?= $endFmtDetail ?></div>
+      </div>
+    </div>
+    <div class="objective-box">
+      <?= nl2br(esc($proposal['objective'] ?? '-')) ?>
     </div>
   </div>
 </div>
 
 <?php /* ============ CATALOG LAYOUT ============ */ ?>
-<div class="row">
+<div class="row catalog-layout focus-panel is-visible" id="focus-panel-row">
 
   <?php /* ---- LEFT: Catalog ---- */ ?>
-  <div class="col-lg-8">
-
-    <?php /* ---- Proposal info card ---- */ ?>
-    <?php
-      $startFmt = ! empty($proposal['start_at']) ? date('d M Y', strtotime($proposal['start_at'])) : '-';
-      $endFmt   = ! empty($proposal['end_at'])   ? date('d M Y', strtotime($proposal['end_at']))   : '-';
-    ?>
-    <div class="card border-0 shadow-sm mb-3 overflow-hidden">
-      <!-- Accent bar + main info row -->
-      <div style="border-left:4px solid <?= $accentColor ?>;background:linear-gradient(135deg,<?= $accentBg ?>,#fff 60%)">
-        <div class="px-4 py-3 d-flex align-items-center justify-content-between flex-wrap" style="gap:.75rem">
-
-          <!-- Left: icon + title + code -->
-          <div class="d-flex align-items-center" style="gap:.75rem;min-width:0">
-            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                 style="width:40px;height:40px;background:<?= $accentBg ?>;border:2px solid <?= $accentBorder ?>">
-              <i class="fas <?= $typeIcon ?>" style="color:<?= $accentColor ?>"></i>
-            </div>
-            <div style="min-width:0">
-              <div class="font-weight-bold text-truncate" style="font-size:.95rem;max-width:260px">
-                <?= esc($proposal['title'] ?? '-') ?>
-              </div>
-              <div class="d-flex align-items-center flex-wrap mt-1" style="gap:.35rem">
-                <code class="small px-2 py-0 rounded" style="background:rgba(0,0,0,.06);color:inherit;font-size:.72rem">
-                  <?= esc($proposal['proposal_code'] ?? '-') ?>
-                </code>
-                <span class="badge badge-<?= $isEquipment ? 'primary' : 'success' ?>" style="font-size:.68rem">
-                  <i class="fas <?= $typeIcon ?> mr-1"></i><?= $typeLabel ?>
-                </span>
-                <span class="badge badge-<?= $statusInfo['class'] ?>" style="font-size:.68rem">
-                  <?= $statusInfo['label'] ?>
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Right: meta pills + toggle -->
-          <div class="d-flex align-items-center flex-shrink-0" style="gap:.5rem">
-            <div class="d-none d-md-flex flex-column text-right" style="font-size:.72rem;line-height:1.5">
-              <span class="text-muted"><i class="fas fa-calendar-check mr-1 text-success"></i><?= $startFmt ?></span>
-              <span class="text-muted"><i class="fas fa-calendar-times mr-1 text-danger"></i><?= $endFmt ?></span>
-            </div>
-            <button class="btn btn-sm btn-light border" type="button"
-                    data-toggle="collapse" data-target="#proposal-detail"
-                    aria-expanded="false" id="proposal-detail-toggle"
-                    style="font-size:.78rem;white-space:nowrap">
-              <i class="fas fa-info-circle mr-1 text-muted"></i>Detail
-              <i class="fas fa-chevron-down ml-1 text-muted" id="detail-chevron"
-                 style="font-size:.65rem;transition:transform .2s"></i>
-            </button>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- Collapsible detail body -->
-      <div class="collapse" id="proposal-detail">
-        <div class="px-4 py-3 border-top" style="background:#fafafa">
-          <div class="row small" style="row-gap:.65rem">
-            <div class="col-sm-4">
-              <div class="text-muted mb-1" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600">Pengusul</div>
-              <div><i class="fas fa-user mr-1 text-muted"></i><?= esc($proposal['proposer_name'] ?? '-') ?></div>
-            </div>
-            <div class="col-sm-4">
-              <div class="text-muted mb-1" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600">Mulai</div>
-              <div><i class="fas fa-calendar-check mr-1 text-success"></i><?= $startFmt ?></div>
-            </div>
-            <div class="col-sm-4">
-              <div class="text-muted mb-1" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600">Selesai</div>
-              <div><i class="fas fa-calendar-times mr-1 text-danger"></i><?= $endFmt ?></div>
-            </div>
-            <div class="col-12">
-              <div class="text-muted mb-1" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600">Tujuan</div>
-              <div class="p-2 rounded" style="background:#fff;border:1px solid #e9ecef;line-height:1.6">
-                <?= nl2br(esc($proposal['objective'] ?? '-')) ?>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <script>
-    // Rotate chevron when collapse toggles
-    (function () {
-      var el = document.getElementById('proposal-detail');
-      if (!el) return;
-      el.addEventListener('show.bs.collapse', function () {
-        document.getElementById('detail-chevron').style.transform = 'rotate(180deg)';
-      });
-      el.addEventListener('hide.bs.collapse', function () {
-        document.getElementById('detail-chevron').style.transform = 'rotate(0deg)';
-      });
-    })();
-    </script>
-
+  <div class="col-lg-12" id="focus-panel-catalog">
     <?php /* Catalog header + search */ ?>
     <?php $totalCatalog = $isEquipment ? count($availableEquipments) : count($availableLabs); ?>
     <div class="card border-0 shadow-sm">
@@ -215,13 +453,13 @@ $currentStep = 2;
             Tidak ada alat yang tersedia saat ini.
           </div>
         <?php else: ?>
-        <div class="row" id="catalog-grid">
+        <div class="row catalog-grid" id="catalog-grid">
           <?php foreach ($availableEquipments as $eq):
             $alreadyAdded = in_array((string)$eq['id'], array_map('strval', $addedIds));
             $stockPct = $eq['stock_total'] > 0 ? round($eq['stock_available'] / $eq['stock_total'] * 100) : 0;
             $stockClass = $stockPct > 50 ? 'success' : ($stockPct > 20 ? 'warning' : 'danger');
           ?>
-          <div class="col-md-6 mb-3 catalog-item" data-name="<?= strtolower(esc($eq['name'])) ?> <?= strtolower(esc($eq['lab_name'] ?? '')) ?> <?= strtolower(esc($eq['category'] ?? '')) ?>">
+          <div class="col-md-6 mb-2 catalog-item" data-name="<?= strtolower(esc($eq['name'])) ?> <?= strtolower(esc($eq['lab_name'] ?? '')) ?> <?= strtolower(esc($eq['category'] ?? '')) ?>">
             <div class="card border-0 shadow-sm h-100 catalog-card <?= $alreadyAdded ? 'added' : '' ?>">
 
               <div class="position-relative" style="height:120px;overflow:hidden;border-radius:4px 4px 0 0;background:linear-gradient(135deg,rgba(79,195,247,.15),rgba(2,136,209,.1))">
@@ -273,7 +511,7 @@ $currentStep = 2;
                     <i class="fas fa-check-circle mr-1"></i>Sudah ada dalam proposal
                   </div>
                 <?php else: ?>
-                <form action="<?= base_url('loans/' . $proposalId . '/items/equipment') ?>" method="post" class="mt-auto add-item-form">
+                <form action="<?= base_url('loans/' . $proposalPublicId . '/items/equipment') ?>" method="post" class="mt-auto add-item-form">
                   <?= csrf_field() ?>
                   <input type="hidden" name="equipment_id" value="<?= (int)$eq['id'] ?>">
                   <!-- Qty stepper + submit in one row -->
@@ -286,7 +524,7 @@ $currentStep = 2;
                       <input type="number" name="qty"
                              class="form-control border-0 text-center px-0 qty-input"
                              min="1" max="<?= (int)$eq['stock_available'] ?>" value="1" required
-                             style="width:38px;height:32px;font-size:.82rem;font-weight:600;-moz-appearance:textfield;-webkit-appearance:none">
+                             style="width:38px;height:32px;font-size:.82rem;font-weight:600;appearance:textfield;-moz-appearance:textfield;-webkit-appearance:none">
                       <button type="button" class="btn btn-light border-0 qty-btn qty-plus px-2"
                               style="height:32px;line-height:1" data-max="<?= (int)$eq['stock_available'] ?>">
                         <i class="fas fa-plus" style="font-size:.55rem"></i>
@@ -313,11 +551,11 @@ $currentStep = 2;
             Tidak ada laboratorium yang tersedia saat ini.
           </div>
         <?php else: ?>
-        <div class="row" id="catalog-grid">
+        <div class="row catalog-grid" id="catalog-grid">
           <?php foreach ($availableLabs as $lab):
             $alreadyAdded = in_array((string)$lab['id'], array_map('strval', $addedIds));
           ?>
-          <div class="col-md-6 mb-3 catalog-item" data-name="<?= strtolower(esc($lab['name'])) ?> <?= strtolower(esc($lab['location'] ?? '')) ?> <?= strtolower(esc($lab['faculty_name'] ?? '')) ?>">
+          <div class="col-sm-6 col-lg-4 col-xl-3 mb-2 catalog-item" data-name="<?= strtolower(esc($lab['name'])) ?> <?= strtolower(esc($lab['location'] ?? '')) ?> <?= strtolower(esc($lab['code'] ?? '')) ?>">
             <div class="card border-0 shadow-sm h-100 catalog-card <?= $alreadyAdded ? 'added' : '' ?>">
 
               <div class="position-relative" style="height:130px;overflow:hidden;border-radius:4px 4px 0 0;background:linear-gradient(135deg,rgba(129,199,132,.2),rgba(56,142,60,.12))">
@@ -351,8 +589,8 @@ $currentStep = 2;
                   <div class="font-weight-bold mb-1" style="font-size:.88rem;line-height:1.3"><?= esc($lab['name']) ?></div>
                 <?php endif; ?>
                 <div class="mb-2">
-                  <?php if (! empty($lab['faculty_name'])): ?>
-                    <div class="text-muted" style="font-size:.73rem"><i class="fas fa-university fa-xs mr-1"></i><?= esc($lab['faculty_name']) ?></div>
+                  <?php if (! empty($lab['code'])): ?>
+                    <div class="text-muted" style="font-size:.73rem"><i class="fas fa-hashtag fa-xs mr-1"></i><?= esc($lab['code']) ?></div>
                   <?php endif; ?>
                   <?php if (! empty($lab['location'])): ?>
                     <div class="text-muted" style="font-size:.73rem"><i class="fas fa-map-marker-alt fa-xs mr-1"></i><?= esc($lab['location']) ?></div>
@@ -366,7 +604,7 @@ $currentStep = 2;
                     <i class="fas fa-check-circle mr-1"></i>Sudah ada dalam proposal
                   </div>
                 <?php else: ?>
-                <form action="<?= base_url('loans/' . $proposalId . '/items/lab') ?>" method="post" class="mt-auto">
+                <form action="<?= base_url('loans/' . $proposalPublicId . '/items/lab') ?>" method="post" class="mt-auto">
                   <?= csrf_field() ?>
                   <input type="hidden" name="lab_id" value="<?= (int)$lab['id'] ?>">
                   <button type="submit" class="btn btn-success btn-sm btn-block font-weight-semibold">
@@ -399,147 +637,220 @@ $currentStep = 2;
   </div>
 
   <?php /* ---- RIGHT: Summary + Selected Items + Actions ---- */ ?>
-  <div class="col-lg-4">
+  <div class="col-lg-12" id="focus-panel-side" style="display:none;">
 
-    <?php $itemCount = count($items); ?>
-    <div class="card border-0 shadow-sm mb-3" style="border-radius:10px;overflow:hidden">
-      <div class="px-3 pt-3 pb-2" style="background:<?= $accentColor ?>">
-        <div class="d-flex align-items-center justify-content-between">
-          <div class="d-flex align-items-center">
-            <div class="rounded d-flex align-items-center justify-content-center mr-2"
-                 style="width:30px;height:30px;background:rgba(255,255,255,.2)">
-              <i class="fas fa-shopping-cart fa-sm text-white"></i>
+    <div class="card border-0 shadow-sm mb-3 focus-panel is-visible" id="focus-panel-selected" style="border-radius:10px;overflow:hidden">
+      <div class="card-header bg-white py-3" style="border-bottom:1px solid #f0f0f0">
+        <div class="d-flex align-items-center justify-content-between" style="gap:.75rem;">
+          <div class="d-flex align-items-center" style="gap:.65rem;">
+            <div class="rounded d-flex align-items-center justify-content-center flex-shrink-0"
+                 style="width:34px;height:34px;background:<?= $accentBg ?>">
+              <i class="fas fa-shopping-cart" style="color:<?= $accentColor ?>;font-size:.85rem"></i>
             </div>
             <div>
-              <div class="text-white font-weight-bold" style="font-size:.88rem;line-height:1">Item Dipilih</div>
-              <div class="text-white-50" style="font-size:.7rem"><?= $typeLabel ?> yang akan dipinjam</div>
+              <div class="font-weight-bold mb-0" style="font-size:.9rem">Item Dipilih</div>
+              <div class="text-muted" style="font-size:.7rem"><?= $typeLabel ?> yang akan dipinjam</div>
             </div>
           </div>
-          <div class="rounded-circle d-flex align-items-center justify-content-center font-weight-bold text-white"
-               style="width:32px;height:32px;background:rgba(255,255,255,.25);font-size:.82rem">
-            <?= $itemCount ?>
-          </div>
         </div>
-        <?php if ($itemCount > 0): ?>
-        <div class="mt-2" style="background:rgba(255,255,255,.15);border-radius:4px;height:4px">
-          <div style="background:#fff;border-radius:4px;height:4px;width:<?= min(100, $itemCount * 20) ?>%;transition:width .4s"></div>
-        </div>
-        <?php endif; ?>
       </div>
 
       <?php if (empty($items)): ?>
         <div class="card-body text-center py-4 px-3">
-          <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
-               style="width:52px;height:52px;background:<?= $accentBg ?>;border:2px dashed <?= $accentBorder ?>">
-            <i class="fas fa-inbox" style="color:<?= $accentColor ?>;font-size:1.2rem"></i>
-          </div>
-          <div class="font-weight-semibold text-dark mb-1" style="font-size:.85rem">Keranjang kosong</div>
-          <div class="text-muted" style="font-size:.75rem;line-height:1.5">
+          <i class="fas fa-inbox fa-2x mb-2 d-block" style="color:#d0d7e3"></i>
+          <div class="font-weight-semibold text-dark mb-1" style="font-size:.85rem">Belum ada item</div>
+          <div class="text-muted" style="font-size:.75rem;line-height:1.5;">
             Pilih <?= strtolower($typeLabel) ?> dari katalog<br>lalu klik <strong>"Tambah ke Proposal"</strong>
           </div>
         </div>
       <?php else: ?>
-        <div style="max-height:320px;overflow-y:auto">
-          <?php foreach ($items as $idx => $item): ?>
-          <div class="px-3 py-2 d-flex align-items-center"
-               style="border-bottom:1px solid #f4f5f7;<?= $idx === $itemCount - 1 ? 'border-bottom:none' : '' ?>">
-            <div class="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0 mr-2 font-weight-bold text-white"
-                 style="width:22px;height:22px;font-size:.6rem;background:<?= $accentColor ?>">
-              <?= $idx + 1 ?>
-            </div>
-            <div class="flex-grow-1 min-width-0 mr-2">
-              <div class="text-truncate font-weight-semibold text-dark" style="font-size:.82rem">
-                <?= esc($isEquipment ? ($item['equipment_name'] ?? '-') : ($item['lab_name'] ?? '-')) ?>
-              </div>
-              <?php if ($isEquipment && isset($item['qty'])): ?>
-                <div style="font-size:.68rem;color:<?= $accentColor ?>">
-                  <i class="fas fa-layer-group fa-xs mr-1"></i><?= (int)$item['qty'] ?> unit
+        <div class="px-3 py-3">
+          <div class="row selected-grid">
+            <?php foreach ($items as $item): ?>
+            <?php
+              $itemName = $isEquipment ? ($item['equipment_name'] ?? '-') : ($item['lab_name'] ?? '-');
+              $thumbRaw = $isEquipment ? ($item['equipment_photo'] ?? '') : ($item['lab_logo'] ?? '');
+              $thumbUrl = '';
+              if (! empty($thumbRaw)) {
+                  $thumbUrl = preg_match('/^https?:\/\//i', (string) $thumbRaw) ? (string) $thumbRaw : base_url((string) $thumbRaw);
+              }
+            ?>
+            <div class="col-sm-6 col-lg-4 col-xl-3 selected-item">
+              <div class="card border-0 shadow-sm h-100 catalog-card">
+                <div class="selected-media">
+                  <?php if ($thumbUrl !== ''): ?>
+                    <img src="<?= esc($thumbUrl) ?>" alt="<?= esc($itemName) ?>">
+                    <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.45),transparent)"></div>
+                  <?php else: ?>
+                    <div class="fallback"><i class="fas <?= $isEquipment ? 'fa-tools' : 'fa-door-open' ?>"></i></div>
+                  <?php endif; ?>
+                  <?php if ($isEquipment && ! empty($item['equipment_category'])): ?>
+                    <span class="badge badge-light" style="position:absolute;top:8px;left:8px;font-size:.68rem">
+                      <?= esc($item['equipment_category']) ?>
+                    </span>
+                  <?php endif; ?>
+                  <?php if (! $isEquipment && ! empty($item['lab_code'])): ?>
+                    <span class="badge badge-light" style="position:absolute;top:8px;left:8px;font-size:.68rem">
+                      <?= esc($item['lab_code']) ?>
+                    </span>
+                  <?php endif; ?>
+                  <?php if ($isEquipment && isset($item['qty'])): ?>
+                    <span class="badge badge-light" style="position:absolute;top:8px;right:8px;font-size:.68rem;border:1px solid #e5e9f2;">
+                      Qty <?= (int) $item['qty'] ?>
+                    </span>
+                  <?php endif; ?>
+                  <?php if (! $isEquipment && $thumbUrl !== '' && ! empty($itemName)): ?>
+                    <div style="position:absolute;bottom:8px;left:10px;right:10px">
+                      <div class="text-white font-weight-bold" style="font-size:.85rem;text-shadow:0 1px 3px rgba(0,0,0,.6);line-height:1.2">
+                        <?= esc($itemName) ?>
+                      </div>
+                    </div>
+                  <?php endif; ?>
                 </div>
-              <?php endif; ?>
+                <div class="card-body p-3 d-flex flex-column">
+                  <?php if ($isEquipment || $thumbUrl === ''): ?>
+                    <div class="selected-name" title="<?= esc($itemName) ?>"><?= esc($itemName) ?></div>
+                  <?php endif; ?>
+
+                  <?php if ($isEquipment): ?>
+                    <div class="text-muted mb-2" style="font-size:.75rem">
+                      <i class="fas fa-flask fa-xs mr-1"></i><?= esc($item['equipment_lab_name'] ?? '-') ?>
+                      <?php if (! empty($item['equipment_lab_location'])): ?>
+                        &bull; <i class="fas fa-map-marker-alt fa-xs mr-1"></i><?= esc($item['equipment_lab_location']) ?>
+                      <?php endif; ?>
+                    </div>
+                  <?php else: ?>
+                    <div class="mb-2">
+                      <?php if (! empty($item['lab_code'])): ?>
+                        <div class="text-muted" style="font-size:.73rem"><i class="fas fa-hashtag fa-xs mr-1"></i><?= esc($item['lab_code']) ?></div>
+                      <?php endif; ?>
+                      <?php if (! empty($item['lab_location'])): ?>
+                        <div class="text-muted" style="font-size:.73rem"><i class="fas fa-map-marker-alt fa-xs mr-1"></i><?= esc($item['lab_location']) ?></div>
+                      <?php endif; ?>
+                      <?php if (! empty($item['lab_capacity'])): ?>
+                        <div class="text-muted" style="font-size:.73rem"><i class="fas fa-users fa-xs mr-1"></i>Kapasitas <?= (int) $item['lab_capacity'] ?> orang</div>
+                      <?php endif; ?>
+                    </div>
+                  <?php endif; ?>
+
+                  <form action="<?= base_url('loans/' . $proposalPublicId . '/items/' . ($item['public_id'] ?? '') . '/delete') ?>" method="post"
+                        class="js-swal-delete-form mt-auto"
+                        data-swal-title="Hapus item?"
+                        data-swal-text="Item ini akan dihapus dari proposal."
+                        data-swal-confirm="Ya, hapus"
+                        data-swal-cancel="Batal">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn btn-light btn-sm btn-block font-weight-semibold" style="border:1px solid #e5e9f2;">
+                      <i class="fas fa-times-circle mr-1 text-danger"></i>Hapus dari Proposal
+                    </button>
+                  </form>
+                </div>
+              </div>
             </div>
-            <form action="<?= base_url('loans/' . $proposalId . '/items/' . (int)$item['id'] . '/delete') ?>" method="post"
-                  class="js-swal-delete-form flex-shrink-0"
-                  data-swal-title="Hapus item?"
-                  data-swal-text="Item ini akan dihapus dari proposal."
-                  data-swal-confirm="Ya, hapus"
-                  data-swal-cancel="Batal">
-              <?= csrf_field() ?>
-              <button type="submit" title="Hapus"
-                      class="border-0 bg-transparent p-0 d-flex align-items-center justify-content-center rounded-circle"
-                      style="width:24px;height:24px;color:#adb5bd;cursor:pointer"
-                      onmouseover="this.style.color='#dc3545';this.style.background='rgba(220,53,69,.08)'"
-                      onmouseout="this.style.color='#adb5bd';this.style.background='transparent'">
-                <i class="fas fa-times-circle" style="font-size:.8rem"></i>
-              </button>
-            </form>
+            <?php endforeach; ?>
           </div>
-          <?php endforeach; ?>
-        </div>
-        <div class="px-3 py-2 d-flex align-items-center justify-content-between"
-             style="background:<?= $accentBg ?>;border-top:1px solid <?= $accentBorder ?>">
-          <span style="font-size:.73rem;color:<?= $accentColor ?>">
-            <i class="fas fa-check-circle mr-1"></i><strong><?= $itemCount ?></strong> item siap diajukan
-          </span>
-          <?php if ($isEquipment): ?>
-            <span class="text-muted" style="font-size:.7rem">Total <?= array_sum(array_column($items, 'qty')) ?> unit</span>
-          <?php endif; ?>
         </div>
       <?php endif; ?>
     </div>
 
-    <?php /* Submit */ ?>
-    <?php if (activeGroupCan('lending.request.submit')): ?>
-    <div class="card border-0 shadow-sm mb-3" style="border-top:2px solid #28a745!important">
-      <div class="card-body p-3">
-        <div class="d-flex align-items-start mb-3">
-          <div class="rounded-circle d-flex align-items-center justify-content-center text-white mr-2 flex-shrink-0"
-               style="width:32px;height:32px;background:#28a745">3</div>
-          <div>
-            <div class="font-weight-bold small">Kirim ke Approval</div>
-            <div class="text-muted" style="font-size:.72rem">Laboran &rarr; Kepala Lab</div>
-          </div>
-        </div>
-        <?php if (empty($items)): ?>
-          <div class="alert alert-warning border-0 py-2 px-3 small mb-2">
-            <i class="fas fa-exclamation-triangle mr-1"></i>Tambahkan minimal 1 item sebelum mengirim.
-          </div>
-        <?php endif; ?>
-        <form action="<?= base_url('loans/' . $proposalId . '/submit') ?>" method="post"
-              class="js-swal-confirm-form"
-              data-swal-title="Kirim Proposal?"
-              data-swal-text="Proposal akan dikirim untuk proses approval. Pastikan item sudah lengkap."
-              data-swal-confirm="Ya, Kirim"
-              data-swal-cancel="Batal"
-              data-swal-icon="question">
-          <?= csrf_field() ?>
-          <button type="submit" class="btn btn-success btn-block font-weight-semibold" <?= empty($items) ? 'disabled' : '' ?>>
-            <i class="fas fa-paper-plane mr-2"></i>Kirim Approval
-          </button>
-        </form>
-      </div>
-    </div>
-    <?php endif; ?>
+    <div class="focus-panel" id="focus-panel-actions">
+      <?php
+        $canSubmit = activeGroupCan('lending.request.submit');
+        $canCancel = activeGroupCan('lending.request.cancel')
+          && (((int) ($proposal['proposer_id'] ?? 0) === (int) auth()->id()) || activeGroupCan('lending.request.manage-all'));
+      ?>
 
-    <?php /* Cancel */ ?>
-    <?php if (activeGroupCan('lending.request.cancel') && ((int)($proposal['proposer_id'] ?? 0) === (int)auth()->id() || activeGroupCan('lending.request.manage-all'))): ?>
-    <div class="card border-0 shadow-sm">
-      <div class="card-body p-3">
-        <a class="btn btn-outline-danger btn-sm btn-block" data-toggle="collapse" href="#cancel-form">
-          <i class="fas fa-ban mr-1"></i> Batalkan Proposal
-        </a>
-        <div class="collapse mt-2" id="cancel-form">
-          <form action="<?= base_url('loans/' . $proposalId . '/cancel') ?>" method="post">
-            <?= csrf_field() ?>
-            <textarea name="cancel_reason" class="form-control form-control-sm mb-2" rows="2"
-                      placeholder="Alasan pembatalan..." required></textarea>
-            <button type="submit" class="btn btn-danger btn-sm btn-block">Konfirmasi Batalkan</button>
-          </form>
+      <?php if ($canSubmit || $canCancel): ?>
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white py-3" style="border-bottom:1px solid #f0f0f0">
+          <div class="d-flex align-items-center" style="gap:.65rem;">
+            <div class="rounded d-flex align-items-center justify-content-center flex-shrink-0"
+                 style="width:34px;height:34px;background:rgba(40,167,69,.12)">
+              <i class="fas fa-paper-plane" style="color:#1f8f48;font-size:.85rem"></i>
+            </div>
+            <div>
+              <div class="font-weight-bold mb-0" style="font-size:.9rem">Tindak Lanjut Proposal</div>
+              <div class="text-muted" style="font-size:.7rem">Finalisasi lalu kirim untuk approval berjenjang</div>
+            </div>
+          </div>
+        </div>
+        <div class="card-body p-3">
+          <div class="action-panel">
+            <div class="action-meta-grid">
+              <div class="action-meta-card">
+                <div class="action-meta-label">Item Terpilih</div>
+                <div class="action-meta-value"><?= (int) $itemCount ?> item</div>
+              </div>
+              <div class="action-meta-card">
+                <div class="action-meta-label">Status Pengajuan</div>
+                <div class="action-meta-value" style="color:<?= empty($items) ? '#b54708' : '#1f8f48' ?>;">
+                  <?= empty($items) ? 'Belum siap kirim' : 'Siap dikirim' ?>
+                </div>
+              </div>
+            </div>
+
+            <?php if (empty($items)): ?>
+              <div class="text-muted mb-2" style="font-size:.76rem;">
+                <i class="fas fa-info-circle mr-1"></i>Tambahkan minimal 1 item agar proposal bisa dikirim ke approval.
+              </div>
+            <?php endif; ?>
+
+            <div class="action-divider"></div>
+
+            <div class="action-row">
+              <div class="action-btn-group">
+              <?php if ($canSubmit): ?>
+                <form action="<?= base_url('loans/' . $proposalPublicId . '/submit') ?>" method="post"
+                      class="js-swal-confirm-form js-preserve-tab-form"
+                      data-swal-title="Kirim Proposal?"
+                      data-swal-text="Proposal akan dikirim untuk proses approval. Pastikan item sudah lengkap."
+                      data-swal-confirm="Ya, Kirim"
+                      data-swal-cancel="Batal"
+                      data-swal-icon="question"
+                      data-swal-confirm-color="#28a745">
+                  <?= csrf_field() ?>
+                  <button type="submit" class="btn btn-outline-success btn-action-unified btn-submit-soft" <?= empty($items) ? 'disabled' : '' ?>>
+                    <i class="fas fa-paper-plane mr-1"></i>Kirim Approval
+                  </button>
+                </form>
+              <?php endif; ?>
+
+              <?php if ($canCancel): ?>
+                <form action="<?= base_url('loans/' . $proposalPublicId . '/cancel') ?>" method="post"
+                      class="js-swal-cancel-form js-preserve-tab-form"
+                      data-swal-title="Batalkan Proposal?"
+                      data-swal-text="Proposal akan dibatalkan dan tidak diproses lebih lanjut."
+                      data-swal-confirm="Ya, Batalkan"
+                      data-swal-cancel="Batal"
+                      data-swal-icon="warning"
+                      data-swal-confirm-color="#dc3545"
+                      data-swal-reason-label="Alasan pembatalan"
+                      data-swal-reason-placeholder="Tulis alasan pembatalan proposal..."
+                      data-swal-reason-required="Alasan pembatalan wajib diisi.">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="cancel_reason" value="">
+                  <button type="submit" class="btn btn-outline-danger btn-action-unified btn-cancel-soft">
+                    <i class="fas fa-ban mr-1"></i>Batalkan Proposal
+                  </button>
+                </form>
+              <?php endif; ?>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+      <?php else: ?>
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-3 text-muted" style="font-size:.8rem;">
+          Tidak ada aksi yang tersedia untuk status/proposal ini.
+        </div>
+      </div>
+      <?php endif; ?>
     </div>
-    <?php endif; ?>
 
   </div>
+</div>
+
 </div>
 
 <!-- Image lightbox -->
@@ -555,11 +866,7 @@ $currentStep = 2;
   </div>
 </div>
 
-<style>
-.catalog-card { transition:box-shadow .15s,transform .15s; }
-.catalog-card:hover { box-shadow:0 6px 20px rgba(0,0,0,.1)!important; transform:translateY(-2px); }
-.catalog-card.added { opacity:.85; }
-</style>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -574,13 +881,149 @@ document.addEventListener('DOMContentLoaded', function () {
                 showCancelButton:  true,
                 confirmButtonText: form.dataset.swalConfirm || 'Ya',
                 cancelButtonText:  form.dataset.swalCancel  || 'Batal',
-                confirmButtonColor: '#28a745',
+          confirmButtonColor: form.dataset.swalConfirmColor || '#28a745',
                 reverseButtons: true,
             }).then(function (result) {
                 if (result.isConfirmed) form.submit();
             });
         });
     });
+
+        document.querySelectorAll('.js-swal-cancel-form').forEach(function (form) {
+          form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            Swal.fire({
+              title:             form.dataset.swalTitle   || 'Batalkan Proposal?',
+              text:              form.dataset.swalText    || '',
+              icon:              form.dataset.swalIcon    || 'warning',
+              input:             'textarea',
+              inputLabel:        form.dataset.swalReasonLabel || 'Alasan pembatalan',
+              inputPlaceholder:  form.dataset.swalReasonPlaceholder || 'Tulis alasan pembatalan...',
+              inputAttributes:   { 'aria-label': form.dataset.swalReasonLabel || 'Alasan pembatalan' },
+              inputAutoTrim:     true,
+              showCancelButton:  true,
+              confirmButtonText: form.dataset.swalConfirm || 'Ya, Batalkan',
+              cancelButtonText:  form.dataset.swalCancel  || 'Batal',
+              confirmButtonColor: form.dataset.swalConfirmColor || '#dc3545',
+              reverseButtons:    true,
+              inputValidator: function (value) {
+                if (!value || !value.trim()) {
+                  return form.dataset.swalReasonRequired || 'Alasan pembatalan wajib diisi.';
+                }
+              },
+            }).then(function (result) {
+              if (!result.isConfirmed) return;
+              var reasonInput = form.querySelector('input[name="cancel_reason"]');
+              if (reasonInput) {
+                reasonInput.value = (result.value || '').trim();
+              }
+              form.submit();
+            });
+          });
+        });
+
+      var focusTabs      = document.querySelectorAll('[data-focus-tab]');
+      var summaryPanel   = document.getElementById('focus-panel-summary');
+      var rowPanel       = document.getElementById('focus-panel-row');
+      var catalogPanel   = document.getElementById('focus-panel-catalog');
+      var sidePanel      = document.getElementById('focus-panel-side');
+      var selectedPanel  = document.getElementById('focus-panel-selected');
+      var actionsPanel   = document.getElementById('focus-panel-actions');
+      var tabStorageKey  = 'loanSelectActiveTab';
+
+      function normalizeTabName(tabName) {
+        var allowed = ['summary', 'catalog', 'selected', 'actions'];
+        return allowed.indexOf(tabName) !== -1 ? tabName : 'catalog';
+      }
+
+      function currentActiveTab() {
+        var activeBtn = document.querySelector('[data-focus-tab].active');
+        return normalizeTabName(activeBtn ? activeBtn.getAttribute('data-focus-tab') : 'catalog');
+      }
+
+      function updateTabInUrl(tabName) {
+        try {
+          var url = new URL(window.location.href);
+          url.searchParams.set('tab', tabName);
+          window.history.replaceState({}, '', url.toString());
+        } catch (e) {
+          // Ignore URL parsing issues in older/edge runtimes.
+        }
+      }
+
+      function setFocusTab(tabName) {
+        tabName = normalizeTabName(tabName);
+        focusTabs.forEach(function (btn) {
+          btn.classList.toggle('active', btn.getAttribute('data-focus-tab') === tabName);
+        });
+
+        if (summaryPanel) summaryPanel.classList.toggle('is-visible', tabName === 'summary');
+
+        if (rowPanel) rowPanel.classList.toggle('is-visible', tabName !== 'summary');
+        if (catalogPanel) catalogPanel.style.display = tabName === 'catalog' ? '' : 'none';
+        if (sidePanel) sidePanel.style.display = (tabName === 'selected' || tabName === 'actions') ? '' : 'none';
+        if (selectedPanel) selectedPanel.classList.toggle('is-visible', tabName === 'selected');
+        if (actionsPanel) actionsPanel.classList.toggle('is-visible', tabName === 'actions');
+
+        try {
+          localStorage.setItem(tabStorageKey, tabName);
+        } catch (e) {
+          // Ignore storage issues.
+        }
+        updateTabInUrl(tabName);
+      }
+
+      focusTabs.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          setFocusTab(this.getAttribute('data-focus-tab'));
+        });
+      });
+
+      var urlTab = '';
+      try {
+        urlTab = new URL(window.location.href).searchParams.get('tab') || '';
+      } catch (e) {
+        urlTab = '';
+      }
+
+      var savedTab = '';
+      try {
+        savedTab = localStorage.getItem(tabStorageKey) || '';
+      } catch (e) {
+        savedTab = '';
+      }
+
+      setFocusTab(urlTab || savedTab || 'catalog');
+
+      document.querySelectorAll('.js-swal-delete-form').forEach(function (form) {
+        form.addEventListener('submit', function () {
+          var activeTab = currentActiveTab();
+          try {
+            var actionUrl = new URL(form.getAttribute('action'), window.location.origin);
+            actionUrl.searchParams.set('tab', activeTab);
+            form.setAttribute('action', actionUrl.pathname + actionUrl.search);
+          } catch (e) {
+            var action = form.getAttribute('action') || '';
+            var separator = action.indexOf('?') === -1 ? '?' : '&';
+            form.setAttribute('action', action + separator + 'tab=' + encodeURIComponent(activeTab));
+          }
+        });
+      });
+
+      document.querySelectorAll('.js-preserve-tab-form').forEach(function (form) {
+        form.addEventListener('submit', function () {
+          var activeTab = currentActiveTab();
+          try {
+            var actionUrl = new URL(form.getAttribute('action'), window.location.origin);
+            actionUrl.searchParams.set('tab', activeTab);
+            form.setAttribute('action', actionUrl.pathname + actionUrl.search);
+          } catch (e) {
+            var action = form.getAttribute('action') || '';
+            var separator = action.indexOf('?') === -1 ? '?' : '&';
+            form.setAttribute('action', action + separator + 'tab=' + encodeURIComponent(activeTab));
+          }
+        });
+      });
 
     var ITEMS_PER_PAGE  = 8;
     var catalogPage     = 1;

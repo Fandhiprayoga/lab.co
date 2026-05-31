@@ -72,6 +72,24 @@ class NotificationService
             'icon'    => 'fas fa-sign-in-alt',
             'color'   => 'success',
         ],
+        'loan.usage_started' => [
+            'title'   => 'Penggunaan Ruangan Dimulai',
+            'message' => 'Penggunaan ruangan untuk proposal {proposal_code} telah dimulai.',
+            'icon'    => 'fas fa-play-circle',
+            'color'   => 'primary',
+        ],
+        'loan.usage_finished' => [
+            'title'   => 'Penggunaan Ruangan Selesai',
+            'message' => 'Penggunaan ruangan untuk proposal {proposal_code} telah selesai.',
+            'icon'    => 'fas fa-flag-checkered',
+            'color'   => 'success',
+        ],
+        'loan.canceled' => [
+            'title'   => 'Proposal Dibatalkan',
+            'message' => 'Proposal {proposal_code} telah dibatalkan.',
+            'icon'    => 'fas fa-ban',
+            'color'   => 'secondary',
+        ],
 
         // ---- BHP / Bahan Habis Pakai ----
         'bhp.submitted' => [
