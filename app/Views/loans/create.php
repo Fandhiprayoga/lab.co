@@ -21,42 +21,6 @@ $typeIcon    = $isEquipment ? 'fa-tools' : 'fa-door-open';
     font-family: Manrope, "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
     color: var(--ink);
   }
-  .loan-create-page .hero {
-    background:
-      radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.7), transparent 52%),
-      linear-gradient(120deg, var(--brand-soft), #ffffff 74%);
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.07);
-    margin-bottom: 1rem;
-    overflow: hidden;
-    position: relative;
-  }
-  .loan-create-page .hero::after {
-    content: "";
-    position: absolute;
-    width: 200px;
-    height: 200px;
-    border-radius: 50%;
-    background: var(--brand-soft);
-    right: -90px;
-    bottom: -120px;
-  }
-  .loan-create-page .hero-body {
-    position: relative;
-    z-index: 1;
-    padding: 1rem 1.2rem;
-  }
-  .loan-create-page .hero-title {
-    font-size: 1.08rem;
-    font-weight: 800;
-    margin-bottom: 0.2rem;
-  }
-  .loan-create-page .hero-sub {
-    color: var(--ink-soft);
-    font-size: 0.84rem;
-    margin-bottom: 0;
-  }
   .loan-create-page .btn-modern {
     border-radius: 10px;
     font-size: 0.8rem;
@@ -249,18 +213,6 @@ $typeIcon    = $isEquipment ? 'fa-tools' : 'fa-door-open';
 </style>
 
 <div class="loan-create-page">
-  <section class="hero">
-    <div class="hero-body d-flex align-items-center justify-content-between flex-wrap" style="gap:.75rem">
-      <div>
-        <h1 class="hero-title">Buat Proposal Peminjaman</h1>
-        <p class="hero-sub">Lengkapi alur pengajuan dari informasi awal hingga proses approval.</p>
-      </div>
-      <a href="<?= base_url('loans') ?>" class="btn btn-outline-secondary btn-sm btn-modern btn-action">
-        <i class="fas fa-arrow-left mr-1"></i>Kembali ke Daftar
-      </a>
-    </div>
-  </section>
-
   <?php if ($type === null): ?>
     <div class="row justify-content-center">
       <div class="col-lg-10">
