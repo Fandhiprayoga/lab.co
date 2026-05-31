@@ -85,6 +85,12 @@ function isDropdownActive(array $paths): string {
       </li>
       <?php endif; ?>
 
+      <?php if (activeGroupCan('bhp.stock.adjust')): ?>
+      <li class="<?= rtrim(uri_string(), '/') === 'consumables/adjustments' ? 'active' : '' ?>">
+        <a class="nav-link" href="<?= base_url('consumables/adjustments') ?>"><i class="fas fa-history"></i> <span>Riwayat Penyesuaian</span></a>
+      </li>
+      <?php endif; ?>
+
       <?php if (activeGroupCan('bhp.master.manage')): ?>
       <li class="<?= isMenuActive('admin/consumables/categories') ?>">
         <a class="nav-link" href="<?= base_url('admin/consumables/categories') ?>"><i class="fas fa-tags"></i> <span>Kategori BHP</span></a>

@@ -83,6 +83,9 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
         $routes->post('requests/(:num)/realize', 'ConsumableController::storeRealization/$1', ['filter' => 'permission:bhp.realize']);
         $routes->post('requests/(:num)/cancel', 'ConsumableController::cancel/$1', ['filter' => 'permission:bhp.request.cancel']);
         $routes->get('analytics', 'ConsumableController::analytics', ['filter' => 'permission:bhp.analytics.view']);
+        $routes->get('adjustments', 'ConsumableAdjustmentController::history', ['filter' => 'permission:bhp.stock.adjust']);
+        $routes->get('adjustments/datatable', 'ConsumableAdjustmentController::datatableHistory', ['filter' => 'permission:bhp.stock.adjust']);
+        $routes->get('adjustments/export', 'ConsumableAdjustmentController::exportHistory', ['filter' => 'permission:bhp.stock.adjust']);
         $routes->get('adjustments/(:num)/create', 'ConsumableAdjustmentController::create/$1', ['filter' => 'permission:bhp.stock.adjust']);
         $routes->post('adjustments/(:num)', 'ConsumableAdjustmentController::store/$1', ['filter' => 'permission:bhp.stock.adjust']);
     });

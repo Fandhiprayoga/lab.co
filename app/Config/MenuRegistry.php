@@ -98,6 +98,13 @@ class MenuRegistry
                 'group'      => null,
             ],
             [
+                'label'      => 'Riwayat Penyesuaian Stok',
+                'url'        => 'consumables/adjustments',
+                'icon'       => 'fas fa-history',
+                'permission' => 'bhp.stock.adjust',
+                'group'      => null,
+            ],
+            [
                 'label'      => 'Kategori BHP',
                 'url'        => 'admin/consumables/categories',
                 'icon'       => 'fas fa-tags',
