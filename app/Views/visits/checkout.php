@@ -72,8 +72,7 @@ if ($checkinTime) {
         <p class="text-sm text-center text-gray-600">Konfirmasi bahwa Anda akan meninggalkan lab?</p>
 
         <!-- Tombol checkout -->
-        <form method="post" action="<?= base_url('labs/scan/' . esc($token)) ?>">
-          <?= csrf_field() ?>
+        <form method="post" action="<?= site_url('labs/scan/' . esc($token)) ?>" id="checkout-form">
           <input type="hidden" name="_action" value="checkout">
           <button type="submit"
             class="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold py-3 rounded-xl transition text-sm">

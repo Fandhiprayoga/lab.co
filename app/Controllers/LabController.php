@@ -675,19 +675,19 @@ class LabController extends BaseController
         // ----------------------------------------------------------------
         // POST: handle check-in atau check-out
         // ----------------------------------------------------------------
-        if ($this->request->getMethod() === 'post') {
+        if ($this->request->is('post')) {
             $action = $this->request->getPost('_action');
 
             // --- CHECK-OUT ---
             if ($action === 'checkout') {
                 $visitId = session()->get($sessionKey);
                 if (! $visitId) {
-                    return redirect()->to(base_url('labs/scan/' . $token));
+                    return redirect()->to(site_url('labs/scan/' . $token));
                 }
                 $visit = $visitModel->findActive((int) $lab['id'], (int) $visitId);
                 if (! $visit) {
                     session()->remove($sessionKey);
-                    return redirect()->to(base_url('labs/scan/' . $token));
+                    return redirect()->to(site_url('labs/scan/' . $token));
                 }
 
                 $visitModel->update((int) $visit['id'], [
@@ -713,9 +713,10 @@ class LabController extends BaseController
             ];
 
             if (! $this->validate($rules)) {
+                $errors = $this->validator->getErrors();
                 return view('visits/checkin', [
                     'lab'    => $lab,
-                    'errors' => $this->validator->getErrors(),
+                    'errors' => $errors,
                     'old'    => $this->request->getPost(),
                     'token'  => $token,
                 ]);
@@ -729,6 +730,15 @@ class LabController extends BaseController
                 'purpose_note'        => trim($this->request->getPost('purpose_note') ?? ''),
                 'checked_in_at'       => date('Y-m-d H:i:s'),
             ]);
+
+            if (!$visitId) {
+                return view('visits/checkin', [
+                    'lab'    => $lab,
+                    'errors' => ['database' => 'Gagal menyimpan data kunjungan. Silakan coba lagi.'],
+                    'old'    => $this->request->getPost(),
+                    'token'  => $token,
+                ]);
+            }
 
             session()->set($sessionKey, $visitId);
 

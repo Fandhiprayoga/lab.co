@@ -38,8 +38,7 @@ $purposeOptions = [
       </div>
 
       <!-- Form body -->
-      <form method="post" action="<?= base_url('labs/scan/' . esc($token)) ?>" class="px-6 py-6 space-y-5">
-        <?= csrf_field() ?>
+      <form method="post" action="<?= site_url('labs/scan/' . esc($token)) ?>" class="px-6 py-6 space-y-5" id="checkin-form">
         <input type="hidden" name="_action" value="checkin">
 
         <?php if (!empty($errors)): ?>
@@ -62,8 +61,7 @@ $purposeOptions = [
             name="visitor_name"
             value="<?= esc($old['visitor_name'] ?? '') ?>"
             placeholder="Masukkan nama lengkap"
-            class="w-full border <?= isset($errors['visitor_name']) ? 'border-red-400 bg-red-50' : 'border-gray-300' ?> rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-            <?= !empty($old['visitor_name']) ? 'readonly' : '' ?>
+            class="w-full border <?= isset($errors['visitor_name']) ? 'border-red-400 bg-red-50' : 'border-gray-300' ?> rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 <?= !empty($old['visitor_name']) ? 'bg-gray-50' : '' ?>"
             required
           >
           <?php if (!empty($old['visitor_name'])): ?>
@@ -81,11 +79,10 @@ $purposeOptions = [
             name="visitor_institution"
             value="<?= esc($old['visitor_institution'] ?? '') ?>"
             placeholder="Contoh: Teknik Informatika A, SMA N 1 ..."
-            class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-            <?= !empty($old['visitor_institution']) ? 'readonly' : '' ?>
+            class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 <?= !empty($old['visitor_institution']) ? 'bg-gray-50' : '' ?>"
           >
           <?php if (!empty($old['visitor_institution'])): ?>
-          <p class="text-xs text-gray-500 mt-1"><i class="ph ph-info"></i> Terisi otomatis dari akun Anda</p>
+          <p class="text-xs text-gray-500 mt-1"><i class="ph ph-info"></i> Terisi otomatis dari akun Anda (dapat diubah)</p>
           <?php endif; ?>
         </div>
 
@@ -97,7 +94,7 @@ $purposeOptions = [
           <div class="grid grid-cols-2 gap-2" id="purpose-grid">
             <?php foreach ($purposeOptions as $val => $label): ?>
             <label class="purpose-option flex items-center gap-2 border rounded-lg px-3 py-2.5 cursor-pointer transition <?= ($old['purpose'] ?? '') === $val ? 'border-brand-500 bg-brand-50' : 'border-gray-200 hover:border-gray-300' ?>">
-              <input type="radio" name="purpose" value="<?= $val ?>" class="hidden" <?= ($old['purpose'] ?? '') === $val ? 'checked' : '' ?>>
+              <input type="radio" name="purpose" value="<?= $val ?>" class="sr-only" <?= ($old['purpose'] ?? '') === $val ? 'checked' : '' ?>>
               <span class="w-4 h-4 rounded-full border-2 flex-shrink-0 purpose-radio <?= ($old['purpose'] ?? '') === $val ? 'border-brand-500 bg-brand-500' : 'border-gray-400' ?>"></span>
               <span class="text-sm text-gray-700"><?= esc($label) ?></span>
             </label>
@@ -140,6 +137,27 @@ $purposeOptions = [
 (function () {
   var options = document.querySelectorAll('.purpose-option');
   var noteWrap = document.getElementById('purpose-note-wrap');
+  var form = document.getElementById('checkin-form');
+
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      var formData = new FormData(form);
+      var visitorName = formData.get('visitor_name');
+      var purpose = formData.get('purpose');
+      
+      if (!visitorName || visitorName.trim() === '') {
+        alert('Nama lengkap harus diisi');
+        e.preventDefault();
+        return false;
+      }
+      
+      if (!purpose) {
+        alert('Pilih salah satu keperluan');
+        e.preventDefault();
+        return false;
+      }
+    });
+  }
 
   options.forEach(function (label) {
     label.addEventListener('click', function () {
