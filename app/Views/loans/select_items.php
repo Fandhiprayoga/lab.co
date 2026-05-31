@@ -459,10 +459,10 @@ $itemCount = count($items);
             $stockPct = $eq['stock_total'] > 0 ? round($eq['stock_available'] / $eq['stock_total'] * 100) : 0;
             $stockClass = $stockPct > 50 ? 'success' : ($stockPct > 20 ? 'warning' : 'danger');
           ?>
-          <div class="col-md-6 mb-2 catalog-item" data-name="<?= strtolower(esc($eq['name'])) ?> <?= strtolower(esc($eq['lab_name'] ?? '')) ?> <?= strtolower(esc($eq['category'] ?? '')) ?>">
+          <div class="col-sm-6 col-lg-4 col-xl-3 mb-2 catalog-item" data-name="<?= strtolower(esc($eq['name'])) ?> <?= strtolower(esc($eq['lab_name'] ?? '')) ?> <?= strtolower(esc($eq['category'] ?? '')) ?>">
             <div class="card border-0 shadow-sm h-100 catalog-card <?= $alreadyAdded ? 'added' : '' ?>">
 
-              <div class="position-relative" style="height:120px;overflow:hidden;border-radius:4px 4px 0 0;background:linear-gradient(135deg,rgba(79,195,247,.15),rgba(2,136,209,.1))">
+              <div class="position-relative" style="height:130px;overflow:hidden;border-radius:4px 4px 0 0;background:linear-gradient(135deg,rgba(79,195,247,.15),rgba(2,136,209,.1))">
                 <?php if (! empty($eq['photo'])): ?>
                   <img src="<?= base_url($eq['photo']) ?>" alt="" style="width:100%;height:100%;object-fit:cover">
                   <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.45),transparent)"></div>
@@ -479,7 +479,7 @@ $itemCount = count($items);
                 <?php endif; ?>
                 <?php if ($alreadyAdded): ?>
                   <span class="badge badge-success" style="position:absolute;top:8px;right:8px;font-size:.72rem">
-                    <i class="fas fa-check mr-1"></i>Ditambahkan
+                    <i class="fas fa-check"></i>
                   </span>
                 <?php endif; ?>
                 <?php if (! empty($eq['category'])): ?>
@@ -569,7 +569,7 @@ $itemCount = count($items);
                 <?php endif; ?>
                 <?php if ($alreadyAdded): ?>
                   <span class="badge badge-success" style="position:absolute;top:8px;right:8px;font-size:.72rem">
-                    <i class="fas fa-check mr-1"></i>Ditambahkan
+                    <i class="fas fa-check"></i>
                   </span>
                 <?php endif; ?>
                 <?php if (! empty($lab['code'])): ?>
