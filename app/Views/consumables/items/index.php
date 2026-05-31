@@ -11,7 +11,7 @@ $categories = $categories ?? [];
     background: rgba(0,0,0,.35);
     opacity: 0; visibility: hidden;
     transition: opacity .2s ease;
-    z-index: 2147483000;
+    z-index: 99999 !important;
   }
   .item-filter-overlay.is-open {
     opacity: 1; visibility: visible;
@@ -24,7 +24,7 @@ $categories = $categories ?? [];
     box-shadow: -2px 0 8px rgba(0,0,0,.15);
     transform: translateX(100%);
     transition: transform .2s ease;
-    z-index: 2147483001;
+    z-index: 100000 !important;
     display: flex; flex-direction: column;
   }
   .item-filter-drawer.is-open {
@@ -158,10 +158,9 @@ $categories = $categories ?? [];
       <label for="filter-item-status" class="font-weight-bold">Status</label>
       <select id="filter-item-status" class="form-control">
         <option value="">— Semua Status —</option>
-        <option value="low">Stok Rendah</option>
+        <option value="low_stock">Stok Rendah</option>
         <option value="expired">Kedaluwarsa</option>
-        <option value="critical">Kritis</option>
-        <option value="available">Tersedia</option>
+        <option value="ok">Normal/Tersedia</option>
       </select>
     </div>
   </div>
@@ -184,9 +183,17 @@ $categories = $categories ?? [];
 document.addEventListener('DOMContentLoaded', function() {
   'use strict';
 
+  /* ── Move drawer to body level to avoid z-index issues ──────────────── */
+  var drawer  = document.getElementById('item-filter-drawer');
+  var overlay = document.getElementById('item-filter-overlay');
+  if (drawer && overlay) {
+    document.body.appendChild(overlay);
+    document.body.appendChild(drawer);
+  }
+
   /* ── Filter Drawer Toggle ──────────────── */
-  var drawer      = $('#item-filter-drawer');
-  var overlay     = $('#item-filter-overlay');
+  drawer      = $('#item-filter-drawer');
+  overlay     = $('#item-filter-overlay');
   var activeChips = $('#item-active-filter-chips');
 
   function setDrawerState(open) {
