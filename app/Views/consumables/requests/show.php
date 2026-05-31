@@ -59,7 +59,7 @@ $canRealize = $status === 'disbursed' && activeGroupCan('bhp.realize');
     <div class="card">
       <div class="card-header"><h6 class="mb-0">Daftar Bahan</h6></div>
       <div class="card-body">
-        <table class="table table-sm mb-0" id="itemsTable">
+        <table class="table table-sm " id="itemsTable">
           <thead class="thead-light">
             <tr>
               <th>Bahan</th>

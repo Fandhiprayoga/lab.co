@@ -44,7 +44,7 @@ $statusLabels = [
       <div class="card-header"><h6 class="mb-0"><i class="fas fa-trophy mr-1 text-warning"></i> Top 10 Bahan Paling Banyak Digunakan</h6></div>
       <div class="card-body">
         <?php if (empty($topItems)): ?>
-          <p class="text-muted text-center">Belum ada data realisasi.</p>
+          <p class="text-muted text-center">Belum ada data penggunaan bahan.</p>
         <?php else: ?>
           <canvas id="topItemsChart" height="280"></canvas>
         <?php endif; ?>

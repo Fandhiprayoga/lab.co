@@ -918,13 +918,17 @@ class ConsumableController extends BaseController
             }
         };
 
-        // Top 10 bahan paling banyak digunakan (berdasarkan qty_actual)
+        // Top 10 bahan paling banyak digunakan (berdasarkan qty_approved dari yang sudah disbursed/completed)
         $qbTopItems = $db->table('consumable_request_items ri')
-            ->select('ci.name AS item_name, units.symbol AS unit_symbol, SUM(ri.qty_actual) AS total_used')
+            ->select('ci.name AS item_name, units.symbol AS unit_symbol, 
+                      SUM(COALESCE(ri.qty_actual, ri.qty_approved)) AS total_used')
             ->join('consumable_items ci', 'ci.id = ri.consumable_id', 'left')
             ->join('units', 'units.id = ci.unit_id', 'left')
             ->join('consumable_requests r', 'r.id = ri.request_id')
-            ->where('r.status', ConsumableRequestModel::STATUS_COMPLETED);
+            ->whereIn('r.status', [
+                ConsumableRequestModel::STATUS_DISBURSED, 
+                ConsumableRequestModel::STATUS_COMPLETED
+            ]);
         
         $labFilter($qbTopItems);
         
