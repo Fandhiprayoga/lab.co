@@ -19,15 +19,39 @@ class FacultySeeder extends Seeder
 
         $faculties = [
             [
-                'name'        => 'Fakultas Informatika',
-                'code'        => 'FIF',
-                'description' => null,
+                'name'        => 'Fakultas Teknik Elektro',
+                'code'        => 'FTE',
+                'description' => 'Fakultas yang berfokus pada pengembangan ilmu dan teknologi di bidang teknik elektro, sistem tenaga, elektronika, dan telekomunikasi.',
                 'is_active'   => 1,
             ],
             [
-                'name'        => 'Fakultas Teknik Telekomunikasi dan Elektro',
-                'code'        => 'FTTE',
-                'description' => null,
+                'name'        => 'Fakultas Informatika',
+                'code'        => 'FIF',
+                'description' => 'Fakultas yang mengembangkan ilmu komputer, rekayasa perangkat lunak, kecerdasan buatan, dan sistem informasi berbasis teknologi terkini.',
+                'is_active'   => 1,
+            ],
+            [
+                'name'        => 'Fakultas Rekayasa Industri',
+                'code'        => 'FRI',
+                'description' => 'Fakultas yang berfokus pada perancangan, pengelolaan, dan optimasi sistem industri serta rantai pasok secara terintegrasi.',
+                'is_active'   => 1,
+            ],
+            [
+                'name'        => 'Fakultas Industri Kreatif',
+                'code'        => 'FIK',
+                'description' => 'Fakultas yang mengintegrasikan kreativitas, seni, dan teknologi untuk menghasilkan karya inovatif di bidang desain, animasi, dan media digital.',
+                'is_active'   => 1,
+            ],
+            [
+                'name'        => 'Fakultas Ekonomi dan Bisnis',
+                'code'        => 'FEB',
+                'description' => 'Fakultas yang mengkaji ilmu ekonomi, manajemen bisnis, akuntansi, dan kewirausahaan dalam konteks ekonomi digital dan global.',
+                'is_active'   => 1,
+            ],
+            [
+                'name'        => 'Fakultas Ilmu Terapan',
+                'code'        => 'FIT',
+                'description' => 'Fakultas yang menyelenggarakan pendidikan vokasi dan terapan di bidang teknologi informasi, komputasi, dan administrasi bisnis berbasis praktik.',
                 'is_active'   => 1,
             ],
         ];
