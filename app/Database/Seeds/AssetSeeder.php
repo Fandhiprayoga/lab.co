@@ -80,126 +80,163 @@ class AssetSeeder extends Seeder
         }
 
         $assets = [
-            [
-                'lab_code'        => 'LAB-JK',
-                'name'            => 'Router Mikrotik RB750Gr3',
-                'category'        => 'Jaringan',
-                'specifications'  => '5-port Gigabit Ethernet, CPU dual-core 880 MHz',
-                'max_loan_hours'  => 0,
-                'stock_total'     => 8,
-                'stock_available' => 8,
-                'is_active'       => 1,
-            ],
-            [
-                'lab_code'        => 'LAB-PA',
-                'name'            => 'Laptop Praktikum Pemrograman',
-                'category'        => 'Komputasi',
-                'specifications'  => 'Core i5, RAM 16GB, SSD 512GB',
-                'max_loan_hours'  => 0,
-                'stock_total'     => 20,
-                'stock_available' => 20,
-                'is_active'       => 1,
-            ],
-            [
-                'lab_code'        => 'LAB-MM',
-                'name'            => 'Kamera DSLR Canon 80D',
-                'category'        => 'Multimedia',
-                'specifications'  => 'Sensor APS-C 24.2MP, lensa kit 18-55mm',
-                'max_loan_hours'  => 0,
-                'stock_total'     => 6,
-                'stock_available' => 6,
-                'is_active'       => 1,
-            ],
-            [
-                'lab_code'        => 'LAB-DATA',
-                'name'            => 'Server Mini Analitik Data',
-                'category'        => 'Server',
-                'specifications'  => 'AMD EPYC, RAM 64GB, NVMe 2TB',
-                'max_loan_hours'  => 0,
-                'stock_total'     => 3,
-                'stock_available' => 3,
-                'is_active'       => 1,
-            ],
-            [
-                'lab_code'        => 'LAB-HPC',
-                'name'            => 'Node Komputasi GPU',
-                'category'        => 'HPC',
-                'specifications'  => 'Dual GPU RTX, RAM 128GB, CPU 32-core',
-                'max_loan_hours'  => 0,
-                'stock_total'     => 4,
-                'stock_available' => 4,
-                'is_active'       => 1,
-            ],
-            [
-                'lab_code'        => 'LAB-EGOV',
-                'name'            => 'Tablet Survei Lapangan',
-                'category'        => 'Mobile',
-                'specifications'  => 'Android 10 inch, RAM 6GB, storage 128GB',
-                'max_loan_hours'  => 0,
-                'stock_total'     => 10,
-                'stock_available' => 10,
-                'is_active'       => 1,
-            ],
-            [
-                'lab_code'        => 'LAB-TETD',
-                'name'            => 'Kit Mikrokontroler STM32',
-                'category'        => 'Elektronika',
-                'specifications'  => 'Development board STM32 + sensor set',
-                'max_loan_hours'  => 0,
-                'stock_total'     => 12,
-                'stock_available' => 12,
-                'is_active'       => 1,
-            ],
-            [
-                'lab_code'        => 'LAB-SISKOM',
-                'name'            => 'Spectrum Analyzer Portable',
-                'category'        => 'Telekomunikasi',
-                'specifications'  => '9kHz-3GHz, battery-powered',
-                'max_loan_hours'  => 0,
-                'stock_total'     => 2,
-                'stock_available' => 2,
-                'is_active'       => 1,
-            ],
-            [
-                'lab_code'        => 'LAB-SWT',
-                'name'            => 'Managed Switch Layer 3',
-                'category'        => 'Jaringan',
-                'specifications'  => '24-port Gigabit, VLAN, QoS, OSPF',
-                'max_loan_hours'  => 0,
-                'stock_total'     => 5,
-                'stock_available' => 5,
-                'is_active'       => 1,
-            ],
-            [
-                'lab_code'        => 'LAB-MBIO',
-                'name'            => 'Digital Microscope',
-                'category'        => 'Biomedis',
-                'specifications'  => 'Magnification up to 1600x, USB output',
-                'max_loan_hours'  => 0,
-                'stock_total'     => 4,
-                'stock_available' => 4,
-                'is_active'       => 1,
-            ],
-            [
-                'lab_code'        => 'LAB-PI',
-                'name'            => 'Digital Oscilloscope 100MHz',
-                'category'        => 'Instrumentasi',
-                'specifications'  => '2-channel, sample rate 1GSa/s',
-                'max_loan_hours'  => 0,
-                'stock_total'     => 6,
-                'stock_available' => 6,
-                'is_active'       => 1,
-            ],
-            [
-                'lab_code'        => 'LAB-IOE',
-                'name'            => 'IoT Sensor Starter Kit',
-                'category'        => 'IoT',
-                'specifications'  => 'ESP32 + sensor suhu, kelembapan, relay, gateway',
-                'max_loan_hours'  => 0,
-                'stock_total'     => 15,
-                'stock_available' => 15,
-                'is_active'       => 1,
-            ],
+
+            // ---------------------------------------------------------------
+            // LAB-JK | Jaringan Komputer
+            // ---------------------------------------------------------------
+            ['lab_code'=>'LAB-JK','asset_code'=>'AST-JK-001','name'=>'Router Mikrotik RB750Gr3','brand'=>'Mikrotik','model'=>'RB750Gr3','serial_number'=>'MTK230801','specifications'=>'5-port Gigabit, CPU dual-core 880 MHz','acquisition_date'=>'2023-08-15','acquisition_source'=>'pembelian','purchase_price'=>1500000,'supplier'=>'PT Datacomm Diangraha','funding_source'=>'DIPA','warranty_until'=>'2026-08-15','inventory_status'=>'aktif','minimum_stock'=>2,'stock_total'=>8,'stock_available'=>8,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-JK','asset_code'=>'AST-JK-002','name'=>'Switch Cisco Catalyst 2960-24TT','brand'=>'Cisco','model'=>'WS-C2960-24TT-L','serial_number'=>'CSC220301','specifications'=>'24-port FastEthernet, 2-port Gigabit, IOS managed','acquisition_date'=>'2022-03-10','acquisition_source'=>'pembelian','purchase_price'=>8500000,'supplier'=>'PT Datacomm Diangraha','funding_source'=>'DIPA','warranty_until'=>'2025-03-10','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>6,'stock_available'=>6,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-JK','asset_code'=>'AST-JK-003','name'=>'Wireless Access Point Ubiquiti UniFi U6 Pro','brand'=>'Ubiquiti','model'=>'U6-Pro','serial_number'=>'UBI231101','specifications'=>'WiFi 6 (802.11ax), dual-band, 4x4 MIMO, PoE','acquisition_date'=>'2023-11-20','acquisition_source'=>'pembelian','purchase_price'=>3200000,'supplier'=>'PT Datacomm Diangraha','funding_source'=>'BLU','warranty_until'=>'2026-11-20','inventory_status'=>'aktif','minimum_stock'=>2,'stock_total'=>10,'stock_available'=>10,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-JK','asset_code'=>'AST-JK-004','name'=>'Patch Panel 24-port Cat6','brand'=>'Panduit','model'=>'CP24WBLY5','serial_number'=>'PAN220601','specifications'=>'Cat6 UTP, 1U rack mount, T568A/B kompatibel','acquisition_date'=>'2022-06-01','acquisition_source'=>'pembelian','purchase_price'=>450000,'supplier'=>'PT Datacomm Diangraha','funding_source'=>'DIPA','warranty_until'=>'2025-06-01','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>4,'stock_available'=>4,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-JK','asset_code'=>'AST-JK-005','name'=>'Cable Tester Jaringan Fluke','brand'=>'Fluke Networks','model'=>'CableIQ','serial_number'=>'FLN230101','specifications'=>'Cek continuity, wiring map, PoE test, NFC','acquisition_date'=>'2023-01-15','acquisition_source'=>'pembelian','purchase_price'=>2800000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'DIPA','warranty_until'=>'2026-01-15','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>3,'stock_available'=>3,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-JK','asset_code'=>'AST-JK-006','name'=>'Fiber Optic Media Converter','brand'=>'TP-Link','model'=>'MC111CS','serial_number'=>'TPL220901','specifications'=>'Gigabit Ethernet ke Single-mode LC, 1310nm','acquisition_date'=>'2022-09-10','acquisition_source'=>'pembelian','purchase_price'=>580000,'supplier'=>'PT Bhinneka Mentari Dimensi','funding_source'=>'BLU','warranty_until'=>'2025-09-10','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>5,'stock_available'=>5,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-JK','asset_code'=>'AST-JK-007','name'=>'PC Workstation Simulasi Jaringan','brand'=>'Lenovo','model'=>'ThinkCentre M720q','serial_number'=>'LNV230701','specifications'=>'Core i7-12700, RAM 32GB, SSD 1TB, GNS3/Cisco Packet Tracer','acquisition_date'=>'2023-07-01','acquisition_source'=>'pembelian','purchase_price'=>9500000,'supplier'=>'PT Synnex Metrodata Indonesia','funding_source'=>'DIPA','warranty_until'=>'2026-07-01','inventory_status'=>'aktif','minimum_stock'=>5,'stock_total'=>20,'stock_available'=>20,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-JK','asset_code'=>'AST-JK-008','name'=>'Rack Server Jaringan 12U','brand'=>'APC','model'=>'AR100','serial_number'=>'APC220501','specifications'=>'12U wall-mount, besi powder-coat, kunci','acquisition_date'=>'2022-05-15','acquisition_source'=>'pembelian','purchase_price'=>2200000,'supplier'=>'PT Datacomm Diangraha','funding_source'=>'DIPA','warranty_until'=>'2027-05-15','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>2,'stock_available'=>2,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-JK','asset_code'=>'AST-JK-009','name'=>'Crimping Tool & RJ45 Set','brand'=>'Rexbull','model'=>'CT-610','serial_number'=>'RXB230201','specifications'=>'Tang krimping Cat5e/Cat6, 200 konektor RJ45','acquisition_date'=>'2023-02-01','acquisition_source'=>'pembelian','purchase_price'=>180000,'supplier'=>'PT Bhinneka Mentari Dimensi','funding_source'=>'BLU','warranty_until'=>'2026-02-01','inventory_status'=>'aktif','minimum_stock'=>2,'stock_total'=>10,'stock_available'=>10,'max_loan_hours'=>0,'is_active'=>1],
+
+            // ---------------------------------------------------------------
+            // LAB-PA | Pemrograman & Algoritma
+            // ---------------------------------------------------------------
+            ['lab_code'=>'LAB-PA','asset_code'=>'AST-PA-001','name'=>'Laptop Praktikum Pemrograman','brand'=>'Lenovo','model'=>'ThinkPad E15 Gen 4','serial_number'=>'LNV230901','specifications'=>'Core i5-1235U, RAM 16GB, SSD 512GB, Ubuntu/Windows dual-boot','acquisition_date'=>'2023-09-01','acquisition_source'=>'pembelian','purchase_price'=>12500000,'supplier'=>'PT Synnex Metrodata Indonesia','funding_source'=>'DIPA','warranty_until'=>'2026-09-01','inventory_status'=>'aktif','minimum_stock'=>5,'stock_total'=>20,'stock_available'=>20,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-PA','asset_code'=>'AST-PA-002','name'=>'Desktop PC Workstation Coding','brand'=>'Asus','model'=>'S500MA','serial_number'=>'ASU230701','specifications'=>'Ryzen 5 5600G, RAM 16GB, SSD 512GB, monitor 24"','acquisition_date'=>'2023-07-15','acquisition_source'=>'pembelian','purchase_price'=>9800000,'supplier'=>'PT Synnex Metrodata Indonesia','funding_source'=>'DIPA','warranty_until'=>'2026-07-15','inventory_status'=>'aktif','minimum_stock'=>8,'stock_total'=>30,'stock_available'=>30,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-PA','asset_code'=>'AST-PA-003','name'=>'Proyektor Epson EB-X51','brand'=>'Epson','model'=>'EB-X51','serial_number'=>'EPS230401','specifications'=>'XGA 3600 lumens, HDMI, USB, kecerahan tinggi','acquisition_date'=>'2023-04-10','acquisition_source'=>'pembelian','purchase_price'=>7200000,'supplier'=>'PT Erajaya Swasembada','funding_source'=>'BLU','warranty_until'=>'2026-04-10','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>2,'stock_available'=>2,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-PA','asset_code'=>'AST-PA-004','name'=>'UPS APC 1000VA','brand'=>'APC','model'=>'BVX1000LI-MS','serial_number'=>'APC221101','specifications'=>'1000VA/600W, AVR, 4 outlet IEC, USB monitoring','acquisition_date'=>'2022-11-01','acquisition_source'=>'pembelian','purchase_price'=>1800000,'supplier'=>'PT Datacomm Diangraha','funding_source'=>'DIPA','warranty_until'=>'2025-11-01','inventory_status'=>'aktif','minimum_stock'=>2,'stock_total'=>10,'stock_available'=>10,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-PA','asset_code'=>'AST-PA-005','name'=>'Mechanical Keyboard Coding Set','brand'=>'Keychron','model'=>'K2 Pro','serial_number'=>'KEY240101','specifications'=>'TKL, Cherry MX Red switch, USB','acquisition_date'=>'2024-01-15','acquisition_source'=>'pembelian','purchase_price'=>1350000,'supplier'=>'PT Bhinneka Mentari Dimensi','funding_source'=>'BLU','warranty_until'=>'2027-01-15','inventory_status'=>'aktif','minimum_stock'=>4,'stock_total'=>15,'stock_available'=>15,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-PA','asset_code'=>'AST-PA-006','name'=>'Monitor 27" IPS Full HD','brand'=>'LG','model'=>'27MK430H','serial_number'=>'LGM230601','specifications'=>'1920x1080, IPS, 75Hz, HDMI+VGA, eye-care','acquisition_date'=>'2023-06-20','acquisition_source'=>'pembelian','purchase_price'=>3200000,'supplier'=>'PT Erajaya Swasembada','funding_source'=>'DIPA','warranty_until'=>'2026-06-20','inventory_status'=>'aktif','minimum_stock'=>4,'stock_total'=>15,'stock_available'=>15,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-PA','asset_code'=>'AST-PA-007','name'=>'Papan Tulis Digital Interaktif','brand'=>'Samsung','model'=>'WM75B Flip Pro','serial_number'=>'SAM240301','specifications'=>'75" 4K, touchscreen 20 titik, HDMI+USB-C, WiFi','acquisition_date'=>'2024-03-01','acquisition_source'=>'hibah','purchase_price'=>32000000,'supplier'=>'PT Multipolar Technology','funding_source'=>'Hibah Dikti','warranty_until'=>'2027-03-01','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>1,'stock_available'=>1,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-PA','asset_code'=>'AST-PA-008','name'=>'Mouse Wireless Ergonomis','brand'=>'Logitech','model'=>'M720 Triathlon','serial_number'=>'LOG230901','specifications'=>'2.4GHz, DPI 1000/1600, baterai AA','acquisition_date'=>'2023-09-01','acquisition_source'=>'pembelian','purchase_price'=>650000,'supplier'=>'PT Bhinneka Mentari Dimensi','funding_source'=>'BLU','warranty_until'=>'2026-09-01','inventory_status'=>'aktif','minimum_stock'=>5,'stock_total'=>20,'stock_available'=>20,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-PA','asset_code'=>'AST-PA-009','name'=>'Extension Power Strip 10-port','brand'=>'Panasonic','model'=>'WCHG2402','serial_number'=>'PAN230201','specifications'=>'10 socket, surge protector, kabel 3m','acquisition_date'=>'2023-02-15','acquisition_source'=>'pembelian','purchase_price'=>280000,'supplier'=>'PT Bhinneka Mentari Dimensi','funding_source'=>'BLU','warranty_until'=>'2026-02-15','inventory_status'=>'aktif','minimum_stock'=>2,'stock_total'=>8,'stock_available'=>8,'max_loan_hours'=>0,'is_active'=>1],
+
+            // ---------------------------------------------------------------
+            // LAB-MM | Multimedia
+            // ---------------------------------------------------------------
+            ['lab_code'=>'LAB-MM','asset_code'=>'AST-MM-001','name'=>'Kamera DSLR Canon EOS 80D','brand'=>'Canon','model'=>'EOS 80D','serial_number'=>'CAN220801','specifications'=>'Sensor APS-C 24.2MP, DIGIC 6, lensa kit 18-55mm IS STM','acquisition_date'=>'2022-08-10','acquisition_source'=>'pembelian','purchase_price'=>18500000,'supplier'=>'PT Erajaya Swasembada','funding_source'=>'Dana Mandiri','warranty_until'=>'2025-08-10','inventory_status'=>'aktif','minimum_stock'=>2,'stock_total'=>6,'stock_available'=>6,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-MM','asset_code'=>'AST-MM-002','name'=>'Kamera Mirrorless Sony A6400','brand'=>'Sony','model'=>'ILCE-6400','serial_number'=>'SNY230501','specifications'=>'24.2MP APS-C, 4K video, Eye-AF, lensa 16-50mm','acquisition_date'=>'2023-05-15','acquisition_source'=>'pembelian','purchase_price'=>14000000,'supplier'=>'PT Erajaya Swasembada','funding_source'=>'Dana Mandiri','warranty_until'=>'2026-05-15','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>4,'stock_available'=>4,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-MM','asset_code'=>'AST-MM-003','name'=>'Tripod Profesional Aluminium','brand'=>'Benro','model'=>'A0350Q0','serial_number'=>'BNR230301','specifications'=>'Tinggi maks 190cm, load 10kg, quick-release plate','acquisition_date'=>'2023-03-20','acquisition_source'=>'pembelian','purchase_price'=>2500000,'supplier'=>'PT Bhinneka Mentari Dimensi','funding_source'=>'BLU','warranty_until'=>'2026-03-20','inventory_status'=>'aktif','minimum_stock'=>2,'stock_total'=>8,'stock_available'=>8,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-MM','asset_code'=>'AST-MM-004','name'=>'Ring Light LED 18"','brand'=>'Godox','model'=>'RL-150T','serial_number'=>'GDX230701','specifications'=>'55W, 3200K-5600K, dimmer, stand 200cm','acquisition_date'=>'2023-07-01','acquisition_source'=>'pembelian','purchase_price'=>1200000,'supplier'=>'PT Bhinneka Mentari Dimensi','funding_source'=>'BLU','warranty_until'=>'2026-07-01','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>4,'stock_available'=>4,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-MM','asset_code'=>'AST-MM-005','name'=>'Microphone Condenser Rode NT1','brand'=>'Rode','model'=>'NT1-A','serial_number'=>'ROD221101','specifications'=>'Cardioid large-diaphragm, SNR 88dB, XLR','acquisition_date'=>'2022-11-15','acquisition_source'=>'pembelian','purchase_price'=>3800000,'supplier'=>'PT Erajaya Swasembada','funding_source'=>'Dana Mandiri','warranty_until'=>'2025-11-15','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>4,'stock_available'=>4,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-MM','asset_code'=>'AST-MM-006','name'=>'Audio Interface Focusrite Scarlett 2i2','brand'=>'Focusrite','model'=>'Scarlett 2i2 Gen 4','serial_number'=>'FCR240101','specifications'=>'2-in 2-out, 24-bit/192kHz, USB-C','acquisition_date'=>'2024-01-10','acquisition_source'=>'pembelian','purchase_price'=>2200000,'supplier'=>'PT Bhinneka Mentari Dimensi','funding_source'=>'BLU','warranty_until'=>'2027-01-10','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>4,'stock_available'=>4,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-MM','asset_code'=>'AST-MM-007','name'=>'Drone DJI Mini 3 Pro','brand'=>'DJI','model'=>'Mini 3 Pro','serial_number'=>'DJI240201','specifications'=>'4K/60fps, 47min flight, obstacle sensing, 249g','acquisition_date'=>'2024-02-20','acquisition_source'=>'pembelian','purchase_price'=>12000000,'supplier'=>'PT Erajaya Swasembada','funding_source'=>'Dana Mandiri','warranty_until'=>'2027-02-20','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>2,'stock_available'=>2,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-MM','asset_code'=>'AST-MM-008','name'=>'Graphic Tablet Wacom Intuos Pro M','brand'=>'Wacom','model'=>'PTH-660','serial_number'=>'WAC230801','specifications'=>'Active area 22.4x14cm, 8192 level pen, Bluetooth','acquisition_date'=>'2023-08-15','acquisition_source'=>'pembelian','purchase_price'=>6500000,'supplier'=>'PT Bhinneka Mentari Dimensi','funding_source'=>'Dana Mandiri','warranty_until'=>'2026-08-15','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>5,'stock_available'=>5,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-MM','asset_code'=>'AST-MM-009','name'=>'Green Screen Backdrop 3x4m','brand'=>'Andoer','model'=>'GS-3040','serial_number'=>'AND230401','specifications'=>'Chromakey fabric, collapsible, carrying bag','acquisition_date'=>'2023-04-01','acquisition_source'=>'pembelian','purchase_price'=>450000,'supplier'=>'PT Bhinneka Mentari Dimensi','funding_source'=>'BLU','warranty_until'=>'2026-04-01','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>2,'stock_available'=>2,'max_loan_hours'=>0,'is_active'=>1],
+
+            // ---------------------------------------------------------------
+            // LAB-DATA | Data Analytics
+            // ---------------------------------------------------------------
+            ['lab_code'=>'LAB-DATA','asset_code'=>'AST-DATA-001','name'=>'Server Analitik Data AMD EPYC','brand'=>'Dell','model'=>'PowerEdge R6515','serial_number'=>'DEL220701','specifications'=>'AMD EPYC 7302, RAM 64GB ECC, NVMe 2TB, Ubuntu Server','acquisition_date'=>'2022-07-01','acquisition_source'=>'pembelian','purchase_price'=>85000000,'supplier'=>'PT Multipolar Technology','funding_source'=>'DIPA','warranty_until'=>'2025-07-01','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>3,'stock_available'=>3,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-DATA','asset_code'=>'AST-DATA-002','name'=>'Workstation Data Science','brand'=>'HP','model'=>'Z4 G5','serial_number'=>'HPZ230901','specifications'=>'Core i9-13900K, RAM 64GB, RTX 3080, SSD 2TB','acquisition_date'=>'2023-09-15','acquisition_source'=>'pembelian','purchase_price'=>45000000,'supplier'=>'PT Multipolar Technology','funding_source'=>'DIPA','warranty_until'=>'2026-09-15','inventory_status'=>'aktif','minimum_stock'=>2,'stock_total'=>10,'stock_available'=>10,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-DATA','asset_code'=>'AST-DATA-003','name'=>'Monitor Ultrawide 34" Curved','brand'=>'LG','model'=>'34WN80C-B','serial_number'=>'LGU231001','specifications'=>'3440x1440, IPS, 100Hz, HDR400, USB-C 65W','acquisition_date'=>'2023-10-01','acquisition_source'=>'pembelian','purchase_price'=>8500000,'supplier'=>'PT Erajaya Swasembada','funding_source'=>'DIPA','warranty_until'=>'2026-10-01','inventory_status'=>'aktif','minimum_stock'=>2,'stock_total'=>10,'stock_available'=>10,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-DATA','asset_code'=>'AST-DATA-004','name'=>'Network Attached Storage 48TB','brand'=>'Synology','model'=>'DS1821+','serial_number'=>'SYN230101','specifications'=>'Synology DS1821+, 8-bay, RAID, Gigabit + 10GbE','acquisition_date'=>'2023-01-20','acquisition_source'=>'pembelian','purchase_price'=>22000000,'supplier'=>'PT Datacomm Diangraha','funding_source'=>'BLU','warranty_until'=>'2026-01-20','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>2,'stock_available'=>2,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-DATA','asset_code'=>'AST-DATA-005','name'=>'UPS Online 3000VA Rack','brand'=>'APC','model'=>'SRTL3KRM1UI','serial_number'=>'APC220901','specifications'=>'3000VA/2700W, pure sinewave, SNMP card, 2U','acquisition_date'=>'2022-09-10','acquisition_source'=>'pembelian','purchase_price'=>12500000,'supplier'=>'PT Datacomm Diangraha','funding_source'=>'DIPA','warranty_until'=>'2025-09-10','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>2,'stock_available'=>2,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-DATA','asset_code'=>'AST-DATA-006','name'=>'GPU Workstation NVIDIA A4000','brand'=>'NVIDIA','model'=>'RTX A4000','serial_number'=>'NVD230601','specifications'=>'NVIDIA RTX A4000 16GB, PCIe 4.0, workstation PCI-E','acquisition_date'=>'2023-06-15','acquisition_source'=>'hibah','purchase_price'=>22000000,'supplier'=>'PT Multipolar Technology','funding_source'=>'Hibah Dikti','warranty_until'=>'2026-06-15','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>4,'stock_available'=>4,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-DATA','asset_code'=>'AST-DATA-007','name'=>'External SSD Samsung T7 4TB','brand'=>'Samsung','model'=>'MU-PC4T0T','serial_number'=>'SAM240101','specifications'=>'USB 3.2 Gen2, 1050MB/s read, AES-256 enkripsi','acquisition_date'=>'2024-01-05','acquisition_source'=>'pembelian','purchase_price'=>4500000,'supplier'=>'PT Bhinneka Mentari Dimensi','funding_source'=>'BLU','warranty_until'=>'2027-01-05','inventory_status'=>'aktif','minimum_stock'=>2,'stock_total'=>8,'stock_available'=>8,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-DATA','asset_code'=>'AST-DATA-008','name'=>'Smart Whiteboard 65"','brand'=>'Huawei','model'=>'IdeaHub Pro 65','serial_number'=>'HWI240301','specifications'=>'65" 4K UHD, Android 11, built-in speaker, multi-touch','acquisition_date'=>'2024-03-15','acquisition_source'=>'hibah','purchase_price'=>65000000,'supplier'=>'PT Multipolar Technology','funding_source'=>'Hibah Dikti','warranty_until'=>'2027-03-15','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>1,'stock_available'=>1,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-DATA','asset_code'=>'AST-DATA-009','name'=>'Barcode & RFID Scanner Set','brand'=>'Zebra','model'=>'DS2208-SR','serial_number'=>'ZBR230501','specifications'=>'1D/2D barcode, RFID 13.56MHz, USB HID, jarak baca 50cm','acquisition_date'=>'2023-05-10','acquisition_source'=>'pembelian','purchase_price'=>2800000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'BLU','warranty_until'=>'2026-05-10','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>5,'stock_available'=>5,'max_loan_hours'=>0,'is_active'=>1],
+
+            // ---------------------------------------------------------------
+            // LAB-HPC | High Performance Computing
+            // ---------------------------------------------------------------
+            ['lab_code'=>'LAB-HPC','asset_code'=>'AST-HPC-001','name'=>'Node Komputasi GPU RTX A6000','brand'=>'NVIDIA','model'=>'RTX A6000','serial_number'=>'NVA230401','specifications'=>'Dual NVIDIA RTX A6000 48GB, CPU 32-core, RAM 128GB','acquisition_date'=>'2023-04-01','acquisition_source'=>'hibah','purchase_price'=>55000000,'supplier'=>'PT Multipolar Technology','funding_source'=>'Hibah Dikti','warranty_until'=>'2026-04-01','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>4,'stock_available'=>4,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-HPC','asset_code'=>'AST-HPC-002','name'=>'Server Blade HP ProLiant BL460c','brand'=>'HP','model'=>'ProLiant BL460c Gen10','serial_number'=>'HPB220601','specifications'=>'Dual Xeon E5-2690v4, RAM 256GB, 10GbE dual-port','acquisition_date'=>'2022-06-15','acquisition_source'=>'pembelian','purchase_price'=>180000000,'supplier'=>'PT Multipolar Technology','funding_source'=>'DIPA','warranty_until'=>'2025-06-15','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>4,'stock_available'=>4,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-HPC','asset_code'=>'AST-HPC-003','name'=>'InfiniBand HDR Switch 40-port','brand'=>'Mellanox','model'=>'QM8700','serial_number'=>'MLX220701','specifications'=>'200Gb/s per port, latency <100ns, hot-swap PSU','acquisition_date'=>'2022-07-01','acquisition_source'=>'pembelian','purchase_price'=>45000000,'supplier'=>'PT Datacomm Diangraha','funding_source'=>'DIPA','warranty_until'=>'2025-07-01','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>2,'stock_available'=>2,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-HPC','asset_code'=>'AST-HPC-004','name'=>'UPS Online 6000VA Rack 3-phase','brand'=>'APC','model'=>'SRT6KXLT','serial_number'=>'APC220801','specifications'=>'6000VA/5400W, pure sinewave, parallel redundancy, 6U','acquisition_date'=>'2022-08-20','acquisition_source'=>'pembelian','purchase_price'=>35000000,'supplier'=>'PT Datacomm Diangraha','funding_source'=>'DIPA','warranty_until'=>'2025-08-20','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>2,'stock_available'=>2,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-HPC','asset_code'=>'AST-HPC-005','name'=>'KVM Switch 16-port IP','brand'=>'Aten','model'=>'KN1116VA','serial_number'=>'ATN230201','specifications'=>'16-port, IP-based remote KVM, 1920x1200, USB','acquisition_date'=>'2023-02-10','acquisition_source'=>'pembelian','purchase_price'=>18000000,'supplier'=>'PT Datacomm Diangraha','funding_source'=>'BLU','warranty_until'=>'2026-02-10','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>2,'stock_available'=>2,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-HPC','asset_code'=>'AST-HPC-006','name'=>'Power Distribution Unit (PDU) 32A','brand'=>'APC','model'=>'AP8959','serial_number'=>'APC230301','specifications'=>'32A, 16-outlet, monitoring per-outlet, 1U rack','acquisition_date'=>'2023-03-01','acquisition_source'=>'pembelian','purchase_price'=>8500000,'supplier'=>'PT Datacomm Diangraha','funding_source'=>'BLU','warranty_until'=>'2026-03-01','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>4,'stock_available'=>4,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-HPC','asset_code'=>'AST-HPC-007','name'=>'Raspberry Pi Cluster Node Kit','brand'=>'Raspberry Pi','model'=>'Cluster Kit 4B x5','serial_number'=>'RPI240101','specifications'=>'Raspberry Pi 4B 8GB x5, switch, PSU terpusat, case cluster','acquisition_date'=>'2024-01-20','acquisition_source'=>'pembelian','purchase_price'=>3200000,'supplier'=>'PT Bhinneka Mentari Dimensi','funding_source'=>'Dana Mandiri','warranty_until'=>'2027-01-20','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>4,'stock_available'=>4,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-HPC','asset_code'=>'AST-HPC-008','name'=>'Storage Array NVMe 40TB','brand'=>'Dell','model'=>'PowerVault ME484','serial_number'=>'DEL221001','specifications'=>'All-flash NVMe, 10GbE iSCSI, RAID 6, hot-swap','acquisition_date'=>'2022-10-15','acquisition_source'=>'pembelian','purchase_price'=>95000000,'supplier'=>'PT Multipolar Technology','funding_source'=>'DIPA','warranty_until'=>'2025-10-15','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>2,'stock_available'=>2,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-HPC','asset_code'=>'AST-HPC-009','name'=>'Server Rack 42U Closed','brand'=>'APC','model'=>'AR3100','serial_number'=>'APC220501','specifications'=>'42U, 800x1200mm, kunci, tempered glass, bawaan PDU dasar','acquisition_date'=>'2022-05-01','acquisition_source'=>'pembelian','purchase_price'=>18000000,'supplier'=>'PT Datacomm Diangraha','funding_source'=>'DIPA','warranty_until'=>'2027-05-01','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>3,'stock_available'=>3,'max_loan_hours'=>0,'is_active'=>1],
+
+            // ---------------------------------------------------------------
+            // LAB-EGOV | E-Government & Layanan Digital
+            // ---------------------------------------------------------------
+            ['lab_code'=>'LAB-EGOV','asset_code'=>'AST-EG-001','name'=>'Tablet Android Survei 10"','brand'=>'Samsung','model'=>'Galaxy Tab A8','serial_number'=>'SAM230801','specifications'=>'Snapdragon 680, RAM 6GB, storage 128GB, IP52 tahan debu','acquisition_date'=>'2023-08-10','acquisition_source'=>'pembelian','purchase_price'=>3200000,'supplier'=>'PT Erajaya Swasembada','funding_source'=>'DIPA','warranty_until'=>'2026-08-10','inventory_status'=>'aktif','minimum_stock'=>3,'stock_total'=>10,'stock_available'=>10,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-EGOV','asset_code'=>'AST-EG-002','name'=>'Laptop Ultrabook Dell XPS 13','brand'=>'Dell','model'=>'XPS 13 9315','serial_number'=>'DEL231001','specifications'=>'Core i7-1260P, RAM 16GB, SSD 512GB, layar 13.4" FHD+','acquisition_date'=>'2023-10-01','acquisition_source'=>'pembelian','purchase_price'=>18500000,'supplier'=>'PT Synnex Metrodata Indonesia','funding_source'=>'DIPA','warranty_until'=>'2026-10-01','inventory_status'=>'aktif','minimum_stock'=>4,'stock_total'=>15,'stock_available'=>15,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-EGOV','asset_code'=>'AST-EG-003','name'=>'Printer Laser HP LaserJet M404n','brand'=>'HP','model'=>'LaserJet M404n','serial_number'=>'HPL220701','specifications'=>'Mono 38ppm, A4, USB + LAN, duplex otomatis','acquisition_date'=>'2022-07-15','acquisition_source'=>'pembelian','purchase_price'=>5500000,'supplier'=>'PT Synnex Metrodata Indonesia','funding_source'=>'BLU','warranty_until'=>'2025-07-15','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>2,'stock_available'=>2,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-EGOV','asset_code'=>'AST-EG-004','name'=>'Scanner Dokumen Fujitsu fi-800R','brand'=>'Fujitsu','model'=>'fi-800R','serial_number'=>'FUJ230301','specifications'=>'Duplex 40ppm, A4, USB 3.0, card scan, ADF 20 lembar','acquisition_date'=>'2023-03-20','acquisition_source'=>'pembelian','purchase_price'=>8500000,'supplier'=>'PT Synnex Metrodata Indonesia','funding_source'=>'DIPA','warranty_until'=>'2026-03-20','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>2,'stock_available'=>2,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-EGOV','asset_code'=>'AST-EG-005','name'=>'Proyektor Portable Epson EF-11','brand'=>'Epson','model'=>'EF-11','serial_number'=>'EPS230901','specifications'=>'Full HD, laser 1000 lumens, Android TV, HDMI, baterai','acquisition_date'=>'2023-09-10','acquisition_source'=>'pembelian','purchase_price'=>9200000,'supplier'=>'PT Erajaya Swasembada','funding_source'=>'BLU','warranty_until'=>'2026-09-10','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>3,'stock_available'=>3,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-EGOV','asset_code'=>'AST-EG-006','name'=>'Speakerphone Konferensi Jabra','brand'=>'Jabra','model'=>'Speak2 75','serial_number'=>'JAB240101','specifications'=>'360° pickup, noise cancelling, USB + Bluetooth','acquisition_date'=>'2024-01-05','acquisition_source'=>'pembelian','purchase_price'=>3500000,'supplier'=>'PT Bhinneka Mentari Dimensi','funding_source'=>'BLU','warranty_until'=>'2027-01-05','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>3,'stock_available'=>3,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-EGOV','asset_code'=>'AST-EG-007','name'=>'RFID Card Reader USB','brand'=>'ACS','model'=>'ACR122U','serial_number'=>'ACS230501','specifications'=>'125kHz EM/HID, plug-and-play USB HID, jarak baca 10cm','acquisition_date'=>'2023-05-15','acquisition_source'=>'pembelian','purchase_price'=>450000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'DIPA','warranty_until'=>'2026-05-15','inventory_status'=>'aktif','minimum_stock'=>2,'stock_total'=>8,'stock_available'=>8,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-EGOV','asset_code'=>'AST-EG-008','name'=>'Webcam Logitech BRIO 4K','brand'=>'Logitech','model'=>'BRIO 4K','serial_number'=>'LOG231101','specifications'=>'4K 30fps / 1080p 60fps, HDR, USB-C, noise-cancelling mic','acquisition_date'=>'2023-11-20','acquisition_source'=>'pembelian','purchase_price'=>2200000,'supplier'=>'PT Bhinneka Mentari Dimensi','funding_source'=>'BLU','warranty_until'=>'2026-11-20','inventory_status'=>'aktif','minimum_stock'=>2,'stock_total'=>10,'stock_available'=>10,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-EGOV','asset_code'=>'AST-EG-009','name'=>'Digital Signage Display 43"','brand'=>'LG','model'=>'43UH5F-H','serial_number'=>'LGS240201','specifications'=>'43" FHD, Android player, landscape/portrait, HDMI','acquisition_date'=>'2024-02-01','acquisition_source'=>'pembelian','purchase_price'=>15000000,'supplier'=>'PT Erajaya Swasembada','funding_source'=>'Dana Mandiri','warranty_until'=>'2027-02-01','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>2,'stock_available'=>2,'max_loan_hours'=>0,'is_active'=>1],
+
+            // ---------------------------------------------------------------
+            // LAB-TETD | Teknik Elektronika & Telekomunikasi Digital
+            // ---------------------------------------------------------------
+            ['lab_code'=>'LAB-TETD','asset_code'=>'AST-TD-001','name'=>'Kit Mikrokontroler STM32 Nucleo','brand'=>'STMicroelectronics','model'=>'NUCLEO-F446RE','serial_number'=>'STM230601','specifications'=>'STM32F446RE, ARM Cortex-M4, sensor set, breadboard','acquisition_date'=>'2023-06-01','acquisition_source'=>'pembelian','purchase_price'=>450000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'DIPA','warranty_until'=>'2026-06-01','inventory_status'=>'aktif','minimum_stock'=>3,'stock_total'=>12,'stock_available'=>12,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-TETD','asset_code'=>'AST-TD-002','name'=>'Arduino Mega 2560 Rev3 Kit','brand'=>'Arduino','model'=>'Mega 2560 Rev3','serial_number'=>'ARD230701','specifications'=>'ATmega2560, 54 digital I/O, sensor shield, komponen set','acquisition_date'=>'2023-07-15','acquisition_source'=>'pembelian','purchase_price'=>280000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'DIPA','warranty_until'=>'2026-07-15','inventory_status'=>'aktif','minimum_stock'=>5,'stock_total'=>20,'stock_available'=>20,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-TETD','asset_code'=>'AST-TD-003','name'=>'Raspberry Pi 4 Model B 8GB','brand'=>'Raspberry Pi','model'=>'Model B 8GB','serial_number'=>'RPI230901','specifications'=>'BCM2711 1.8GHz quad-core, 8GB RAM, WiFi, Bluetooth, USB 3.0','acquisition_date'=>'2023-09-01','acquisition_source'=>'pembelian','purchase_price'=>950000,'supplier'=>'PT Bhinneka Mentari Dimensi','funding_source'=>'BLU','warranty_until'=>'2026-09-01','inventory_status'=>'aktif','minimum_stock'=>4,'stock_total'=>15,'stock_available'=>15,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-TETD','asset_code'=>'AST-TD-004','name'=>'Soldering Station Digital Hakko','brand'=>'Hakko','model'=>'FX-888D','serial_number'=>'HAK221101','specifications'=>'FX-888D, 70W, suhu 200-480°C, ESD safe, digital display','acquisition_date'=>'2022-11-10','acquisition_source'=>'pembelian','purchase_price'=>3200000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'DIPA','warranty_until'=>'2025-11-10','inventory_status'=>'aktif','minimum_stock'=>2,'stock_total'=>10,'stock_available'=>10,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-TETD','asset_code'=>'AST-TD-005','name'=>'Power Supply DC Variable 30V 5A','brand'=>'Maisheng','model'=>'MS-305D','serial_number'=>'MSH230401','specifications'=>'0-30V, 0-5A, CC/CV, LED display, 2 output','acquisition_date'=>'2023-04-20','acquisition_source'=>'pembelian','purchase_price'=>1800000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'DIPA','warranty_until'=>'2026-04-20','inventory_status'=>'aktif','minimum_stock'=>2,'stock_total'=>10,'stock_available'=>10,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-TETD','asset_code'=>'AST-TD-006','name'=>'Function Generator DDS 30MHz','brand'=>'RIGOL','model'=>'DG1032Z','serial_number'=>'RIG230801','specifications'=>'Sine/Square/Triangle, 0.01Hz-30MHz, AM/FM modulasi, USB','acquisition_date'=>'2023-08-10','acquisition_source'=>'pembelian','purchase_price'=>4500000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'DIPA','warranty_until'=>'2026-08-10','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>6,'stock_available'=>6,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-TETD','asset_code'=>'AST-TD-007','name'=>'Logic Analyzer 16 Channel','brand'=>'Saleae','model'=>'Logic 8','serial_number'=>'SAL240101','specifications'=>'16ch, 100MHz sample rate, USB, kompatibel Sigrok/PulseView','acquisition_date'=>'2024-01-10','acquisition_source'=>'pembelian','purchase_price'=>3800000,'supplier'=>'PT Bhinneka Mentari Dimensi','funding_source'=>'Dana Mandiri','warranty_until'=>'2027-01-10','inventory_status'=>'aktif','minimum_stock'=>2,'stock_total'=>8,'stock_available'=>8,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-TETD','asset_code'=>'AST-TD-008','name'=>'FPGA Board Xilinx Basys 3','brand'=>'Digilent','model'=>'Basys 3 Artix-7','serial_number'=>'DIG231001','specifications'=>'Artix-7, 33K logic cells, 16 switch, 16 LED, HDMI, USB JTAG','acquisition_date'=>'2023-10-15','acquisition_source'=>'hibah','purchase_price'=>4200000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'Hibah Dikti','warranty_until'=>'2026-10-15','inventory_status'=>'aktif','minimum_stock'=>2,'stock_total'=>8,'stock_available'=>8,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-TETD','asset_code'=>'AST-TD-009','name'=>'Oscilloscope Digital 200MHz','brand'=>'RIGOL','model'=>'DS1202Z-E','serial_number'=>'RIG221201','specifications'=>'2-channel, 200MHz, 1GSa/s, 7" layar, USB storage','acquisition_date'=>'2022-12-01','acquisition_source'=>'pembelian','purchase_price'=>6500000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'DIPA','warranty_until'=>'2025-12-01','inventory_status'=>'aktif','minimum_stock'=>2,'stock_total'=>8,'stock_available'=>8,'max_loan_hours'=>0,'is_active'=>1],
+
+            // ---------------------------------------------------------------
+            // LAB-SISKOM | Sistem Komunikasi
+            // ---------------------------------------------------------------
+            ['lab_code'=>'LAB-SISKOM','asset_code'=>'AST-SK-001','name'=>'Spectrum Analyzer Portable 9kHz-3GHz','brand'=>'RIGOL','model'=>'DSA815','serial_number'=>'RIG220901','specifications'=>'9kHz-3GHz, battery-powered, USB, PC software','acquisition_date'=>'2022-09-10','acquisition_source'=>'pembelian','purchase_price'=>18000000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'DIPA','warranty_until'=>'2025-09-10','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>2,'stock_available'=>2,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-SISKOM','asset_code'=>'AST-SK-002','name'=>'Signal Generator Vektor 3GHz','brand'=>'RIGOL','model'=>'DSG3136B','serial_number'=>'RIG230201','specifications'=>'9kHz-3GHz, AM/FM/PM/FSK modulation, USB+LAN','acquisition_date'=>'2023-02-15','acquisition_source'=>'pembelian','purchase_price'=>22000000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'DIPA','warranty_until'=>'2026-02-15','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>2,'stock_available'=>2,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-SISKOM','asset_code'=>'AST-SK-003','name'=>'Software Defined Radio USRP B210','brand'=>'Ettus Research','model'=>'USRP B210','serial_number'=>'ETT230501','specifications'=>'70MHz-6GHz, 56MHz BW, USB 3.0, full-duplex MIMO','acquisition_date'=>'2023-05-20','acquisition_source'=>'hibah','purchase_price'=>35000000,'supplier'=>'PT Multipolar Technology','funding_source'=>'Hibah Dikti','warranty_until'=>'2026-05-20','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>4,'stock_available'=>4,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-SISKOM','asset_code'=>'AST-SK-004','name'=>'Antenna Test Kit Frekuensi Radio','brand'=>'Taoglas','model'=>'Multi-band Antenna Kit','serial_number'=>'TAG230701','specifications'=>'Yagi + dipole + patch, 800MHz-5.8GHz, konektor N/SMA','acquisition_date'=>'2023-07-01','acquisition_source'=>'pembelian','purchase_price'=>2800000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'BLU','warranty_until'=>'2026-07-01','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>3,'stock_available'=>3,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-SISKOM','asset_code'=>'AST-SK-005','name'=>'RF Power Meter USB','brand'=>'RIGOL','model'=>'DSA-815 PM','serial_number'=>'RIG221101','specifications'=>'10MHz-6GHz, -60 to +20dBm, USB, akurasi ±0.5dB','acquisition_date'=>'2022-11-15','acquisition_source'=>'pembelian','purchase_price'=>8500000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'DIPA','warranty_until'=>'2025-11-15','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>3,'stock_available'=>3,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-SISKOM','asset_code'=>'AST-SK-006','name'=>'Oscilloscope 4-Channel 500MHz','brand'=>'RIGOL','model'=>'DS7054','serial_number'=>'RIG230801','specifications'=>'4ch, 500MHz, 5GSa/s, layar 12.1", protokol decode','acquisition_date'=>'2023-08-10','acquisition_source'=>'pembelian','purchase_price'=>28000000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'DIPA','warranty_until'=>'2026-08-10','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>4,'stock_available'=>4,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-SISKOM','asset_code'=>'AST-SK-007','name'=>'Frequency Counter 3GHz','brand'=>'RIGOL','model'=>'DG5351','serial_number'=>'RIG230301','specifications'=>'10Hz-3GHz, resolusi 10Hz, USB, gerbang waktu otomatis','acquisition_date'=>'2023-03-20','acquisition_source'=>'pembelian','purchase_price'=>6500000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'BLU','warranty_until'=>'2026-03-20','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>3,'stock_available'=>3,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-SISKOM','asset_code'=>'AST-SK-008','name'=>'SDR Dongle RTL-SDR Set','brand'=>'RTL-SDR Blog','model'=>'RTL-SDR V3','serial_number'=>'RTL240101','specifications'=>'RTL2832U, 500kHz-1.75GHz, SMA antenna, USB 2.0','acquisition_date'=>'2024-01-05','acquisition_source'=>'pembelian','purchase_price'=>280000,'supplier'=>'PT Bhinneka Mentari Dimensi','funding_source'=>'BLU','warranty_until'=>'2027-01-05','inventory_status'=>'aktif','minimum_stock'=>2,'stock_total'=>10,'stock_available'=>10,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-SISKOM','asset_code'=>'AST-SK-009','name'=>'Network Analyzer Vektor 2-Port','brand'=>'NanoVNA','model'=>'NanoVNA-F V2','serial_number'=>'NVA230901','specifications'=>'300kHz-3GHz, 2-port S-parameter, USB, calibration kit','acquisition_date'=>'2023-09-15','acquisition_source'=>'pembelian','purchase_price'=>850000,'supplier'=>'PT Bhinneka Mentari Dimensi','funding_source'=>'Dana Mandiri','warranty_until'=>'2026-09-15','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>2,'stock_available'=>2,'max_loan_hours'=>0,'is_active'=>1],
+
+            // ---------------------------------------------------------------
+            // LAB-SWT | Switching & Wireless Technology
+            // ---------------------------------------------------------------
+            ['lab_code'=>'LAB-SWT','asset_code'=>'AST-SW-001','name'=>'Managed Switch Layer 3 24-port','brand'=>'Cisco','model'=>'SG350X-24','serial_number'=>'CSC230601','specifications'=>'24x Gigabit, 4x SFP+, VLAN, QoS, OSPF, BGP, 1U','acquisition_date'=>'2023-06-10','acquisition_source'=>'pembelian','purchase_price'=>8500000,'supplier'=>'PT Datacomm Diangraha','funding_source'=>'DIPA','warranty_until'=>'2026-06-10','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>5,'stock_available'=>5,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-SWT','asset_code'=>'AST-SW-002','name'=>'Router Core Cisco ISR 4331','brand'=>'Cisco','model'=>'ISR 4331','serial_number'=>'CSC220801','specifications'=>'Dual-core 1.5GHz, 4GB DRAM, 8GB flash, 3x GbE WAN/LAN','acquisition_date'=>'2022-08-15','acquisition_source'=>'pembelian','purchase_price'=>45000000,'supplier'=>'PT Datacomm Diangraha','funding_source'=>'DIPA','warranty_until'=>'2025-08-15','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>3,'stock_available'=>3,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-SWT','asset_code'=>'AST-SW-003','name'=>'Firewall Appliance FortiGate 80F','brand'=>'Fortinet','model'=>'FortiGate 80F','serial_number'=>'FTN230401','specifications'=>'10GbE, 20Gbps throughput, SD-WAN, SSL-VPN, IPS, sandbox','acquisition_date'=>'2023-04-01','acquisition_source'=>'pembelian','purchase_price'=>35000000,'supplier'=>'PT Datacomm Diangraha','funding_source'=>'DIPA','warranty_until'=>'2026-04-01','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>2,'stock_available'=>2,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-SWT','asset_code'=>'AST-SW-004','name'=>'Wireless LAN Controller 50AP','brand'=>'Cisco','model'=>'C9800-L-F-K9','serial_number'=>'CSC231001','specifications'=>'Support 50 AP, 802.11ax, SSID management, guest portal','acquisition_date'=>'2023-10-20','acquisition_source'=>'pembelian','purchase_price'=>28000000,'supplier'=>'PT Datacomm Diangraha','funding_source'=>'BLU','warranty_until'=>'2026-10-20','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>2,'stock_available'=>2,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-SWT','asset_code'=>'AST-SW-005','name'=>'Network Tap Passive Gigabit','brand'=>'Gigamon','model'=>'H Series Tap','serial_number'=>'GIG221201','specifications'=>'Passive optical tap, 1Gbps, full-duplex, mode-split','acquisition_date'=>'2022-12-10','acquisition_source'=>'pembelian','purchase_price'=>3500000,'supplier'=>'PT Datacomm Diangraha','funding_source'=>'DIPA','warranty_until'=>'2025-12-10','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>4,'stock_available'=>4,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-SWT','asset_code'=>'AST-SW-006','name'=>'PC Analisis Paket (Wireshark PC)','brand'=>'HP','model'=>'ProDesk 400 G9','serial_number'=>'HPD240101','specifications'=>'Core i7, RAM 32GB, SSD 1TB, 2x GbE NIC, Ubuntu','acquisition_date'=>'2024-01-15','acquisition_source'=>'pembelian','purchase_price'=>9500000,'supplier'=>'PT Synnex Metrodata Indonesia','funding_source'=>'BLU','warranty_until'=>'2027-01-15','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>5,'stock_available'=>5,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-SWT','asset_code'=>'AST-SW-007','name'=>'Load Balancer F5 BIG-IP VE','brand'=>'F5 Networks','model'=>'BIG-IP VE 3G','serial_number'=>'F5N230701','specifications'=>'Virtual appliance, L4-L7, SSL offload, 1Gbps throughput','acquisition_date'=>'2023-07-20','acquisition_source'=>'hibah','purchase_price'=>45000000,'supplier'=>'PT Multipolar Technology','funding_source'=>'Hibah Dikti','warranty_until'=>'2026-07-20','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>2,'stock_available'=>2,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-SWT','asset_code'=>'AST-SW-008','name'=>'VPN Concentrator Cisco ASA 5506-X','brand'=>'Cisco','model'=>'ASA 5506-X','serial_number'=>'CSC221001','specifications'=>'750Mbps throughput, AnyConnect 50 user, IPS modul','acquisition_date'=>'2022-10-15','acquisition_source'=>'pembelian','purchase_price'=>22000000,'supplier'=>'PT Datacomm Diangraha','funding_source'=>'DIPA','warranty_until'=>'2025-10-15','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>2,'stock_available'=>2,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-SWT','asset_code'=>'AST-SW-009','name'=>'SFP+ DAC Kabel 10GbE 3m','brand'=>'Cisco','model'=>'SFP-H10GB-CU3M','serial_number'=>'CSC230501','specifications'=>'10GbE SFP+ passive DAC, panjang 3m, kompatibel multi-vendor','acquisition_date'=>'2023-05-01','acquisition_source'=>'pembelian','purchase_price'=>450000,'supplier'=>'PT Datacomm Diangraha','funding_source'=>'BLU','warranty_until'=>'2026-05-01','inventory_status'=>'aktif','minimum_stock'=>4,'stock_total'=>20,'stock_available'=>20,'max_loan_hours'=>0,'is_active'=>1],
+
+            // ---------------------------------------------------------------
+            // LAB-MBIO | Biomedis & Teknik Biomedis
+            // ---------------------------------------------------------------
+            ['lab_code'=>'LAB-MBIO','asset_code'=>'AST-MB-001','name'=>'Digital Microscope 1600x','brand'=>'Dino-Lite','model'=>'AM4113T','serial_number'=>'DNL220901','specifications'=>'Pembesaran hingga 1600x, output USB, kamera 5MP built-in','acquisition_date'=>'2022-09-15','acquisition_source'=>'pembelian','purchase_price'=>8500000,'supplier'=>'PT Medinfra Mandiri','funding_source'=>'DIPA','warranty_until'=>'2025-09-15','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>4,'stock_available'=>4,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-MBIO','asset_code'=>'AST-MB-002','name'=>'ECG Machine 12-Lead','brand'=>'Edan','model'=>'SE-3','serial_number'=>'EDA230301','specifications'=>'12-lead, thermal print, PC interface, battery + AC','acquisition_date'=>'2023-03-10','acquisition_source'=>'pembelian','purchase_price'=>22000000,'supplier'=>'PT Medinfra Mandiri','funding_source'=>'DIPA','warranty_until'=>'2026-03-10','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>3,'stock_available'=>3,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-MBIO','asset_code'=>'AST-MB-003','name'=>'Digital Blood Pressure Monitor','brand'=>'Omron','model'=>'HBP-1320','serial_number'=>'OMR230601','specifications'=>'NIBP otomatis, SpO2, pulse, layar 7", data logging USB','acquisition_date'=>'2023-06-01','acquisition_source'=>'pembelian','purchase_price'=>8500000,'supplier'=>'PT Medinfra Mandiri','funding_source'=>'DIPA','warranty_until'=>'2026-06-01','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>5,'stock_available'=>5,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-MBIO','asset_code'=>'AST-MB-004','name'=>'Pulse Oximeter Fingertip','brand'=>'Beurer','model'=>'PO30','serial_number'=>'BEU230801','specifications'=>'SpO2 ± 2%, pulse rate ± 2bpm, OLED display, baterai AAA','acquisition_date'=>'2023-08-20','acquisition_source'=>'pembelian','purchase_price'=>350000,'supplier'=>'PT Medinfra Mandiri','funding_source'=>'BLU','warranty_until'=>'2026-08-20','inventory_status'=>'aktif','minimum_stock'=>2,'stock_total'=>10,'stock_available'=>10,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-MBIO','asset_code'=>'AST-MB-005','name'=>'Phantom Anatomi Torso Lengkap','brand'=>'3B Scientific','model'=>'A20','serial_number'=>'3BS220701','specifications'=>'24 bagian bongkar pasang, skala 1:1, organ berwarna','acquisition_date'=>'2022-07-10','acquisition_source'=>'hibah','purchase_price'=>18000000,'supplier'=>'PT Medinfra Mandiri','funding_source'=>'Hibah Dikti','warranty_until'=>'2027-07-10','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>2,'stock_available'=>2,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-MBIO','asset_code'=>'AST-MB-006','name'=>'Biomedical Signal Acquisition Board','brand'=>'Biopac','model'=>'MP36R','serial_number'=>'BPC230101','specifications'=>'ECG/EMG/EEG, 16-ch, 24-bit ADC, USB, kompatibel MATLAB','acquisition_date'=>'2023-01-15','acquisition_source'=>'hibah','purchase_price'=>85000000,'supplier'=>'PT Medinfra Mandiri','funding_source'=>'Hibah Dikti','warranty_until'=>'2026-01-15','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>5,'stock_available'=>5,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-MBIO','asset_code'=>'AST-MB-007','name'=>'Patient Monitor Training Simulator','brand'=>'Laerdal','model'=>'SimPad PLUS','serial_number'=>'LAE231001','specifications'=>'ECG, SpO2, NIBP, temp simulasi, layar 12" TFT','acquisition_date'=>'2023-10-01','acquisition_source'=>'hibah','purchase_price'=>45000000,'supplier'=>'PT Medinfra Mandiri','funding_source'=>'Hibah Dikti','warranty_until'=>'2026-10-01','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>3,'stock_available'=>3,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-MBIO','asset_code'=>'AST-MB-008','name'=>'Thermometer Infrared Non-contact','brand'=>'Fluke','model'=>'62 MAX+','serial_number'=>'FLK230501','specifications'=>'Rentang -50°C s.d. 380°C, akurasi ±1°C, emissivity adjust','acquisition_date'=>'2023-05-20','acquisition_source'=>'pembelian','purchase_price'=>2800000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'BLU','warranty_until'=>'2026-05-20','inventory_status'=>'aktif','minimum_stock'=>2,'stock_total'=>8,'stock_available'=>8,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-MBIO','asset_code'=>'AST-MB-009','name'=>'Defibrillator Trainer AED','brand'=>'Laerdal','model'=>'AED Trainer 3','serial_number'=>'LAE221101','specifications'=>'AED trainer (non-shock), voice prompt, pad reusable','acquisition_date'=>'2022-11-10','acquisition_source'=>'pembelian','purchase_price'=>8500000,'supplier'=>'PT Medinfra Mandiri','funding_source'=>'DIPA','warranty_until'=>'2025-11-10','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>2,'stock_available'=>2,'max_loan_hours'=>0,'is_active'=>1],
+
+            // ---------------------------------------------------------------
+            // LAB-PI | Pengukuran & Instrumentasi
+            // ---------------------------------------------------------------
+            ['lab_code'=>'LAB-PI','asset_code'=>'AST-PI-001','name'=>'Oscilloscope Digital 100MHz 2CH','brand'=>'RIGOL','model'=>'DS1102Z-E','serial_number'=>'RIG220801','specifications'=>'2-channel, 100MHz, 1GSa/s, 7" layar, USB storage','acquisition_date'=>'2022-08-10','acquisition_source'=>'pembelian','purchase_price'=>5500000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'DIPA','warranty_until'=>'2025-08-10','inventory_status'=>'aktif','minimum_stock'=>2,'stock_total'=>6,'stock_available'=>6,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-PI','asset_code'=>'AST-PI-002','name'=>'Digital Multimeter Fluke 87-V','brand'=>'Fluke','model'=>'87V','serial_number'=>'FLK221001','specifications'=>'True RMS, 4.5 digit, AC/DC 1000V, arus 10A, kapasitansi','acquisition_date'=>'2022-10-15','acquisition_source'=>'pembelian','purchase_price'=>4500000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'DIPA','warranty_until'=>'2025-10-15','inventory_status'=>'aktif','minimum_stock'=>3,'stock_total'=>15,'stock_available'=>15,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-PI','asset_code'=>'AST-PI-003','name'=>'LCR Meter Digital 100kHz','brand'=>'HIOKI','model'=>'IM3536','serial_number'=>'HIO230301','specifications'=>'L/C/R/Z/Q/D, frekuensi 100Hz-100kHz, akurasi 0.1%, USB','acquisition_date'=>'2023-03-01','acquisition_source'=>'pembelian','purchase_price'=>18000000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'DIPA','warranty_until'=>'2026-03-01','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>6,'stock_available'=>6,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-PI','asset_code'=>'AST-PI-004','name'=>'Arbitrary Waveform Generator 2CH','brand'=>'RIGOL','model'=>'DG1022Z','serial_number'=>'RIG230501','specifications'=>'2-ch, 50MHz, 14-bit DAC, AM/FM/PM/FSK, USB+LAN','acquisition_date'=>'2023-05-20','acquisition_source'=>'pembelian','purchase_price'=>4500000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'DIPA','warranty_until'=>'2026-05-20','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>4,'stock_available'=>4,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-PI','asset_code'=>'AST-PI-005','name'=>'Power Analyzer 3-Phase','brand'=>'HIOKI','model'=>'PW3390','serial_number'=>'HIO230701','specifications'=>'3-phase, 1000V/10A, daya aktif/reaktif/nyata, USB, 0.1% FS','acquisition_date'=>'2023-07-10','acquisition_source'=>'hibah','purchase_price'=>45000000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'Hibah Dikti','warranty_until'=>'2026-07-10','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>3,'stock_available'=>3,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-PI','asset_code'=>'AST-PI-006','name'=>'Data Acquisition Module NI USB-6001','brand'=>'National Instruments','model'=>'USB-6001','serial_number'=>'NIN230901','specifications'=>'8 AI 14-bit, 2 AO, 13 DIO, 20kS/s, USB, LabVIEW','acquisition_date'=>'2023-09-15','acquisition_source'=>'pembelian','purchase_price'=>8500000,'supplier'=>'PT Multipolar Technology','funding_source'=>'DIPA','warranty_until'=>'2026-09-15','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>6,'stock_available'=>6,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-PI','asset_code'=>'AST-PI-007','name'=>'Temperature Logger 4-Channel','brand'=>'Lascar Electronics','model'=>'EL-USB-TC-LCD','serial_number'=>'LAS240101','specifications'=>'4-ch thermocouple K/J/T, USB, software logging, -200-1372°C','acquisition_date'=>'2024-01-10','acquisition_source'=>'pembelian','purchase_price'=>1200000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'BLU','warranty_until'=>'2027-01-10','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>5,'stock_available'=>5,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-PI','asset_code'=>'AST-PI-008','name'=>'Digital Caliper Mitutoyo 150mm','brand'=>'Mitutoyo','model'=>'500-196-30','serial_number'=>'MIT230401','specifications'=>'0-150mm, resolusi 0.01mm, akurasi ±0.02mm, IP67','acquisition_date'=>'2023-04-01','acquisition_source'=>'pembelian','purchase_price'=>2800000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'BLU','warranty_until'=>'2026-04-01','inventory_status'=>'aktif','minimum_stock'=>2,'stock_total'=>10,'stock_available'=>10,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-PI','asset_code'=>'AST-PI-009','name'=>'Clamp Meter Fluke 376 FC','brand'=>'Fluke','model'=>'376 FC','serial_number'=>'FLK231101','specifications'=>'True RMS, 1000A AC/DC, iFlex, Bluetooth, logging','acquisition_date'=>'2023-11-15','acquisition_source'=>'pembelian','purchase_price'=>9500000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'DIPA','warranty_until'=>'2026-11-15','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>6,'stock_available'=>6,'max_loan_hours'=>0,'is_active'=>1],
+
+            // ---------------------------------------------------------------
+            // LAB-IOE | IoT & Embedded Systems
+            // ---------------------------------------------------------------
+            ['lab_code'=>'LAB-IOE','asset_code'=>'AST-IOE-001','name'=>'IoT Sensor Starter Kit ESP32','brand'=>'Espressif','model'=>'ESP32 DevKit V1','serial_number'=>'ESP230701','specifications'=>'ESP32 + sensor suhu, kelembapan, relay, PIR, OLED, breadboard','acquisition_date'=>'2023-07-20','acquisition_source'=>'pembelian','purchase_price'=>180000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'DIPA','warranty_until'=>'2026-07-20','inventory_status'=>'aktif','minimum_stock'=>4,'stock_total'=>15,'stock_available'=>15,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-IOE','asset_code'=>'AST-IOE-002','name'=>'LoRa Gateway 8-Channel','brand'=>'RAKwireless','model'=>'RAK7258','serial_number'=>'RAK230901','specifications'=>'RAK7258, 8-ch LoRaWAN, 4G+Ethernet backhaul, indoor','acquisition_date'=>'2023-09-10','acquisition_source'=>'hibah','purchase_price'=>4500000,'supplier'=>'PT Bhinneka Mentari Dimensi','funding_source'=>'Hibah Dikti','warranty_until'=>'2026-09-10','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>3,'stock_available'=>3,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-IOE','asset_code'=>'AST-IOE-003','name'=>'Zigbee Coordinator + End Device Kit','brand'=>'Texas Instruments','model'=>'CC2531','serial_number'=>'TXI230601','specifications'=>'CC2531 coordinator, 5x end device, USB dongle, Zigbee2MQTT','acquisition_date'=>'2023-06-01','acquisition_source'=>'pembelian','purchase_price'=>280000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'DIPA','warranty_until'=>'2026-06-01','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>6,'stock_available'=>6,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-IOE','asset_code'=>'AST-IOE-004','name'=>'NB-IoT Development Module','brand'=>'Quectel','model'=>'BC660K-GL','serial_number'=>'QCT240201','specifications'=>'BC660K-GL, LTE Cat-NB2, USB, antena SMA, breakout board','acquisition_date'=>'2024-02-15','acquisition_source'=>'pembelian','purchase_price'=>450000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'BLU','warranty_until'=>'2027-02-15','inventory_status'=>'aktif','minimum_stock'=>2,'stock_total'=>8,'stock_available'=>8,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-IOE','asset_code'=>'AST-IOE-005','name'=>'Solar Panel Training Kit 50W','brand'=>'Renogy','model'=>'RS-P100D','serial_number'=>'RNJ230801','specifications'=>'50W monocrystalline, solar charge controller, baterai 12V 7Ah','acquisition_date'=>'2023-08-20','acquisition_source'=>'pembelian','purchase_price'=>1800000,'supplier'=>'PT Bhinneka Mentari Dimensi','funding_source'=>'Dana Mandiri','warranty_until'=>'2026-08-20','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>4,'stock_available'=>4,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-IOE','asset_code'=>'AST-IOE-006','name'=>'Smart Home Demo Kit','brand'=>'Aqara','model'=>'Smart Home Bundle','serial_number'=>'AQR240101','specifications'=>'Smart plug, bulb, sensor pintu, hub Zigbee, dashboard','acquisition_date'=>'2024-01-10','acquisition_source'=>'pembelian','purchase_price'=>3500000,'supplier'=>'PT Bhinneka Mentari Dimensi','funding_source'=>'Dana Mandiri','warranty_until'=>'2027-01-10','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>4,'stock_available'=>4,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-IOE','asset_code'=>'AST-IOE-007','name'=>'NodeMCU ESP8266 Development Board','brand'=>'NodeMCU','model'=>'ESP8266 V3','serial_number'=>'NMC230501','specifications'=>'ESP8266, WiFi 802.11b/g/n, 4MB flash, USB-TTL CH340','acquisition_date'=>'2023-05-15','acquisition_source'=>'pembelian','purchase_price'=>120000,'supplier'=>'CV Tekno Mandiri','funding_source'=>'DIPA','warranty_until'=>'2026-05-15','inventory_status'=>'aktif','minimum_stock'=>5,'stock_total'=>20,'stock_available'=>20,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-IOE','asset_code'=>'AST-IOE-008','name'=>'Edge AI Board NVIDIA Jetson Nano','brand'=>'NVIDIA','model'=>'Jetson Nano B01','serial_number'=>'NVJ231001','specifications'=>'Quad-core A57 1.43GHz, 4GB LPDDR4, 128-core GPU Maxwell','acquisition_date'=>'2023-10-20','acquisition_source'=>'hibah','purchase_price'=>8500000,'supplier'=>'PT Multipolar Technology','funding_source'=>'Hibah Dikti','warranty_until'=>'2026-10-20','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>5,'stock_available'=>5,'max_loan_hours'=>0,'is_active'=>1],
+            ['lab_code'=>'LAB-IOE','asset_code'=>'AST-IOE-009','name'=>'Industrial IoT PLC Siemens S7-1200','brand'=>'Siemens','model'=>'CPU 1214C DC/DC/DC','serial_number'=>'SIE221201','specifications'=>'CPU 1214C, 14DI/10DO/2AI, Profinet, SD card, 75KB memori','acquisition_date'=>'2022-12-01','acquisition_source'=>'pembelian','purchase_price'=>22000000,'supplier'=>'PT Electron Indonesia','funding_source'=>'DIPA','warranty_until'=>'2025-12-01','inventory_status'=>'aktif','minimum_stock'=>1,'stock_total'=>4,'stock_available'=>4,'max_loan_hours'=>0,'is_active'=>1],
+
         ];
 
         $table = $this->db->table('lab_assets');
@@ -220,35 +257,59 @@ class AssetSeeder extends Seeder
                 $table
                     ->where('id', (int) $existing['id'])
                     ->update([
-                        'category'        => $assetCategory,
-                        'specifications'  => $asset['specifications'],
-                        'max_loan_hours'  => $asset['max_loan_hours'],
-                        'stock_total'     => $asset['stock_total'],
-                        'stock_available' => $asset['stock_available'],
-                        'is_active'       => $asset['is_active'],
-                        'is_loanable'     => 1,
-                        'condition_status'=> 'baik',
-                        'updated_at'      => $now,
+                        'category'           => $assetCategory,
+                        'specifications'     => $asset['specifications'],
+                        'max_loan_hours'     => $asset['max_loan_hours'],
+                        'stock_total'        => $asset['stock_total'],
+                        'stock_available'    => $asset['stock_available'],
+                        'is_active'          => $asset['is_active'],
+                        'is_loanable'        => 1,
+                        'condition_status'   => 'baik',
+                        'brand'              => $asset['brand'],
+                        'model'              => $asset['model'],
+                        'asset_code'         => $asset['asset_code'],
+                        'serial_number'      => $asset['serial_number'],
+                        'acquisition_date'   => $asset['acquisition_date'],
+                        'acquisition_source' => $asset['acquisition_source'],
+                        'purchase_price'     => $asset['purchase_price'],
+                        'supplier'           => $asset['supplier'],
+                        'funding_source'     => $asset['funding_source'],
+                        'warranty_until'     => $asset['warranty_until'],
+                        'inventory_status'   => $asset['inventory_status'],
+                        'minimum_stock'      => $asset['minimum_stock'],
+                        'updated_at'         => $now,
                     ]);
                 continue;
             }
 
             $table->insert([
-                'name'            => $asset['name'],
-                'lab_id'          => $labId,
-                'asset_type'      => 'equipment',
-                'category'        => $assetCategory,
-                'location'        => null,
-                'specifications'  => $asset['specifications'],
-                'max_loan_hours'  => $asset['max_loan_hours'],
-                'stock_total'     => $asset['stock_total'],
-                'stock_available' => $asset['stock_available'],
-                'is_active'       => $asset['is_active'],
-                'is_loanable'     => 1,
-                'condition_status'=> 'baik',
-                'created_by'      => null,
-                'created_at'      => $now,
-                'updated_at'      => $now,
+                'name'               => $asset['name'],
+                'lab_id'             => $labId,
+                'asset_type'         => 'equipment',
+                'category'           => $assetCategory,
+                'location'           => null,
+                'specifications'     => $asset['specifications'],
+                'max_loan_hours'     => $asset['max_loan_hours'],
+                'stock_total'        => $asset['stock_total'],
+                'stock_available'    => $asset['stock_available'],
+                'is_active'          => $asset['is_active'],
+                'is_loanable'        => 1,
+                'condition_status'   => 'baik',
+                'brand'              => $asset['brand'],
+                'model'              => $asset['model'],
+                'asset_code'         => $asset['asset_code'],
+                'serial_number'      => $asset['serial_number'],
+                'acquisition_date'   => $asset['acquisition_date'],
+                'acquisition_source' => $asset['acquisition_source'],
+                'purchase_price'     => $asset['purchase_price'],
+                'supplier'           => $asset['supplier'],
+                'funding_source'     => $asset['funding_source'],
+                'warranty_until'     => $asset['warranty_until'],
+                'inventory_status'   => $asset['inventory_status'],
+                'minimum_stock'      => $asset['minimum_stock'],
+                'created_by'         => null,
+                'created_at'         => $now,
+                'updated_at'         => $now,
             ]);
         }
 
