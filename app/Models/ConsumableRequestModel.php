@@ -13,6 +13,7 @@ class ConsumableRequestModel extends Model
     protected $useTimestamps = true;
 
     protected $allowedFields = [
+        'public_id',
         'request_code',
         'requester_id',
         'lab_id',
@@ -35,6 +36,31 @@ class ConsumableRequestModel extends Model
         'lab_id'  => 'required|is_natural_no_zero',
     ];
 
+    protected $beforeInsert = ['generateUuid'];
+
+    /**
+     * Auto-generate UUID before insert.
+     */
+    protected function generateUuid(array $data): array
+    {
+        if (!isset($data['data']['public_id']) || empty($data['data']['public_id'])) {
+            helper('text');
+            $data['data']['public_id'] = $this->generateUuidV4();
+        }
+        return $data;
+    }
+
+    /**
+     * Generate UUID v4.
+     */
+    private function generateUuidV4(): string
+    {
+        $data = random_bytes(16);
+        $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
+        $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
+        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
+    }
+
     /**
      * Status constants.
      */
@@ -46,6 +72,31 @@ class ConsumableRequestModel extends Model
     public const STATUS_COMPLETED        = 'completed';
     public const STATUS_CANCELED         = 'canceled';
     public const STATUS_PROBLEMATIC      = 'problematic';
+
+    /**
+     * Find by UUID.
+     */
+    public function findByUuid(string $uuid): ?array
+    {
+        return $this->where('public_id', $uuid)->first();
+    }
+
+    /**
+     * Get detail by UUID.
+     */
+    public function getDetailByUuid(string $uuid): ?array
+    {
+        return db_connect()->table('consumable_requests r')
+            ->select('r.*, u.username AS requester_name, l.name AS lab_name, approver.username AS approver_name, disburser.username AS disburser_name, realizer.username AS realizer_name')
+            ->join('users u', 'u.id = r.requester_id', 'left')
+            ->join('labs l', 'l.id = r.lab_id', 'left')
+            ->join('users approver', 'approver.id = r.approval_by', 'left')
+            ->join('users disburser', 'disburser.id = r.disbursed_by', 'left')
+            ->join('users realizer', 'realizer.id = r.realized_by', 'left')
+            ->where('r.public_id', $uuid)
+            ->get()
+            ->getRowArray();
+    }
 
     /**
      * Daftar permintaan beserta nama pemohon dan lab (dengan join).

@@ -10,7 +10,7 @@ $requestItems = $requestItems ?? [];
     </p>
   </div>
   <div class="card-body">
-    <form method="post" action="<?= site_url('consumables/requests/' . (int)($bhpRequest['id'] ?? 0) . '/realize') ?>">
+    <form method="post" action="<?= site_url('consumables/requests/' . ($bhpRequest['public_id'] ?? $bhpRequest['id']) . '/realize') ?>" id="realizeForm">
       <?= csrf_field() ?>
       <table class="table table-bordered">
         <thead class="thead-light">
@@ -39,7 +39,7 @@ $requestItems = $requestItems ?? [];
         </tbody>
       </table>
       <div class="d-flex justify-content-between mt-3">
-        <a href="<?= site_url('consumables/requests/' . (int)($bhpRequest['id'] ?? 0)) ?>" class="btn btn-light">
+        <a href="<?= site_url('consumables/requests/' . ($bhpRequest['public_id'] ?? $bhpRequest['id'])) ?>" class="btn btn-light">
           <i class="fas fa-arrow-left mr-1"></i> Batal
         </a>
         <button type="submit" class="btn btn-primary">
@@ -49,3 +49,26 @@ $requestItems = $requestItems ?? [];
     </form>
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  $('#realizeForm').on('submit', function(e) {
+    e.preventDefault();
+    const form = this;
+    Swal.fire({
+      title: 'Simpan Realisasi?',
+      text: 'Data realisasi akan disimpan dan permintaan akan diselesaikan. Tindakan ini tidak dapat dibatalkan.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Simpan',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#007bff',
+      reverseButtons: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        form.submit();
+      }
+    });
+  });
+});
+</script>

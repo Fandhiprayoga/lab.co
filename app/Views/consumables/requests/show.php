@@ -2,7 +2,7 @@
 $bhpRequest   = $bhpRequest ?? [];
 $requestItems = $requestItems ?? [];
 $status       = $bhpRequest['status'] ?? '';
-$requestId    = (int)($bhpRequest['id'] ?? 0);
+$requestId    = $bhpRequest['public_id'] ?? (int)($bhpRequest['id'] ?? 0);
 
 $statusMap = [
     'draft'            => ['label' => 'Draft',               'class' => 'secondary', 'icon' => 'fa-file-alt'],
@@ -58,8 +58,8 @@ $canRealize = $status === 'disbursed' && activeGroupCan('bhp.realize');
     <!-- Daftar item -->
     <div class="card">
       <div class="card-header"><h6 class="mb-0">Daftar Bahan</h6></div>
-      <div class="card-body p-0">
-        <table class="table table-sm mb-0">
+      <div class="card-body">
+        <table class="table table-sm mb-0" id="itemsTable">
           <thead class="thead-light">
             <tr>
               <th>Bahan</th>
@@ -71,20 +71,16 @@ $canRealize = $status === 'disbursed' && activeGroupCan('bhp.realize');
             </tr>
           </thead>
           <tbody>
-            <?php if (empty($requestItems)): ?>
-              <tr><td colspan="6" class="text-center text-muted py-3">Tidak ada item.</td></tr>
-            <?php else: ?>
-              <?php foreach ($requestItems as $ri): ?>
-              <tr>
-                <td><?= esc($ri['item_name'] ?? '—') ?></td>
-                <td class="text-right"><?= number_format((float)$ri['qty_requested'], 2) ?></td>
-                <td class="text-right"><?= $ri['qty_approved'] !== null ? number_format((float)$ri['qty_approved'], 2) : '<span class="text-muted">—</span>' ?></td>
-                <td class="text-right"><?= $ri['qty_actual'] !== null ? number_format((float)$ri['qty_actual'], 2) : '<span class="text-muted">—</span>' ?></td>
-                <td><?= esc($ri['unit_symbol'] ?? '') ?></td>
-                <td><?= esc($ri['notes'] ?? '') ?></td>
-              </tr>
-              <?php endforeach; ?>
-            <?php endif; ?>
+            <?php foreach ($requestItems as $ri): ?>
+            <tr>
+              <td><?= esc($ri['item_name'] ?? '—') ?></td>
+              <td class="text-right"><?= number_format((float)$ri['qty_requested'], 2) ?></td>
+              <td class="text-right"><?= $ri['qty_approved'] !== null ? number_format((float)$ri['qty_approved'], 2) : '<span class="text-muted">—</span>' ?></td>
+              <td class="text-right"><?= $ri['qty_actual'] !== null ? number_format((float)$ri['qty_actual'], 2) : '<span class="text-muted">—</span>' ?></td>
+              <td><?= esc($ri['unit_symbol'] ?? '') ?></td>
+              <td><?= esc($ri['notes'] ?? '') ?></td>
+            </tr>
+            <?php endforeach; ?>
           </tbody>
         </table>
       </div>
@@ -98,7 +94,7 @@ $canRealize = $status === 'disbursed' && activeGroupCan('bhp.realize');
       <div class="card-body">
 
         <?php if ($canSubmit): ?>
-        <form method="post" action="<?= site_url('consumables/requests/' . $requestId . '/submit') ?>" class="mb-2">
+        <form method="post" action="<?= site_url('consumables/requests/' . $requestId . '/submit') ?>" class="mb-2" id="submitForm">
           <?= csrf_field() ?>
           <button type="submit" class="btn btn-success btn-block">
             <i class="fas fa-paper-plane mr-1"></i> Kirim untuk Persetujuan
@@ -138,8 +134,7 @@ $canRealize = $status === 'disbursed' && activeGroupCan('bhp.realize');
         <?php endif; ?>
 
         <?php if ($canDisburse): ?>
-        <form method="post" action="<?= site_url('consumables/requests/' . $requestId . '/disburse') ?>" class="mb-2"
-              onsubmit="return confirm('Keluarkan bahan dari stok sekarang?')">
+        <form method="post" action="<?= site_url('consumables/requests/' . $requestId . '/disburse') ?>" class="mb-2" id="disburseForm">
           <?= csrf_field() ?>
           <button type="submit" class="btn btn-primary btn-block">
             <i class="fas fa-box-open mr-1"></i> Keluarkan Bahan
@@ -154,7 +149,7 @@ $canRealize = $status === 'disbursed' && activeGroupCan('bhp.realize');
         <?php endif; ?>
 
         <?php if ($canCancel): ?>
-        <button class="btn btn-outline-danger btn-block btn-sm" data-toggle="modal" data-target="#cancelModal">
+        <button class="btn btn-outline-danger btn-block btn-sm" id="cancelBtn">
           <i class="fas fa-ban mr-1"></i> Batalkan Permintaan
         </button>
         <?php endif; ?>
@@ -168,26 +163,109 @@ $canRealize = $status === 'disbursed' && activeGroupCan('bhp.realize');
   </div>
 </div>
 
-<!-- Modal cancel -->
-<?php if ($canCancel): ?>
-<div class="modal fade" id="cancelModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <form method="post" action="<?= site_url('consumables/requests/' . $requestId . '/cancel') ?>">
-        <?= csrf_field() ?>
-        <div class="modal-header"><h5 class="modal-title">Batalkan Permintaan</h5></div>
-        <div class="modal-body">
-          <div class="form-group mb-0">
-            <label>Alasan Pembatalan</label>
-            <textarea name="cancel_reason" class="form-control" rows="3" placeholder="Opsional"></textarea>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-light" data-dismiss="modal">Tutup</button>
-          <button type="submit" class="btn btn-danger">Batalkan</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-<?php endif; ?>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // DataTables
+  $('#itemsTable').DataTable({
+    ordering: true,
+    searching: true,
+    paging: false,
+    info: false,
+    language: {
+      emptyTable: 'Tidak ada item.',
+      search: 'Cari:',
+      zeroRecords: 'Tidak ditemukan data yang sesuai'
+    },
+    columnDefs: [
+      { targets: [1, 2, 3], orderable: true },
+      { targets: [4, 5], orderable: false }
+    ]
+  });
+
+  // SweetAlert for submit confirmation
+  <?php if ($canSubmit): ?>
+  $('#submitForm').on('submit', function(e) {
+    e.preventDefault();
+    const form = this;
+    Swal.fire({
+      title: 'Kirim untuk Persetujuan?',
+      text: 'Permintaan akan dikirim ke pihak yang berwenang untuk disetujui.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Kirim',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#28a745',
+      reverseButtons: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        form.submit();
+      }
+    });
+  });
+  <?php endif; ?>
+
+  // SweetAlert for cancel with reason prompt
+  <?php if ($canCancel): ?>
+  $('#cancelBtn').on('click', function() {
+    Swal.fire({
+      title: 'Batalkan Permintaan?',
+      html: '<textarea id="cancel_reason" class="swal2-textarea" placeholder="Alasan pembatalan (opsional)" rows="3"></textarea>',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Batalkan',
+      cancelButtonText: 'Tutup',
+      confirmButtonColor: '#dc3545',
+      reverseButtons: true,
+      width: '32rem',
+      preConfirm: () => {
+        return document.getElementById('cancel_reason').value;
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const reason = result.value || '';
+        const form = $('<form>', {
+          method: 'POST',
+          action: '<?= site_url('consumables/requests/' . $requestId . '/cancel') ?>'
+        });
+        form.append($('<input>', {
+          type: 'hidden',
+          name: '<?= csrf_token() ?>',
+          value: '<?= csrf_hash() ?>'
+        }));
+        form.append($('<input>', {
+          type: 'hidden',
+          name: 'cancel_reason',
+          value: reason
+        }));
+        $('body').append(form);
+        form.submit();
+      }
+    });
+  });
+  <?php endif; ?>
+
+  // SweetAlert for disburse confirmation
+  <?php if ($canDisburse): ?>
+  $('#disburseForm').on('submit', function(e) {
+    e.preventDefault();
+    const form = this;
+    Swal.fire({
+      title: 'Keluarkan Bahan?',
+      text: 'Bahan akan dikeluarkan dari stok dan tidak bisa dibatalkan.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Keluarkan',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#007bff',
+      reverseButtons: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        form.submit();
+      }
+    });
+  });
+  <?php endif; ?>
+});
+</script>

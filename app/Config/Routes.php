@@ -74,7 +74,20 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
         $routes->get('requests', 'ConsumableController::requests', ['filter' => 'permission:bhp.request.track']);
         $routes->get('requests/create', 'ConsumableController::create', ['filter' => 'permission:bhp.request.create']);
         $routes->get('requests/datatable', 'ConsumableController::datatableRequests', ['filter' => 'permission:bhp.request.track']);
+        $routes->get('requests/export', 'ConsumableController::exportRequests', ['filter' => 'permission:bhp.request.track']);
         $routes->post('requests', 'ConsumableController::store', ['filter' => 'permission:bhp.request.create']);
+        
+        // UUID-based routes (new, preferred)
+        $routes->get('requests/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})', 'ConsumableController::show/$1', ['filter' => 'permission:bhp.request.track']);
+        $routes->post('requests/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/submit', 'ConsumableController::submit/$1', ['filter' => 'permission:bhp.request.submit']);
+        $routes->post('requests/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/approve', 'ConsumableController::approve/$1', ['filter' => 'permission:bhp.approval']);
+        $routes->post('requests/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/reject', 'ConsumableController::reject/$1', ['filter' => 'permission:bhp.approval']);
+        $routes->post('requests/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/disburse', 'ConsumableController::disburse/$1', ['filter' => 'permission:bhp.disburse']);
+        $routes->get('requests/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/realize', 'ConsumableController::realize/$1', ['filter' => 'permission:bhp.realize']);
+        $routes->post('requests/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/realize', 'ConsumableController::storeRealization/$1', ['filter' => 'permission:bhp.realize']);
+        $routes->post('requests/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/cancel', 'ConsumableController::cancel/$1', ['filter' => 'permission:bhp.request.cancel']);
+        
+        // Integer-based routes (legacy, for backward compatibility - will be removed later)
         $routes->get('requests/(:num)', 'ConsumableController::show/$1', ['filter' => 'permission:bhp.request.track']);
         $routes->post('requests/(:num)/submit', 'ConsumableController::submit/$1', ['filter' => 'permission:bhp.request.submit']);
         $routes->post('requests/(:num)/approve', 'ConsumableController::approve/$1', ['filter' => 'permission:bhp.approval']);

@@ -23,6 +23,43 @@ class ConsumableController extends BaseController
         $this->labModel         = new LabModel();
     }
 
+    /**
+     * Resolve request by ID or UUID.
+     * Accepts both integer ID (legacy) and UUID string.
+     */
+    private function resolveRequest(string $identifier): ?array
+    {
+        // Check if it's UUID format (contains dashes)
+        if (strpos($identifier, '-') !== false) {
+            return $this->requestModel->findByUuid($identifier);
+        }
+        
+        // Otherwise treat as integer ID (legacy)
+        if (is_numeric($identifier)) {
+            return $this->requestModel->find((int)$identifier);
+        }
+        
+        return null;
+    }
+
+    /**
+     * Resolve request detail by ID or UUID.
+     */
+    private function resolveRequestDetail(string $identifier): ?array
+    {
+        // Check if it's UUID format (contains dashes)
+        if (strpos($identifier, '-') !== false) {
+            return $this->requestModel->getDetailByUuid($identifier);
+        }
+        
+        // Otherwise treat as integer ID (legacy)
+        if (is_numeric($identifier)) {
+            return $this->requestModel->getDetail((int)$identifier);
+        }
+        
+        return null;
+    }
+
     // ------------------------------------------------------------------
     // Beranda BHP
     // ------------------------------------------------------------------
@@ -361,7 +398,7 @@ class ConsumableController extends BaseController
 
         // Data
         $qb = $db->table('consumable_requests r')
-            ->select('r.id, r.request_code, r.purpose, r.scheduled_date, r.status, r.created_at,
+            ->select('r.id, r.public_id, r.request_code, r.purpose, r.scheduled_date, r.status, r.created_at,
                       u.username AS requester_name, l.name AS lab_name');
         $joins($qb);
         $applyFilters($qb);
@@ -382,6 +419,7 @@ class ConsumableController extends BaseController
         foreach ($rows as $i => $row) {
             $s  = $row['status'] ?? '';
             $sb = $statusBadge[$s] ?? ['label' => $s, 'class' => 'badge-secondary'];
+            $requestUrl = $row['public_id'] ?? $row['id'];
             $data[] = [
                 $start + $i + 1,
                 '<code>' . esc($row['request_code']) . '</code>',
@@ -391,7 +429,7 @@ class ConsumableController extends BaseController
                 $row['scheduled_date'] ? esc($row['scheduled_date']) : '<span class="text-muted">—</span>',
                 '<span class="badge ' . $sb['class'] . '">' . $sb['label'] . '</span>',
                 esc(substr($row['created_at'] ?? '', 0, 16)),
-                '<a href="' . site_url('consumables/requests/' . $row['id']) . '" class="btn btn-xs btn-primary" title="Detail"><i class="fas fa-eye"></i></a>',
+                '<a href="' . site_url('consumables/requests/' . $requestUrl) . '" class="btn btn-xs btn-primary" title="Detail"><i class="fas fa-eye"></i></a>',
             ];
         }
 
@@ -401,6 +439,94 @@ class ConsumableController extends BaseController
             'recordsFiltered' => $recordsFiltered,
             'data'            => $data,
         ]);
+    }
+
+    // ------------------------------------------------------------------
+    // Export daftar permintaan → Excel (SpreadsheetML)
+    // ------------------------------------------------------------------
+
+    public function exportRequests()
+    {
+        if (! activeGroupCan('bhp.request.track')) {
+            return redirect()->to('/consumables/requests')->with('error', 'Akses ditolak.');
+        }
+
+        $req          = $this->request;
+        $filterStatus = (string) ($req->getGet('filter_status') ?? '');
+        $filterFrom   = (string) ($req->getGet('filter_from')   ?? '');
+        $filterUntil  = (string) ($req->getGet('filter_until')  ?? '');
+
+        $ownOnly = ! activeGroupCan('bhp.request.manage-all');
+        $userId  = (int) auth()->id();
+
+        $db = db_connect();
+
+        $qb = $db->table('consumable_requests r')
+            ->select('r.request_code, r.purpose, r.scheduled_date, r.status, r.submitted_at, r.created_at,
+                      u.username AS requester_name, l.name AS lab_name')
+            ->join('users u', 'u.id = r.requester_id', 'left')
+            ->join('labs l',  'l.id = r.lab_id',       'left');
+
+        if ($ownOnly)            { $qb->where('r.requester_id', $userId); }
+        if ($filterStatus !== '') { $qb->where('r.status', $filterStatus); }
+        if ($filterFrom !== '')   { $qb->where('DATE(r.created_at) >=', $filterFrom); }
+        if ($filterUntil !== '')  { $qb->where('DATE(r.created_at) <=', $filterUntil); }
+
+        $rows = $qb->orderBy('r.created_at', 'DESC')->get()->getResultArray();
+
+        $statusLabels = [
+            'draft'            => 'Draft',
+            'waiting_approval' => 'Menunggu Persetujuan',
+            'approved'         => 'Disetujui',
+            'rejected'         => 'Ditolak',
+            'disbursed'        => 'Dikeluarkan',
+            'completed'        => 'Selesai',
+            'canceled'         => 'Dibatalkan',
+            'problematic'      => 'Bermasalah',
+        ];
+
+        $headers = ['No', 'Kode', 'Pemohon', 'Lab', 'Tujuan', 'Jadwal', 'Status', 'Tgl Pengajuan', 'Dibuat'];
+
+        $xml  = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        $xml .= '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"';
+        $xml .= ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">' . "\n";
+        $xml .= '<Worksheet ss:Name="Permintaan BHP"><Table>' . "\n";
+
+        $xml .= '<Row>';
+        foreach ($headers as $h) {
+            $xml .= '<Cell><Data ss:Type="String">' . htmlspecialchars($h, ENT_XML1, 'UTF-8') . '</Data></Cell>';
+        }
+        $xml .= '</Row>' . "\n";
+
+        foreach ($rows as $no => $row) {
+            $cells = [
+                $no + 1,
+                $row['request_code']  ?? '',
+                $row['requester_name'] ?? '',
+                $row['lab_name']       ?? '',
+                $row['purpose']        ?? '',
+                $row['scheduled_date'] ?? '',
+                $statusLabels[$row['status'] ?? ''] ?? ($row['status'] ?? ''),
+                $row['submitted_at']   ?? '',
+                $row['created_at']     ?? '',
+            ];
+            $xml .= '<Row>';
+            foreach ($cells as $cell) {
+                $t = is_numeric($cell) ? 'Number' : 'String';
+                $xml .= '<Cell><Data ss:Type="' . $t . '">' . htmlspecialchars((string) $cell, ENT_XML1, 'UTF-8') . '</Data></Cell>';
+            }
+            $xml .= '</Row>' . "\n";
+        }
+
+        $xml .= '</Table></Worksheet></Workbook>';
+
+        $filename = 'permintaan-bhp-' . date('Ymd-His');
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/vnd.ms-excel; charset=UTF-8')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '.xls"')
+            ->setHeader('Cache-Control', 'no-store, no-cache')
+            ->setBody($xml);
     }
 
     // ------------------------------------------------------------------
@@ -457,6 +583,7 @@ class ConsumableController extends BaseController
         ]);
 
         $requestId = (int) $this->requestModel->getInsertID();
+        $newRequest = $this->requestModel->find($requestId);
 
         foreach ($items as $row) {
             $consumableId = (int) ($row['consumable_id'] ?? 0);
@@ -474,20 +601,21 @@ class ConsumableController extends BaseController
             ]);
         }
 
-        return redirect()->to('/consumables/requests/' . $requestId)->with('success', 'Permintaan berhasil dibuat. Silakan kirim untuk approval.');
+        $redirectId = $newRequest['public_id'] ?? $requestId;
+        return redirect()->to('/consumables/requests/' . $redirectId)->with('success', 'Permintaan berhasil dibuat. Silakan kirim untuk approval.');
     }
 
     // ------------------------------------------------------------------
     // Detail permintaan
     // ------------------------------------------------------------------
 
-    public function show(int $id)
+    public function show(string $id)
     {
         if (! activeGroupCan('bhp.request.track')) {
             return redirect()->to('/consumables')->with('error', 'Akses ditolak.');
         }
 
-        $request = $this->requestModel->getDetail($id);
+        $request = $this->resolveRequestDetail($id);
         if (! $request) {
             return redirect()->to('/consumables/requests')->with('error', 'Permintaan tidak ditemukan.');
         }
@@ -496,7 +624,7 @@ class ConsumableController extends BaseController
             return redirect()->to('/consumables/requests')->with('error', 'Anda tidak memiliki akses ke permintaan ini.');
         }
 
-        $requestItems = $this->requestItemModel->getByRequest($id);
+        $requestItems = $this->requestItemModel->getByRequest((int)$request['id']);
 
         return $this->renderView('consumables/requests/show', [
             'title'        => 'Detail Permintaan BHP',
@@ -510,13 +638,13 @@ class ConsumableController extends BaseController
     // Submit (draft → waiting_approval atau approved)
     // ------------------------------------------------------------------
 
-    public function submit(int $id)
+    public function submit(string $id)
     {
         if (! activeGroupCan('bhp.request.submit')) {
             return redirect()->to('/consumables/requests')->with('error', 'Akses ditolak.');
         }
 
-        $bhpRequest = $this->requestModel->find($id);
+        $bhpRequest = $this->resolveRequest($id);
         if (! $bhpRequest || $bhpRequest['status'] !== ConsumableRequestModel::STATUS_DRAFT) {
             return redirect()->to('/consumables/requests')->with('error', 'Permintaan tidak dapat dikirim.');
         }
@@ -525,15 +653,15 @@ class ConsumableController extends BaseController
             return redirect()->to('/consumables/requests')->with('error', 'Akses ditolak.');
         }
 
-        $itemCount = $this->requestItemModel->where('request_id', $id)->countAllResults();
+        $itemCount = $this->requestItemModel->where('request_id', (int)$bhpRequest['id'])->countAllResults();
         if ($itemCount < 1) {
-            return redirect()->to('/consumables/requests/' . $id)->with('error', 'Tambahkan minimal 1 bahan sebelum mengirim.');
+            return redirect()->to('/consumables/requests/' . ($bhpRequest['public_id'] ?? $bhpRequest['id']))->with('error', 'Tambahkan minimal 1 bahan sebelum mengirim.');
         }
 
         // Cek apakah ada bahan yang requires_approval
         $needsApproval = db_connect()->table('consumable_request_items ri')
             ->join('consumable_items ci', 'ci.id = ri.consumable_id')
-            ->where('ri.request_id', $id)
+            ->where('ri.request_id', (int)$bhpRequest['id'])
             ->where('ci.requires_approval', 1)
             ->countAllResults() > 0;
 
@@ -548,33 +676,33 @@ class ConsumableController extends BaseController
 
         // Jika tidak perlu approval, set qty_approved = qty_requested langsung
         if (! $needsApproval) {
-            foreach ($this->requestItemModel->where('request_id', $id)->findAll() as $ri) {
+            foreach ($this->requestItemModel->where('request_id', (int)$bhpRequest['id'])->findAll() as $ri) {
                 $this->requestItemModel->update($ri['id'], ['qty_approved' => $ri['qty_requested']]);
             }
         }
 
-        $this->requestModel->update($id, $updateData);
+        $this->requestModel->update((int)$bhpRequest['id'], $updateData);
 
         $msg = $needsApproval
             ? 'Permintaan dikirim ke Kepala Lab untuk persetujuan.'
             : 'Permintaan disetujui otomatis dan siap diproses.';
 
-        return redirect()->to('/consumables/requests/' . $id)->with('success', $msg);
+        return redirect()->to('/consumables/requests/' . ($bhpRequest['public_id'] ?? $bhpRequest['id']))->with('success', $msg);
     }
 
     // ------------------------------------------------------------------
     // Approve / Reject (Kepala Lab)
     // ------------------------------------------------------------------
 
-    public function approve(int $id)
+    public function approve(string $id)
     {
         if (! activeGroupCan('bhp.approval')) {
             return redirect()->to('/consumables/requests')->with('error', 'Akses ditolak.');
         }
 
-        $bhpRequest = $this->requestModel->find($id);
+        $bhpRequest = $this->resolveRequest($id);
         if (! $bhpRequest || $bhpRequest['status'] !== ConsumableRequestModel::STATUS_WAITING_APPROVAL) {
-            return redirect()->to('/consumables/requests/' . $id)->with('error', 'Permintaan tidak valid untuk disetujui.');
+            return redirect()->to('/consumables/requests/' . ($bhpRequest['public_id'] ?? $id))->with('error', 'Permintaan tidak valid untuk disetujui.');
         }
 
         $db = db_connect();
@@ -587,7 +715,7 @@ class ConsumableController extends BaseController
             $this->requestItemModel->update((int) $itemId, ['qty_approved' => $qty]);
         }
 
-        $this->requestModel->update($id, [
+        $this->requestModel->update((int)$bhpRequest['id'], [
             'status'        => ConsumableRequestModel::STATUS_APPROVED,
             'approval_by'   => auth()->id(),
             'approval_at'   => Time::now()->toDateTimeString(),
@@ -596,51 +724,51 @@ class ConsumableController extends BaseController
 
         $db->transComplete();
 
-        return redirect()->to('/consumables/requests/' . $id)->with('success', 'Permintaan berhasil disetujui.');
+        return redirect()->to('/consumables/requests/' . ($bhpRequest['public_id'] ?? $bhpRequest['id']))->with('success', 'Permintaan berhasil disetujui.');
     }
 
-    public function reject(int $id)
+    public function reject(string $id)
     {
         if (! activeGroupCan('bhp.approval')) {
             return redirect()->to('/consumables/requests')->with('error', 'Akses ditolak.');
         }
 
-        $bhpRequest = $this->requestModel->find($id);
+        $bhpRequest = $this->resolveRequest($id);
         if (! $bhpRequest || $bhpRequest['status'] !== ConsumableRequestModel::STATUS_WAITING_APPROVAL) {
-            return redirect()->to('/consumables/requests/' . $id)->with('error', 'Permintaan tidak valid untuk ditolak.');
+            return redirect()->to('/consumables/requests/' . ($bhpRequest['public_id'] ?? $id))->with('error', 'Permintaan tidak valid untuk ditolak.');
         }
 
         $reason = trim((string) $this->request->getPost('approval_note')) ?: 'Ditolak oleh Kepala Lab.';
 
-        $this->requestModel->update($id, [
+        $this->requestModel->update((int)$bhpRequest['id'], [
             'status'        => ConsumableRequestModel::STATUS_REJECTED,
             'approval_by'   => auth()->id(),
             'approval_at'   => Time::now()->toDateTimeString(),
             'approval_note' => $reason,
         ]);
 
-        return redirect()->to('/consumables/requests/' . $id)->with('success', 'Permintaan ditolak.');
+        return redirect()->to('/consumables/requests/' . ($bhpRequest['public_id'] ?? $bhpRequest['id']))->with('success', 'Permintaan ditolak.');
     }
 
     // ------------------------------------------------------------------
     // Pengeluaran bahan (Laboran)
     // ------------------------------------------------------------------
 
-    public function disburse(int $id)
+    public function disburse(string $id)
     {
         if (! activeGroupCan('bhp.disburse')) {
             return redirect()->to('/consumables/requests')->with('error', 'Akses ditolak.');
         }
 
-        $bhpRequest = $this->requestModel->find($id);
+        $bhpRequest = $this->resolveRequest($id);
         if (! $bhpRequest || $bhpRequest['status'] !== ConsumableRequestModel::STATUS_APPROVED) {
-            return redirect()->to('/consumables/requests/' . $id)->with('error', 'Permintaan harus berstatus Disetujui untuk dikeluarkan.');
+            return redirect()->to('/consumables/requests/' . ($bhpRequest['public_id'] ?? $id))->with('error', 'Permintaan harus berstatus Disetujui untuk dikeluarkan.');
         }
 
         $db = db_connect();
         $db->transStart();
 
-        $requestItems = $this->requestItemModel->where('request_id', $id)->findAll();
+        $requestItems = $this->requestItemModel->where('request_id', (int)$bhpRequest['id'])->findAll();
         foreach ($requestItems as $ri) {
             $approved = (float) ($ri['qty_approved'] ?? $ri['qty_requested']);
             if ($approved <= 0) {
@@ -661,7 +789,7 @@ class ConsumableController extends BaseController
             ]);
         }
 
-        $this->requestModel->update($id, [
+        $this->requestModel->update((int)$bhpRequest['id'], [
             'status'       => ConsumableRequestModel::STATUS_DISBURSED,
             'disbursed_by' => auth()->id(),
             'disbursed_at' => Time::now()->toDateTimeString(),
@@ -670,28 +798,28 @@ class ConsumableController extends BaseController
         $db->transComplete();
 
         if (! $db->transStatus()) {
-            return redirect()->to('/consumables/requests/' . $id)->with('error', 'Gagal memproses pengeluaran bahan. Coba lagi.');
+            return redirect()->to('/consumables/requests/' . ($bhpRequest['public_id'] ?? $bhpRequest['id']))->with('error', 'Gagal memproses pengeluaran bahan. Coba lagi.');
         }
 
-        return redirect()->to('/consumables/requests/' . $id)->with('success', 'Bahan berhasil dikeluarkan dari stok.');
+        return redirect()->to('/consumables/requests/' . ($bhpRequest['public_id'] ?? $bhpRequest['id']))->with('success', 'Bahan berhasil dikeluarkan dari stok.');
     }
 
     // ------------------------------------------------------------------
     // Realisasi penggunaan
     // ------------------------------------------------------------------
 
-    public function realize(int $id)
+    public function realize(string $id)
     {
         if (! activeGroupCan('bhp.realize')) {
             return redirect()->to('/consumables/requests')->with('error', 'Akses ditolak.');
         }
 
-        $bhpRequest = $this->requestModel->getDetail($id);
+        $bhpRequest = $this->resolveRequestDetail($id);
         if (! $bhpRequest || $bhpRequest['status'] !== ConsumableRequestModel::STATUS_DISBURSED) {
-            return redirect()->to('/consumables/requests/' . $id)->with('error', 'Permintaan harus berstatus Dikeluarkan untuk dicatat realisasinya.');
+            return redirect()->to('/consumables/requests/' . ($bhpRequest['public_id'] ?? $id))->with('error', 'Permintaan harus berstatus Dikeluarkan untuk dicatat realisasinya.');
         }
 
-        $requestItems = $this->requestItemModel->getByRequest($id);
+        $requestItems = $this->requestItemModel->getByRequest((int)$bhpRequest['id']);
 
         return $this->renderView('consumables/requests/realize', [
             'title'        => 'Catat Realisasi',
@@ -701,15 +829,15 @@ class ConsumableController extends BaseController
         ]);
     }
 
-    public function storeRealization(int $id)
+    public function storeRealization(string $id)
     {
         if (! activeGroupCan('bhp.realize')) {
             return redirect()->to('/consumables/requests')->with('error', 'Akses ditolak.');
         }
 
-        $bhpRequest = $this->requestModel->find($id);
+        $bhpRequest = $this->resolveRequest($id);
         if (! $bhpRequest || $bhpRequest['status'] !== ConsumableRequestModel::STATUS_DISBURSED) {
-            return redirect()->to('/consumables/requests/' . $id)->with('error', 'Status permintaan tidak valid.');
+            return redirect()->to('/consumables/requests/' . ($bhpRequest['public_id'] ?? $id))->with('error', 'Status permintaan tidak valid.');
         }
 
         $db = db_connect();
@@ -720,7 +848,7 @@ class ConsumableController extends BaseController
             $this->requestItemModel->update((int) $itemId, ['qty_actual' => max(0, (float) $qty)]);
         }
 
-        $this->requestModel->update($id, [
+        $this->requestModel->update((int)$bhpRequest['id'], [
             'status'      => ConsumableRequestModel::STATUS_COMPLETED,
             'realized_by' => auth()->id(),
             'realized_at' => Time::now()->toDateTimeString(),
@@ -728,16 +856,16 @@ class ConsumableController extends BaseController
 
         $db->transComplete();
 
-        return redirect()->to('/consumables/requests/' . $id)->with('success', 'Realisasi penggunaan berhasil dicatat. Transaksi selesai.');
+        return redirect()->to('/consumables/requests/' . ($bhpRequest['public_id'] ?? $bhpRequest['id']))->with('success', 'Realisasi penggunaan berhasil dicatat. Transaksi selesai.');
     }
 
     // ------------------------------------------------------------------
     // Batalkan permintaan
     // ------------------------------------------------------------------
 
-    public function cancel(int $id)
+    public function cancel(string $id)
     {
-        $bhpRequest = $this->requestModel->find($id);
+        $bhpRequest = $this->resolveRequest($id);
         if (! $bhpRequest) {
             return redirect()->to('/consumables/requests')->with('error', 'Permintaan tidak ditemukan.');
         }
@@ -752,17 +880,17 @@ class ConsumableController extends BaseController
         ];
 
         if (! in_array($bhpRequest['status'], $cancelable, true)) {
-            return redirect()->to('/consumables/requests/' . $id)->with('error', 'Permintaan tidak dapat dibatalkan pada status ini.');
+            return redirect()->to('/consumables/requests/' . ($bhpRequest['public_id'] ?? $bhpRequest['id']))->with('error', 'Permintaan tidak dapat dibatalkan pada status ini.');
         }
 
         $reason = trim((string) $this->request->getPost('cancel_reason')) ?: 'Dibatalkan oleh pemohon.';
 
-        $this->requestModel->update($id, [
+        $this->requestModel->update((int)$bhpRequest['id'], [
             'status'          => ConsumableRequestModel::STATUS_CANCELED,
             'canceled_reason' => $reason,
         ]);
 
-        return redirect()->to('/consumables/requests/' . $id)->with('success', 'Permintaan berhasil dibatalkan.');
+        return redirect()->to('/consumables/requests/' . ($bhpRequest['public_id'] ?? $bhpRequest['id']))->with('success', 'Permintaan berhasil dibatalkan.');
     }
 
     // ------------------------------------------------------------------

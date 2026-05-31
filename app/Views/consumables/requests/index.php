@@ -63,6 +63,19 @@ $statusLabels = $statusLabels ?? [];
       <button type="button" id="open-req-filter" class="btn btn-outline-secondary">
         <i class="fas fa-filter"></i> Filter
       </button>
+      <div class="dropdown">
+        <button class="btn btn-success dropdown-toggle" type="button" id="req-export-dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          <i class="fas fa-file-excel mr-1"></i> Export Excel
+        </button>
+        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="req-export-dropdown">
+          <a class="dropdown-item" id="req-export-all" href="#">
+            <i class="fas fa-table mr-2"></i> Semua Data
+          </a>
+          <a class="dropdown-item" id="req-export-filtered" href="#">
+            <i class="fas fa-filter mr-2"></i> Sesuai Filter Aktif
+          </a>
+        </div>
+      </div>
       <?php if (activeGroupCan('bhp.request.create')): ?>
       <a href="<?= site_url('consumables/requests/create') ?>" class="btn btn-primary">
         <i class="fas fa-plus mr-1"></i> Buat Permintaan
@@ -274,6 +287,33 @@ $(function () {
 
   $(document).on('keydown', function (e) {
     if (e.key === 'Escape') setDrawerState(false);
+  });
+
+  /* ── Export ───────────────────────────── */
+  var exportBaseUrl = '<?= site_url('consumables/requests/export') ?>';
+
+  function buildExportUrl(withFilters) {
+    var params = {};
+    if (withFilters) {
+      var s     = $('#filter-req-status').val();
+      var from  = $('#filter-req-from').val();
+      var until = $('#filter-req-until').val();
+      if (s)     params.filter_status = s;
+      if (from)  params.filter_from   = from;
+      if (until) params.filter_until  = until;
+    }
+    var qs = $.param(params);
+    return exportBaseUrl + (qs ? '?' + qs : '');
+  }
+
+  $('#req-export-all').on('click', function (e) {
+    e.preventDefault();
+    window.location.href = buildExportUrl(false);
+  });
+
+  $('#req-export-filtered').on('click', function (e) {
+    e.preventDefault();
+    window.location.href = buildExportUrl(true);
   });
 });
 </script>
