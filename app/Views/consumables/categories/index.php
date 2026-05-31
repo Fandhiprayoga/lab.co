@@ -30,10 +30,7 @@ $categories = $categories ?? [];
           </tr>
         </thead>
         <tbody>
-          <?php if (empty($categories)): ?>
-            <tr><td colspan="7" class="text-center text-muted py-4">Belum ada kategori.</td></tr>
-          <?php else: ?>
-            <?php foreach ($categories as $i => $cat): ?>
+          <?php foreach ($categories as $i => $cat): ?>
             <tr>
               <td><?= $i + 1 ?></td>
               <td>
@@ -83,8 +80,7 @@ $categories = $categories ?? [];
                 <?php endif; ?>
               </td>
             </tr>
-            <?php endforeach; ?>
-          <?php endif; ?>
+          <?php endforeach; ?>
         </tbody>
       </table>
     </div>
@@ -112,6 +108,7 @@ document.addEventListener('DOMContentLoaded', function() {
         next: 'Selanjutnya',
         previous: 'Sebelumnya'
       },
+      emptyTable: 'Belum ada kategori.',
       zeroRecords: 'Tidak ada data yang ditemukan'
     },
     order: [[4, 'asc'], [1, 'asc']], // Sort by sort_order then name
