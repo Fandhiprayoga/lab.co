@@ -45,6 +45,10 @@ class AuthGroups extends ShieldAuthGroups
             'title'       => 'Mahasiswa',
             'description' => 'Mahasiswa peminjam fasilitas lab; kelak peserta praktikum.',
         ],
+        'alumni' => [
+            'title'       => 'Alumni',
+            'description' => 'Lulusan; akses riwayat surat bebas lab (read-only).',
+        ],
     ];
 
     /**
@@ -121,6 +125,15 @@ class AuthGroups extends ShieldAuthGroups
         'bhp.stock.adjust'       => 'Dapat mencatat penyesuaian stok bahan',
         'bhp.analytics.view'     => 'Dapat melihat analitik konsumsi bahan',
         'bhp.master.manage'      => 'Dapat mengelola master data bahan habis pakai',
+
+        // Surat Bebas Lab (Clearance) module
+        'clearance.access'             => 'Dapat mengakses modul surat bebas lab',
+        'clearance.request.create'     => 'Dapat mengajukan surat bebas lab',
+        'clearance.request.track'      => 'Dapat melacak status dan riwayat surat bebas lab',
+        'clearance.request.cancel'     => 'Dapat membatalkan pengajuan surat bebas lab',
+        'clearance.request.manage-all' => 'Dapat mengelola seluruh pengajuan surat bebas lab',
+        'clearance.verify'             => 'Dapat memverifikasi dan menerbitkan surat bebas lab',
+        'clearance.letter.download'    => 'Dapat mengunduh/membuka surat bebas lab',
     ];
 
     /**
@@ -138,6 +151,7 @@ class AuthGroups extends ShieldAuthGroups
             'lending.*',
             'visits.*',
             'bhp.*',
+            'clearance.*',
         ],
         'laboran' => [
             'admin.access',
@@ -174,6 +188,11 @@ class AuthGroups extends ShieldAuthGroups
             'bhp.stock.adjust',
             'bhp.analytics.view',
             'bhp.master.manage',
+            'clearance.access',
+            'clearance.request.track',
+            'clearance.request.manage-all',
+            'clearance.verify',
+            'clearance.letter.download',
         ],
         'asisten' => [
             'admin.access',
@@ -205,6 +224,10 @@ class AuthGroups extends ShieldAuthGroups
             'bhp.request.track',
             'bhp.approval',
             'bhp.analytics.view',
+            'clearance.access',
+            'clearance.request.track',
+            'clearance.request.manage-all',
+            'clearance.letter.download',
         ],
         'dosen' => [
             'dashboard.access',
@@ -225,6 +248,17 @@ class AuthGroups extends ShieldAuthGroups
             'lending.request.track',
             'lending.request.history',
             'lending.request.submit',
+            'clearance.access',
+            'clearance.request.create',
+            'clearance.request.track',
+            'clearance.request.cancel',
+            'clearance.letter.download',
+        ],
+        'alumni' => [
+            'dashboard.access',
+            'clearance.access',
+            'clearance.request.track',
+            'clearance.letter.download',
         ],
     ];
 }

@@ -112,6 +112,26 @@ class NotificationService
             'icon'    => 'fas fa-door-open',
             'color'   => 'warning',
         ],
+
+        // ---- Surat Bebas Lab / Clearance ----
+        'clearance.submitted' => [
+            'title'   => 'Pengajuan Surat Bebas Lab',
+            'message' => 'Pengajuan surat bebas lab {request_code} memerlukan verifikasi Anda.',
+            'icon'    => 'fas fa-file-signature',
+            'color'   => 'primary',
+        ],
+        'clearance.approved' => [
+            'title'   => 'Surat Bebas Lab Terbit',
+            'message' => 'Surat bebas lab {request_code} (No. {letter_number}) telah terbit. Silakan unduh suratnya.',
+            'icon'    => 'fas fa-check-circle',
+            'color'   => 'success',
+        ],
+        'clearance.rejected' => [
+            'title'   => 'Pengajuan Surat Bebas Lab Ditolak',
+            'message' => 'Pengajuan surat bebas lab {request_code} Anda ditolak. Alasan: {reason}',
+            'icon'    => 'fas fa-times-circle',
+            'color'   => 'danger',
+        ],
     ];
 
     protected NotificationModel $model;

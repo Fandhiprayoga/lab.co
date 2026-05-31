@@ -79,6 +79,19 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
         $routes->post('(:num)/reject-l2', 'LoanProposalController::rejectL2/$1', ['filter' => 'permission:lending.approval.l2']);
     });
 
+    // Surat Bebas Lab (Clearance) Module
+    $routes->group('clearance', ['filter' => 'permission:clearance.access'], static function ($routes) {
+        $routes->get('/', 'LabClearanceController::index', ['filter' => 'permission:clearance.request.track']);
+        $routes->get('datatable', 'LabClearanceController::datatable', ['filter' => 'permission:clearance.request.track']);
+        $routes->get('create', 'LabClearanceController::create', ['filter' => 'permission:clearance.request.create']);
+        $routes->post('store', 'LabClearanceController::store', ['filter' => 'permission:clearance.request.create']);
+        $routes->get('(:segment)', 'LabClearanceController::show/$1', ['filter' => 'permission:clearance.request.track']);
+        $routes->post('(:segment)/cancel', 'LabClearanceController::cancel/$1', ['filter' => 'permission:clearance.request.cancel']);
+        $routes->post('(:segment)/approve', 'LabClearanceController::approve/$1', ['filter' => 'permission:clearance.verify']);
+        $routes->post('(:segment)/reject', 'LabClearanceController::reject/$1', ['filter' => 'permission:clearance.verify']);
+        $routes->get('(:segment)/download', 'LabClearanceController::download/$1', ['filter' => 'permission:clearance.letter.download']);
+    });
+
     // Consumable (BHP) Module
     $routes->group('consumables', ['filter' => 'permission:bhp.access'], static function ($routes) {
         $routes->get('/', 'ConsumableController::index', ['filter' => 'permission:bhp.catalog.view']);

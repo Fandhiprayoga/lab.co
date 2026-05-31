@@ -13,6 +13,7 @@ $badgeColors = [
     'kepala_lab' => 'success',
     'dosen'      => 'primary',
     'mahasiswa'  => 'secondary',
+    'alumni'     => 'dark',
 ];
 
 // Role pill styles (bg / text color)
@@ -23,6 +24,7 @@ $roleStyle = [
     'kepala_lab' => 'background:#d1fae5;color:#059669',
     'dosen'      => 'background:#ede9fe;color:#6d28d9',
     'mahasiswa'  => 'background:#f1f5f9;color:#475569',
+    'alumni'     => 'background:#e0e7ff;color:#4338ca',
 ];
 $roleCheckBg = [
     'superadmin' => '#dc2626',
@@ -31,6 +33,7 @@ $roleCheckBg = [
     'kepala_lab' => '#059669',
     'dosen'      => '#6d28d9',
     'mahasiswa'  => '#475569',
+    'alumni'     => '#4338ca',
 ];
 ?>
 <style>
