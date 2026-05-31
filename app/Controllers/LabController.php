@@ -566,9 +566,11 @@ class LabController extends BaseController
             $delUrl    = base_url('admin/loans/labs/delete/' . $id);
             $name      = esc((string) $lab['name']);
 
-            $actions = '<a href="' . $editUrl . '" class="btn btn-sm btn-info" title="Edit"><i class="fas fa-edit"></i></a> '
-                . '<a href="' . $photosUrl . '" class="btn btn-sm btn-secondary" title="Galeri"><i class="fas fa-images"></i></a> '
-                . '<a href="' . $qrUrl . '" class="btn btn-sm btn-dark" title="QR"><i class="fas fa-qrcode"></i></a> '
+            $actions = '<div class="btn-group btn-group-sm" role="group">'
+                . '<a href="' . $editUrl . '" class="btn btn-info" title="Edit"><i class="fas fa-edit"></i></a>'
+                . '<a href="' . $photosUrl . '" class="btn btn-secondary" title="Galeri Foto"><i class="fas fa-images"></i></a>'
+                . '<a href="' . $qrUrl . '" class="btn btn-dark" title="QR Code"><i class="fas fa-qrcode"></i></a>'
+                . '</div> '
                 . '<form action="' . $delUrl . '" method="post" class="d-inline js-swal-delete-form" '
                 . 'data-swal-title="Arsipkan data lab?" data-swal-text="Data \'' . $name . '\' akan dipindahkan ke arsip." '
                 . 'data-swal-confirm="Ya, arsipkan" data-swal-cancel="Batal">'
