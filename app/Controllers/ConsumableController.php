@@ -904,35 +904,71 @@ class ConsumableController extends BaseController
         }
 
         $db = db_connect();
+        
+        // Get selected lab from query string
+        $selectedLabId = (int) ($this->request->getGet('lab_id') ?? 0);
+        
+        // Get all labs for dropdown
+        $labs = $this->labModel->where('is_active', 1)->orderBy('name', 'ASC')->findAll();
+
+        // Apply lab filter if selected
+        $labFilter = function($builder) use ($selectedLabId) {
+            if ($selectedLabId > 0) {
+                $builder->where('r.lab_id', $selectedLabId);
+            }
+        };
 
         // Top 10 bahan paling banyak digunakan (berdasarkan qty_actual)
-        $topItems = $db->table('consumable_request_items ri')
+        $qbTopItems = $db->table('consumable_request_items ri')
             ->select('ci.name AS item_name, units.symbol AS unit_symbol, SUM(ri.qty_actual) AS total_used')
             ->join('consumable_items ci', 'ci.id = ri.consumable_id', 'left')
             ->join('units', 'units.id = ci.unit_id', 'left')
             ->join('consumable_requests r', 'r.id = ri.request_id')
-            ->where('r.status', ConsumableRequestModel::STATUS_COMPLETED)
+            ->where('r.status', ConsumableRequestModel::STATUS_COMPLETED);
+        
+        $labFilter($qbTopItems);
+        
+        $topItems = $qbTopItems
             ->groupBy('ri.consumable_id')
             ->orderBy('total_used', 'DESC')
             ->limit(10)
             ->get()->getResultArray();
 
         // Tren permintaan per bulan (6 bulan terakhir)
-        $trend = $db->table('consumable_requests')
-            ->select("DATE_FORMAT(created_at, '%Y-%m') AS month, COUNT(*) AS total")
-            ->where('created_at >=', date('Y-m-d', strtotime('-6 months')))
+        $qbTrend = $db->table('consumable_requests r')
+            ->select("DATE_FORMAT(r.created_at, '%Y-%m') AS month, COUNT(*) AS total")
+            ->where('r.created_at >=', date('Y-m-d', strtotime('-6 months')));
+        
+        $labFilter($qbTrend);
+        
+        $trend = $qbTrend
             ->groupBy('month')
             ->orderBy('month', 'ASC')
             ->get()->getResultArray();
 
         // Ringkasan status
-        $statusSummary = $db->table('consumable_requests')
-            ->select('status, COUNT(*) AS total')
-            ->groupBy('status')
+        $qbStatus = $db->table('consumable_requests r')
+            ->select('r.status, COUNT(*) AS total');
+        
+        $labFilter($qbStatus);
+        
+        $statusSummary = $qbStatus
+            ->groupBy('r.status')
             ->get()->getResultArray();
 
-        // Bahan di bawah stok minimum
-        $lowStockItems = $this->itemModel->getLowStock();
+        // Bahan di bawah stok minimum (filtered by lab)
+        $qbLowStock = $this->itemModel
+            ->select('consumable_items.*, labs.name AS lab_name, units.symbol AS unit_symbol')
+            ->join('labs', 'labs.id = consumable_items.lab_id', 'left')
+            ->join('units', 'units.id = consumable_items.unit_id', 'left')
+            ->where('consumable_items.is_active', 1)
+            ->where('consumable_items.stock_available < consumable_items.min_stock');
+        
+        if ($selectedLabId > 0) {
+            $qbLowStock->where('consumable_items.lab_id', $selectedLabId);
+        }
+        
+        $lowStockItems = $qbLowStock->orderBy('consumable_items.name', 'ASC')->findAll();
 
         return $this->renderView('consumables/analytics', [
             'title'          => 'Analitik BHP',
@@ -941,6 +977,8 @@ class ConsumableController extends BaseController
             'trend'          => $trend,
             'statusSummary'  => $statusSummary,
             'lowStockItems'  => $lowStockItems,
+            'labs'           => $labs,
+            'selectedLabId'  => $selectedLabId,
         ]);
     }
 

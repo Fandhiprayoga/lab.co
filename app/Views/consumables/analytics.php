@@ -3,6 +3,8 @@ $topItems      = $topItems ?? [];
 $trend         = $trend ?? [];
 $statusSummary = $statusSummary ?? [];
 $lowStockItems = $lowStockItems ?? [];
+$labs          = $labs ?? [];
+$selectedLabId = $selectedLabId ?? 0;
 
 $statusLabels = [
     'draft'            => 'Draft',
@@ -15,6 +17,25 @@ $statusLabels = [
     'problematic'      => 'Bermasalah',
 ];
 ?>
+
+<!-- Filter Lab -->
+<div class="row mb-3">
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-body">
+        <label for="labFilter" class="font-weight-bold"><i class="fas fa-filter mr-1"></i> Filter Laboratorium</label>
+        <select id="labFilter" class="form-control">
+          <option value="0" <?= $selectedLabId == 0 ? 'selected' : '' ?>>Semua Lab</option>
+          <?php foreach ($labs as $lab): ?>
+            <option value="<?= $lab['id'] ?>" <?= $selectedLabId == $lab['id'] ? 'selected' : '' ?>>
+              <?= esc($lab['name']) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="row">
   <!-- Top items chart -->
@@ -131,3 +152,21 @@ new Chart(document.getElementById('trendChart').getContext('2d'), {
 });
 </script>
 <?php endif; ?>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const labFilter = document.getElementById('labFilter');
+  if (labFilter) {
+    labFilter.addEventListener('change', function() {
+      const labId = this.value;
+      const url = new URL(window.location.href);
+      if (labId && labId != '0') {
+        url.searchParams.set('lab_id', labId);
+      } else {
+        url.searchParams.delete('lab_id');
+      }
+      window.location.href = url.toString();
+    });
+  }
+});
+</script>
