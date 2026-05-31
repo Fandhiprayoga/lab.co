@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\LabModel;
+use App\Models\LabPhotoModel;
 
 class Home extends BaseController
 {
@@ -24,6 +25,32 @@ class Home extends BaseController
             'pageSubtitle'    => 'Daftar lengkap laboratorium aktif yang tersedia ditampilkan di bawah ini.',
             'showCta'         => false,
             'gridClass'       => 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8',
+        ]);
+    }
+
+    public function labDetail(int $id): string
+    {
+        $lab = (new LabModel())->where('is_active', 1)->find($id);
+
+        if (! $lab) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound('Laboratorium tidak ditemukan.');
+        }
+
+        $photos = (new LabPhotoModel())
+            ->where('lab_id', $id)
+            ->orderBy('is_primary', 'DESC')
+            ->orderBy('sort_order', 'ASC')
+            ->findAll();
+
+        $appName = setting('App.siteName') ?? 'LabCorner';
+
+        return view('laboratorium/detail', [
+            'lab'             => $lab,
+            'photos'          => $photos,
+            'pageTitle'       => esc($lab['name']) . ' - ' . $appName,
+            'pageDescription' => $lab['description'] ?? ('Detail laboratorium ' . $lab['name'] . ' di ' . $appName . '.'),
+            'pageBadge'       => $lab['code'] ?? 'Laboratorium',
+            'pageSubtitle'    => $lab['location'] ?? '',
         ]);
     }
 

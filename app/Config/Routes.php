@@ -22,6 +22,7 @@ $routes->get('register/cancel', 'RegisterController::cancelActivation', ['as' =>
 // ---------------------------------------------------------------
 $routes->get('/', 'Home::index');
 $routes->get('laboratorium', 'Home::laboratorium');
+$routes->get('laboratorium/(:num)', 'Home::labDetail/$1');
 $routes->get('labs/scan/(:segment)', 'LabController::scan/$1');
 $routes->post('labs/scan/(:segment)', 'LabController::scan/$1');
 $routes->get('maintenance', static function () {

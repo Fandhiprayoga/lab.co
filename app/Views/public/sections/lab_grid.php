@@ -74,14 +74,14 @@ $labDisplayMeta = [
                             $statusClass = 'bg-green-100 text-green-700';
                         }
                     ?>
-                    <div class="bg-white rounded-3xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group cursor-pointer">
+                    <a href="<?= site_url('laboratorium/' . $lab['id']) ?>" class="block bg-white rounded-3xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group cursor-pointer">
                         <div class="flex items-center justify-between mb-4">
                             <div class="w-12 h-12 rounded-xl overflow-hidden bg-white border border-gray-100 flex items-center justify-center transition-colors shadow-sm">
                                 <img src="<?= esc($logoUrl) ?>" alt="Logo <?= esc($lab['name'] ?? 'Lab') ?>" class="w-full h-full object-contain p-1.5">
                             </div>
                             <span class="text-xs font-semibold px-3 py-1 rounded-full <?= esc($statusClass) ?>"><?= esc($statusLabel) ?></span>
                         </div>
-                        <h3 class="text-xl font-bold text-gray-900 mb-2"><?= esc($lab['name'] ?? '-') ?></h3>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2 group-hover:text-brand-600 transition-colors"><?= esc($lab['name'] ?? '-') ?></h3>
                         <p class="text-gray-500 text-sm mb-4">
                             <?= esc($lab['location'] ?? 'Lokasi belum tersedia') ?>
                             <?php if (! empty($lab['faculty_name'])): ?>
@@ -99,7 +99,7 @@ $labDisplayMeta = [
                                 <?= esc($lab['capacity'] ?? '-') ?> Kursi
                             </div>
                         </div>
-                    </div>
+                    </a>
                 <?php endforeach; ?>
             <?php else: ?>
                 <div class="col-span-full bg-white rounded-3xl p-10 text-center border border-dashed border-gray-200">
