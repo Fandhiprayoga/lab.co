@@ -83,6 +83,7 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
     $routes->group('clearance', ['filter' => 'permission:clearance.access'], static function ($routes) {
         $routes->get('/', 'LabClearanceController::index', ['filter' => 'permission:clearance.request.track']);
         $routes->get('datatable', 'LabClearanceController::datatable', ['filter' => 'permission:clearance.request.track']);
+        $routes->get('export', 'LabClearanceController::exportHistory', ['filter' => 'permission:clearance.request.track']);
         $routes->get('create', 'LabClearanceController::create', ['filter' => 'permission:clearance.request.create']);
         $routes->post('store', 'LabClearanceController::store', ['filter' => 'permission:clearance.request.create']);
         $routes->get('(:segment)', 'LabClearanceController::show/$1', ['filter' => 'permission:clearance.request.track']);

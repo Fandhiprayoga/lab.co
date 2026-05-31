@@ -159,6 +159,128 @@ class LabClearanceController extends BaseController
         ]);
     }
 
+    /**
+     * Export riwayat surat bebas lab → Excel (SpreadsheetML)
+     * GET /clearance/export
+     */
+    public function exportHistory()
+    {
+        if (! activeGroupCan('clearance.request.track')) {
+            return redirect()->to('/clearance')->with('error', 'Akses ditolak.');
+        }
+
+        $req          = $this->request;
+        $filterStatus = (string) ($req->getGet('filter_status') ?? '');
+        $filterProdi  = (string) ($req->getGet('filter_prodi')  ?? '');
+        $filterFrom   = (string) ($req->getGet('filter_from')   ?? '');
+        $filterUntil  = (string) ($req->getGet('filter_until')  ?? '');
+
+        $isManager = $this->canManageAll();
+
+        $db = db_connect();
+
+        $qb = $db->table('lab_clearance_requests c')
+            ->select('c.request_code, c.prodi, c.status, c.submitted_at, c.verified_at,
+                      c.letter_number, c.letter_issued_at,
+                      u.username AS requester_name,
+                      l.name AS lab_name,
+                      v.username AS verified_by_name')
+            ->join('users u', 'u.id = c.requester_id', 'left')
+            ->join('labs l', 'l.id = c.lab_id', 'left')
+            ->join('users v', 'v.id = c.verified_by', 'left');
+
+        if (! $isManager) {
+            $qb->where('c.requester_id', auth()->id());
+        }
+        if ($filterStatus !== '' && in_array($filterStatus, [self::STATUS_SUBMITTED, self::STATUS_APPROVED, self::STATUS_REJECTED, self::STATUS_CANCELED], true)) {
+            $qb->where('c.status', $filterStatus);
+        }
+        if ($filterProdi !== '') {
+            $qb->where('c.prodi', $filterProdi);
+        }
+        if ($filterFrom !== '') {
+            $qb->where('DATE(c.submitted_at) >=', $filterFrom);
+        }
+        if ($filterUntil !== '') {
+            $qb->where('DATE(c.submitted_at) <=', $filterUntil);
+        }
+
+        $rows = $qb->orderBy('c.submitted_at', 'DESC')->get()->getResultArray();
+
+        $statusLabels = [
+            self::STATUS_SUBMITTED => 'Diajukan',
+            self::STATUS_APPROVED  => 'Terbit',
+            self::STATUS_REJECTED  => 'Ditolak',
+            self::STATUS_CANCELED  => 'Dibatalkan',
+        ];
+
+        $headers = ['No', 'Kode', 'Pemohon', 'Prodi', 'Lab', 'Status', 'Diajukan', 'Diverifikasi', 'Diverifikasi Oleh', 'Nomor Surat'];
+        if (! $isManager) {
+            // Sembunyikan kolom pemohon & verifikator untuk non-manager
+            $headers = ['No', 'Kode', 'Prodi', 'Lab', 'Status', 'Diajukan', 'Diverifikasi', 'Nomor Surat'];
+        }
+
+        $sheetXml  = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        $sheetXml .= '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"';
+        $sheetXml .= ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">' . "\n";
+        $sheetXml .= '<Worksheet ss:Name="Surat Bebas Lab"><Table>' . "\n";
+
+        $sheetXml .= '<Row>';
+        foreach ($headers as $h) {
+            $sheetXml .= '<Cell><Data ss:Type="String">' . htmlspecialchars($h, ENT_XML1, 'UTF-8') . '</Data></Cell>';
+        }
+        $sheetXml .= '</Row>' . "\n";
+
+        foreach ($rows as $no => $row) {
+            $status    = $row['status'] ?? '';
+            $submitted = $row['submitted_at'] ? date('Y-m-d H:i', strtotime($row['submitted_at'])) : '';
+            $verified  = $row['verified_at']  ? date('Y-m-d H:i', strtotime($row['verified_at']))  : '';
+
+            if ($isManager) {
+                $cells = [
+                    $no + 1,
+                    $row['request_code']     ?? '',
+                    $row['requester_name']   ?? '',
+                    $row['prodi']            ?? '',
+                    $row['lab_name']         ?? 'Semua Lab',
+                    $statusLabels[$status]   ?? $status,
+                    $submitted,
+                    $verified,
+                    $row['verified_by_name'] ?? '',
+                    $row['letter_number']    ?? '',
+                ];
+            } else {
+                $cells = [
+                    $no + 1,
+                    $row['request_code']   ?? '',
+                    $row['prodi']          ?? '',
+                    $row['lab_name']       ?? 'Semua Lab',
+                    $statusLabels[$status] ?? $status,
+                    $submitted,
+                    $verified,
+                    $row['letter_number']  ?? '',
+                ];
+            }
+
+            $sheetXml .= '<Row>';
+            foreach ($cells as $cell) {
+                $t = is_numeric($cell) ? 'Number' : 'String';
+                $sheetXml .= '<Cell><Data ss:Type="' . $t . '">' . htmlspecialchars((string) $cell, ENT_XML1, 'UTF-8') . '</Data></Cell>';
+            }
+            $sheetXml .= '</Row>' . "\n";
+        }
+
+        $sheetXml .= '</Table></Worksheet></Workbook>';
+
+        $filename = 'surat-bebas-lab-' . date('Ymd-His');
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/vnd.ms-excel; charset=UTF-8')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '.xls"')
+            ->setHeader('Cache-Control', 'no-store, no-cache')
+            ->setBody($sheetXml);
+    }
+
     public function create()
     {
         if (! activeGroupIs('mahasiswa')) {
