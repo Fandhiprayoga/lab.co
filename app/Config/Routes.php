@@ -40,6 +40,17 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
     // Menu Search (navbar)
     $routes->get('menu-search', 'MenuSearchController::search');
 
+    // Notifications
+    $routes->group('notifications', static function ($routes) {
+        $routes->get('/', 'NotificationController::index');
+        $routes->get('list', 'NotificationController::listAjax');
+        $routes->get('unread-count', 'NotificationController::unreadCount');
+        $routes->get('recent', 'NotificationController::recent');
+        $routes->post('(:num)/read', 'NotificationController::markRead/$1');
+        $routes->post('read-all', 'NotificationController::markAllRead');
+        $routes->delete('(:num)', 'NotificationController::destroy/$1');
+    });
+
     // Visitor Log
     $routes->get('admin/visits', 'LabVisitController::index', ['filter' => 'permission:visits.list']);
     $routes->get('admin/visits/datatable', 'LabVisitController::datatable', ['filter' => 'permission:visits.list']);

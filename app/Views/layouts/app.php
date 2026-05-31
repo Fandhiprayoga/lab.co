@@ -167,6 +167,51 @@
   <script src="<?= base_url('assets/js/scripts.js') ?>"></script>
   <script src="<?= base_url('assets/js/custom.js') ?>"></script>
 
+  <!-- Notification Badge Polling -->
+  <script>
+  (function () {
+    var navBadge     = document.getElementById('notif-badge');
+    var sidebarBadge = document.getElementById('sidebar-notif-badge');
+    var baseUrl      = '<?= base_url() ?>';
+
+    if (!navBadge && !sidebarBadge) return;
+
+    function fetchCount() {
+      fetch(baseUrl + 'notifications/unread-count', {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var count = parseInt(data.count, 10) || 0;
+          var label = count > 99 ? '99+' : (count > 0 ? count : '0');
+
+          if (navBadge) {
+            if (count > 0) {
+              navBadge.textContent = label;
+              navBadge.classList.remove('d-none');
+            } else {
+              navBadge.classList.add('d-none');
+              navBadge.textContent = '0';
+            }
+          }
+
+          if (sidebarBadge) {
+            if (count > 0) {
+              sidebarBadge.textContent = label;
+              sidebarBadge.classList.remove('d-none');
+            } else {
+              sidebarBadge.classList.add('d-none');
+            }
+          }
+        })
+        .catch(function () {}); // silent fail — jangan ganggu UX
+    }
+
+    fetchCount();
+    setInterval(fetchCount, 30000); // polling setiap 30 detik
+  })();
+  </script>
+
   <!-- Page Specific JS File -->
   <?= $this->renderSection('page_js') ?>
 </body>
