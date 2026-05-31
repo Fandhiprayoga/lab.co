@@ -1,7 +1,7 @@
 <?= $this->extend('layouts/public') ?>
 
 <?= $this->section('content') ?>
-<div class="min-h-screen bg-gray-50 flex items-center justify-center py-10 px-4">
+<div class="min-h-screen bg-gray-50 flex items-center justify-center pt-32 pb-20 lg:pt-48 lg:pb-32 px-4">
   <div class="w-full max-w-sm text-center">
     <div class="bg-white rounded-2xl shadow p-8">
       <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">

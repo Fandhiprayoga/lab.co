@@ -22,7 +22,7 @@ if ($checkinTime) {
 }
 ?>
 
-<div class="min-h-screen bg-gray-50 flex items-center justify-center py-10 px-4">
+<div class="min-h-screen bg-gray-50 flex items-center justify-center pt-32 pb-20 lg:pt-48 lg:pb-32 px-4">
   <div class="w-full max-w-md">
     <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
 

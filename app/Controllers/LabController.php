@@ -717,6 +717,7 @@ class LabController extends BaseController
                     'lab'    => $lab,
                     'errors' => $this->validator->getErrors(),
                     'old'    => $this->request->getPost(),
+                    'token'  => $token,
                 ]);
             }
 
@@ -756,10 +757,23 @@ class LabController extends BaseController
             session()->remove($sessionKey);
         }
 
+        // Jika user sudah login, isi data default dari user
+        $defaultData = [];
+        if (auth()->loggedIn()) {
+            $user = auth()->user();
+            $profileModel = new \App\Models\UserProfileModel();
+            $profile = $profileModel->getByUserId($user->id);
+            
+            $defaultData = [
+                'visitor_name' => $user->username ?? '',
+                'visitor_institution' => $profile['prodi'] ?? '',
+            ];
+        }
+
         return view('visits/checkin', [
             'lab'    => $lab,
             'errors' => [],
-            'old'    => [],
+            'old'    => $defaultData,
             'token'  => $token,
         ]);
     }

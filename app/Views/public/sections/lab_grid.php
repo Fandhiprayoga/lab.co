@@ -21,7 +21,7 @@ $labDisplayMeta = [
     ['icon' => 'ph-video-camera', 'icon_bg' => 'bg-cyan-50 text-cyan-600'],
 ];
 ?>
-<section id="laboratorium" class="py-24 bg-gray-50 overflow-hidden">
+<section id="laboratorium" class="pt-32 pb-20 lg:pt-48 lg:pb-32 bg-gray-50 overflow-hidden">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center max-w-3xl mx-auto mb-16">
             <h2 class="text-brand-600 font-semibold tracking-wide uppercase text-sm mb-3">Daftar Laboratorium</h2>
