@@ -172,6 +172,97 @@ class LabVisitController extends BaseController
     }
 
     /**
+     * Export data kunjungan → Excel (SpreadsheetML).
+     * GET admin/visits/export
+     */
+    public function exportVisits()
+    {
+        if (! activeGroupCan('visits.list')) {
+            return redirect()->to('/admin/visits')->with('error', 'Akses ditolak.');
+        }
+
+        $req          = $this->request;
+        $filterLabId  = (int)    ($req->getGet('filter_lab_id')    ?? 0);
+        $filterFrom   = (string) ($req->getGet('filter_date_from') ?? '');
+        $filterUntil  = (string) ($req->getGet('filter_date_to')   ?? '');
+        $filterStatus = (string) ($req->getGet('filter_status')    ?? '');
+
+        $db = db_connect();
+
+        $qb = $db->table('lab_visits lv')
+            ->select('lv.*, l.name AS lab_name, l.code AS lab_code')
+            ->join('labs l', 'l.id = lv.lab_id', 'left');
+
+        if ($filterLabId > 0)              { $qb->where('lv.lab_id', $filterLabId); }
+        if ($filterFrom !== '')            { $qb->where('DATE(lv.checked_in_at) >=', $filterFrom); }
+        if ($filterUntil !== '')           { $qb->where('DATE(lv.checked_in_at) <=', $filterUntil); }
+        if ($filterStatus === 'checkedin') { $qb->where('lv.checked_out_at IS NULL'); }
+        if ($filterStatus === 'checkedout'){ $qb->where('lv.checked_out_at IS NOT NULL'); }
+
+        $rows          = $qb->orderBy('lv.checked_in_at', 'DESC')->get()->getResultArray();
+        $purposeLabels = $this->visitModel->purposeLabels;
+
+        $headers = ['No', 'Nama Pengunjung', 'Instansi / Kelas', 'Lab', 'Keperluan', 'Catatan', 'Waktu Masuk', 'Waktu Keluar', 'Durasi', 'Status'];
+
+        $sheetXml  = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        $sheetXml .= '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"';
+        $sheetXml .= ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">' . "\n";
+        $sheetXml .= '<Worksheet ss:Name="Buku Kunjungan"><Table>' . "\n";
+
+        $sheetXml .= '<Row>';
+        foreach ($headers as $h) {
+            $sheetXml .= '<Cell><Data ss:Type="String">' . htmlspecialchars($h, ENT_XML1, 'UTF-8') . '</Data></Cell>';
+        }
+        $sheetXml .= '</Row>' . "\n";
+
+        foreach ($rows as $no => $row) {
+            $isIn = empty($row['checked_out_at']);
+
+            if ($isIn) {
+                $dur = '—';
+            } else {
+                $s   = strtotime($row['checked_out_at']) - strtotime($row['checked_in_at']);
+                $h   = floor($s / 3600);
+                $m   = floor(($s % 3600) / 60);
+                $dur = ($h > 0 ? "{$h}j " : '') . "{$m}m";
+            }
+
+            $labLabel = ($row['lab_name'] ?? '—')
+                . (! empty($row['lab_code']) ? ' (' . $row['lab_code'] . ')' : '');
+
+            $cells = [
+                $no + 1,
+                $row['visitor_name']        ?? '',
+                $row['visitor_institution'] ?? '',
+                $labLabel,
+                $purposeLabels[$row['purpose']] ?? ($row['purpose'] ?? ''),
+                $row['purpose_note']        ?? '',
+                $row['checked_in_at']       ?? '',
+                $row['checked_out_at']      ?? '',
+                $dur,
+                $isIn ? 'Di Dalam' : 'Selesai',
+            ];
+
+            $sheetXml .= '<Row>';
+            foreach ($cells as $cell) {
+                $t = is_numeric($cell) ? 'Number' : 'String';
+                $sheetXml .= '<Cell><Data ss:Type="' . $t . '">' . htmlspecialchars((string) $cell, ENT_XML1, 'UTF-8') . '</Data></Cell>';
+            }
+            $sheetXml .= '</Row>' . "\n";
+        }
+
+        $sheetXml .= '</Table></Worksheet></Workbook>';
+
+        $filename = 'buku-kunjungan-' . date('Ymd-His');
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/vnd.ms-excel; charset=UTF-8')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '.xls"')
+            ->setHeader('Cache-Control', 'no-store, no-cache')
+            ->setBody($sheetXml);
+    }
+
+    /**
      * Force checkout: isi checked_out_at = now() untuk kunjungan yang belum checkout.
      * POST admin/visits/(:num)/force-checkout
      */

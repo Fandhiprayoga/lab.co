@@ -112,10 +112,24 @@
 <div class="card">
   <div class="card-header d-flex align-items-center justify-content-between">
     <h4>Daftar Kunjungan</h4>
-    <div class="card-header-action">
+    <div class="card-header-action d-flex" style="gap:.5rem;">
       <button type="button" id="open-visit-filter-drawer" class="btn btn-outline-secondary">
         <i class="fas fa-filter"></i> Filter
       </button>
+      <div class="dropdown">
+        <button class="btn btn-success dropdown-toggle" type="button" id="visit-export-dropdown"
+                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          <i class="fas fa-file-excel mr-1"></i> Export Excel
+        </button>
+        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="visit-export-dropdown">
+          <a class="dropdown-item" id="visit-export-all" href="#">
+            <i class="fas fa-table mr-2"></i> Semua Data
+          </a>
+          <a class="dropdown-item" id="visit-export-filtered" href="#">
+            <i class="fas fa-filter mr-2"></i> Sesuai Filter Aktif
+          </a>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -352,6 +366,35 @@ $(function () {
         btn.prop('disabled', false).html('<i class="fas fa-sign-out-alt mr-1"></i>Checkout');
       }
     });
+  });
+
+  /* ── Export ──────────────────────────────── */
+  var exportBaseUrl = '<?= base_url('admin/visits/export') ?>';
+
+  function buildVisitExportUrl(withFilters) {
+    var params = {};
+    if (withFilters) {
+      var lab    = $('#filter-visit-lab').val();
+      var from   = $('#filter-visit-date-from').val();
+      var until  = $('#filter-visit-date-to').val();
+      var status = $('#filter-visit-status').val();
+      if (lab)    { params.filter_lab_id    = lab; }
+      if (from)   { params.filter_date_from = from; }
+      if (until)  { params.filter_date_to   = until; }
+      if (status) { params.filter_status    = status; }
+    }
+    var qs = $.param(params);
+    return exportBaseUrl + (qs ? '?' + qs : '');
+  }
+
+  $('#visit-export-all').on('click', function (e) {
+    e.preventDefault();
+    window.location.href = buildVisitExportUrl(false);
+  });
+
+  $('#visit-export-filtered').on('click', function (e) {
+    e.preventDefault();
+    window.location.href = buildVisitExportUrl(true);
   });
 });
 </script>
