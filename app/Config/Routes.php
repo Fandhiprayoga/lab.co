@@ -170,6 +170,14 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
             $routes->post('assign', 'KepalaLabController::assign');
         });
 
+        // Penetapan PIC Laboran per lab (kepala_lab & superadmin)
+        $routes->group('lab-pic', ['filter' => 'permission:lending.master.labs.assign-pic'], static function ($routes) {
+            $routes->get('/', 'LabPicController::index');
+            $routes->get('(:num)', 'LabPicController::show/$1');
+            $routes->post('(:num)/assign', 'LabPicController::assign/$1');
+            $routes->post('(:num)/unassign', 'LabPicController::unassign/$1');
+        });
+
         // Settings
         $routes->group('settings', ['filter' => 'permission:admin.settings'], static function ($routes) {
             $routes->get('/', 'SettingController::index');

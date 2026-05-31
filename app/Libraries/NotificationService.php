@@ -140,6 +140,12 @@ class NotificationService
             'icon'    => 'fas fa-user-tie',
             'color'   => 'success',
         ],
+        'lab.pic_assigned' => [
+            'title'   => 'Anda Ditetapkan sebagai PIC Lab',
+            'message' => 'Anda ditetapkan sebagai PIC Laboran penanggung jawab lab {lab_name}.',
+            'icon'    => 'fas fa-user-cog',
+            'color'   => 'info',
+        ],
     ];
 
     protected NotificationModel $model;

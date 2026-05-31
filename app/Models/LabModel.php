@@ -25,5 +25,6 @@ class LabModel extends Model
         'is_active',
         'is_loanable',
         'condition_status',
+        'pic_user_id',
     ];
 }

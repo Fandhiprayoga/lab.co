@@ -153,6 +153,13 @@ function isDropdownActive(array $paths): string {
       </li>
       <?php endif; ?>
 
+      <!-- Penetapan PIC Laboran per lab (kepala_lab & superadmin) -->
+      <?php if (activeGroupCan('lending.master.labs.assign-pic')): ?>
+      <li class="<?= isMenuActive('admin/lab-pic') ?>">
+        <a class="nav-link" href="<?= base_url('admin/lab-pic') ?>"><i class="fas fa-user-cog"></i> <span>PIC Laboran</span></a>
+      </li>
+      <?php endif; ?>
+
       <!-- Settings -->
       <?php if (activeGroupCan('admin.settings')): ?>
       <li class="<?= isMenuActive('admin/settings') ?>">
