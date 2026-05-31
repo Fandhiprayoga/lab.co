@@ -1,5 +1,7 @@
 <?php
 $proposals = $proposals ?? [];
+$activeTab = $activeTab ?? 'active';
+$tabCounts = $tabCounts ?? ['active' => 0, 'archive' => 0];
 
 $statusMap = [
     'draft'      => ['label' => 'Draft',            'tone' => 'neutral',  'icon' => 'fa-file-alt'],
@@ -156,6 +158,58 @@ foreach ($proposals as $p) {
     letter-spacing: 0.05em;
     margin: 0;
     text-transform: uppercase;
+  }
+  .loan-index-page .request-tabs {
+    align-items: center;
+    border-bottom: 1px solid #eef2f7;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    padding: .75rem 1rem;
+  }
+  .loan-index-page .request-tab {
+    align-items: center;
+    background: #f8fafc;
+    border: 1px solid #d7e1ef;
+    border-radius: 999px;
+    color: #344054;
+    display: inline-flex;
+    font-size: .78rem;
+    font-weight: 700;
+    gap: .4rem;
+    padding: .42rem .78rem;
+    text-decoration: none;
+    transition: all .15s ease;
+  }
+  .loan-index-page .request-tab:hover {
+    background: #f0f6ff;
+    border-color: #c5d8f8;
+    color: #1d4f91;
+    text-decoration: none;
+  }
+  .loan-index-page .request-tab.active {
+    background: #1f6feb;
+    border-color: #1f6feb;
+    box-shadow: 0 8px 18px rgba(31, 111, 235, 0.2);
+    color: #1d4f91;
+    color: #ffffff;
+  }
+  .loan-index-page .request-tab-count {
+    background: #ffffff;
+    border: 1px solid #c9d8f5;
+    border-radius: 999px;
+    color: #1d4f91;
+    display: inline-flex;
+    font-size: .7rem;
+    font-weight: 800;
+    line-height: 1;
+    min-width: 1.55rem;
+    padding: .22rem .42rem;
+  }
+  .loan-index-page .request-tab.active .request-tab-count {
+    background: rgba(255, 255, 255, .18);
+    border-color: rgba(255, 255, 255, .32);
+    color: #ffffff;
   }
   .loan-index-page #filter-chips-bar {
     border-bottom: 1px solid #eef2f7;
@@ -405,6 +459,17 @@ foreach ($proposals as $p) {
   </div>
 
   <section class="table-shell">
+    <div class="request-tabs">
+      <a href="<?= base_url('loans?tab=active') ?>" class="request-tab <?= $activeTab === 'active' ? 'active' : '' ?>">
+        <i class="fas fa-clock"></i>Permohonan Aktif
+        <span class="request-tab-count"><?= (int) ($tabCounts['active'] ?? 0) ?></span>
+      </a>
+      <a href="<?= base_url('loans?tab=archive') ?>" class="request-tab <?= $activeTab === 'archive' ? 'active' : '' ?>">
+        <i class="fas fa-archive"></i>Archive
+        <span class="request-tab-count"><?= (int) ($tabCounts['archive'] ?? 0) ?></span>
+      </a>
+    </div>
+
     <div class="table-head">
       <h5>Daftar Proposal</h5>
       <div class="d-flex align-items-center" style="gap:.5rem">
@@ -428,8 +493,12 @@ foreach ($proposals as $p) {
     <?php if (empty($proposals)): ?>
       <div class="empty-box">
         <div class="mb-2" style="font-size:2rem;color:#c2cbd8;"><i class="fas fa-clipboard-list"></i></div>
-        <h5 class="mb-1" style="font-weight:800;">Belum Ada Proposal</h5>
-        <p class="text-muted mb-0">Belum ada proposal peminjaman yang tersedia.</p>
+        <h5 class="mb-1" style="font-weight:800;"><?= $activeTab === 'archive' ? 'Archive Kosong' : 'Belum Ada Permohonan Aktif' ?></h5>
+        <p class="text-muted mb-0">
+          <?= $activeTab === 'archive'
+            ? 'Belum ada proposal dengan status dibatalkan, ditolak, atau selesai.'
+            : 'Belum ada proposal aktif. Proposal dengan status dibatalkan, ditolak, dan selesai muncul di tab Archive.' ?>
+        </p>
         <?php if (activeGroupCan('lending.request.create')): ?>
         <a href="<?= base_url('loans/create') ?>" class="btn btn-primary btn-modern btn-action mt-3">
           <i class="fas fa-plus mr-1"></i>Buat Proposal Pertama
@@ -504,6 +573,21 @@ foreach ($proposals as $p) {
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
+  var activeTabKey = '<?= esc($activeTab) ?>';
+
+  function syncTabInUrl() {
+    try {
+      var url = new URL(window.location.href);
+      url.searchParams.set('tab', activeTabKey || 'active');
+      window.history.replaceState({}, '', url.toString());
+    } catch (e) {
+      // Ignore URL API edge cases.
+    }
+  }
+
+  // Ensure tab query param is always present so refresh keeps the same context.
+  syncTabInUrl();
+
     // ── Portal drawer & overlay to <body> so position:fixed is viewport-relative
     //    (avoids being trapped inside Stisla's transform containers)
     document.body.appendChild(document.getElementById('filter-overlay'));
@@ -552,6 +636,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
             return true;
         });
+
+          var dtSearchInput = document.querySelector('#table-proposals_filter input[type="search"]');
+          if (dtSearchInput) {
+            dtSearchInput.addEventListener('input', syncTabInUrl);
+          }
     }
 
     // ── Status label map for chips ───────────────────────────
@@ -607,6 +696,7 @@ document.addEventListener('DOMContentLoaded', function () {
         dateTo         = document.getElementById('filter-date-to').value;
         closeFilterDrawer();
         renderChips();
+        syncTabInUrl();
         if (table) table.draw();
     };
 
@@ -620,6 +710,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('filter-date-to').value   = '';
         closeFilterDrawer();
         renderChips();
+        syncTabInUrl();
         if (table) table.draw();
     };
 
@@ -637,6 +728,7 @@ document.addEventListener('DOMContentLoaded', function () {
             chips.appendChild(makeChip(typeLabels[v] || v, function () {
                 activeTypes = activeTypes.filter(function (x) { return x !== v; });
                 renderChips();
+              syncTabInUrl();
                 if (table) table.draw();
             }));
         });
@@ -646,6 +738,7 @@ document.addEventListener('DOMContentLoaded', function () {
             chips.appendChild(makeChip(statusLabels[v] || v, function () {
                 activeStatuses = activeStatuses.filter(function (x) { return x !== v; });
                 renderChips();
+              syncTabInUrl();
                 if (table) table.draw();
             }));
         });
@@ -659,6 +752,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('filter-date-from').value = '';
                 document.getElementById('filter-date-to').value   = '';
                 renderChips();
+              syncTabInUrl();
                 if (table) table.draw();
             }));
         }

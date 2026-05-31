@@ -46,6 +46,17 @@ class LoanProposalController extends BaseController
     {
         $this->syncLateStatuses();
 
+        $tab = strtolower((string) $this->request->getGet('tab'));
+        if (! in_array($tab, ['active', 'archive'], true)) {
+            $tab = 'active';
+        }
+
+        $archiveStatuses = [
+            self::STATUS_CANCELED,
+            self::STATUS_REJECTED,
+            self::STATUS_COMPLETED,
+        ];
+
         $builder = db_connect()->table('loan_proposals p')
             ->select('p.*, u.username AS proposer_name, COUNT(i.id) AS total_items')
             ->join('users u', 'u.id = p.proposer_id', 'left')
@@ -57,12 +68,38 @@ class LoanProposalController extends BaseController
             $builder->where('p.proposer_id', auth()->id());
         }
 
-        $proposals = $builder->get()->getResultArray();
+        $allProposals = $builder->get()->getResultArray();
+
+        $activeCount = 0;
+        $archiveCount = 0;
+        foreach ($allProposals as $proposal) {
+            if (in_array((string) ($proposal['status'] ?? ''), $archiveStatuses, true)) {
+                $archiveCount++;
+            } else {
+                $activeCount++;
+            }
+        }
+
+        $proposals = array_values(array_filter($allProposals, static function (array $proposal) use ($tab, $archiveStatuses): bool {
+            $status = (string) ($proposal['status'] ?? '');
+            $isArchive = in_array($status, $archiveStatuses, true);
+
+            if ($tab === 'archive') {
+                return $isArchive;
+            }
+
+            return ! $isArchive;
+        }));
 
         return $this->renderView('loans/index', [
             'title'      => 'Peminjaman Lab',
             'page_title' => 'Daftar Proposal Peminjaman',
             'proposals'  => $proposals,
+            'activeTab'  => $tab,
+            'tabCounts'  => [
+                'active'  => $activeCount,
+                'archive' => $archiveCount,
+            ],
         ]);
     }
 
