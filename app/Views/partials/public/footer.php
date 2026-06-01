@@ -1,13 +1,15 @@
 <?php
 $appName = $appName ?? setting('App.siteName') ?? 'LabCorner';
+$siteLogo = setting('App.siteLogo');
+$siteLogoUrl = ! empty($siteLogo) ? base_url($siteLogo) : base_url('assets/img/stisla-fill.svg');
 ?>
 <footer id="kontak" class="bg-white border-t border-gray-200 pt-16 pb-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
             <div class="col-span-1 md:col-span-2">
                 <div class="flex items-center gap-2 mb-4">
-                    <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center text-white shadow-md">
-                        <i class="ph ph-flask text-xl"></i>
+                    <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-md border border-gray-100 overflow-hidden">
+                        <img src="<?= esc($siteLogoUrl) ?>" alt="Logo <?= esc($appName) ?>" class="w-full h-full object-contain">
                     </div>
                     <span class="font-bold text-xl text-gray-900"><?= esc($appName) ?>.</span>
                 </div>

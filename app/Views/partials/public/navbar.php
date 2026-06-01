@@ -1,6 +1,8 @@
 <?php
 $appName = $appName ?? setting('App.siteName') ?? 'LabCorner';
 $appNameShort = $appNameShort ?? setting('App.siteNameShort') ?? $appName;
+$siteLogo = setting('App.siteLogo');
+$siteLogoUrl = ! empty($siteLogo) ? base_url($siteLogo) : base_url('assets/img/stisla-fill.svg');
 $isLandingPage = uri_string() === '';
 $labMenuUrl = $isLandingPage ? '#laboratorium' : site_url('laboratorium');
 ?>
@@ -8,8 +10,8 @@ $labMenuUrl = $isLandingPage ? '#laboratorium' : site_url('laboratorium');
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center h-20">
             <a href="<?= site_url('/') ?>" class="flex-shrink-0 flex items-center gap-2 cursor-pointer">
-                <div class="w-10 h-10 bg-brand-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand-500/30">
-                    <i class="ph ph-flask text-2xl"></i>
+                <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20 border border-brand-100 overflow-hidden">
+                    <img src="<?= esc($siteLogoUrl) ?>" alt="Logo <?= esc($appName) ?>" class="w-full h-full object-contain">
                 </div>
                 <span class="font-bold text-2xl tracking-tight text-gray-900"><?= esc($appName) ?><span class="text-brand-500">.</span></span>
             </a>
