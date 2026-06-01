@@ -210,8 +210,9 @@ class LoanProposalController extends BaseController
         $proposalId = (int) ($proposal['id'] ?? 0);
 
         $items = db_connect()->table('loan_proposal_items i')
-            ->select('i.*, a.name AS equipment_name, l.name AS lab_name')
+            ->select('i.*, a.name AS equipment_name, a.photo AS equipment_photo, a.category AS equipment_category, al.name AS equipment_lab_name, al.location AS equipment_lab_location, l.name AS lab_name, l.code AS lab_code, l.location AS lab_location, l.capacity AS lab_capacity, l.logo AS lab_logo')
             ->join('lab_assets a', 'a.id = i.equipment_id', 'left')
+            ->join('labs al', 'al.id = a.lab_id', 'left')
             ->join('labs l', 'l.id = i.lab_id', 'left')
             ->where('i.proposal_id', $proposalId)
             ->orderBy('i.id', 'ASC')
@@ -1109,8 +1110,10 @@ class LoanProposalController extends BaseController
     private function findProposalByPublicId(string $publicId): ?array
     {
         return db_connect()->table('loan_proposals p')
-            ->select('p.*, u.username AS proposer_name')
+            ->select('p.*, u.username AS proposer_name, ai.secret AS proposer_email, up.nim_nik AS proposer_nim_nik, up.phone AS proposer_phone, up.prodi AS proposer_prodi')
             ->join('users u', 'u.id = p.proposer_id', 'left')
+            ->join('auth_identities ai', "ai.user_id = u.id AND ai.type = 'email_password'", 'left')
+            ->join('user_profiles up', 'up.user_id = u.id', 'left')
             ->where('p.public_id', $publicId)
             ->get()->getRowArray();
     }

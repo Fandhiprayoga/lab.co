@@ -28,6 +28,7 @@ $statusMap = [
     'canceled'   => ['label' => 'Dibatalkan',       'tone' => 'dark',     'icon' => 'fa-ban'],
 ];
 $statusInfo = $statusMap[$proposalStatus] ?? ['label' => $proposalStatus, 'tone' => 'neutral', 'icon' => 'fa-question'];
+$itemCount = count($items);
 
 // Build timeline from proposal fields
 $timeline = [];
@@ -351,6 +352,49 @@ $fmtD  = fn(?string $dt) => $dt ? date('d M Y', strtotime($dt)) : '-';
   .loan-show-page .focus-panel.is-visible {
     display: block;
   }
+  .loan-show-page .selected-grid {
+    margin: 0 -.35rem;
+  }
+  .loan-show-page .selected-item {
+    padding: 0 .35rem;
+    margin-bottom: .7rem;
+  }
+  .loan-show-page .selected-media {
+    position: relative;
+    height: 128px;
+    overflow: hidden;
+    border-radius: 4px 4px 0 0;
+    background: linear-gradient(135deg, rgba(79,195,247,.15), rgba(2,136,209,.1));
+  }
+  .loan-show-page .selected-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .loan-show-page .selected-media .fallback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    font-size: 1.4rem;
+  }
+  .loan-show-page .selected-name {
+    font-size: .86rem;
+    font-weight: 700;
+    line-height: 1.35;
+    margin-bottom: .22rem;
+  }
+  .loan-show-page .catalog-card {
+    transition: box-shadow .15s, transform .15s;
+    border: 1px solid #e7ebf2;
+  }
+  .loan-show-page .catalog-card:hover {
+    box-shadow: 0 8px 22px rgba(0,0,0,.1) !important;
+    transform: translateY(-2px);
+  }
   .loan-show-page .item-row {
     align-items: center;
     border-bottom: 1px dashed #e7ebf2;
@@ -475,6 +519,58 @@ $fmtD  = fn(?string $dt) => $dt ? date('d M Y', strtotime($dt)) : '-';
     font-size: 0.79rem;
     font-weight: 700;
   }
+  .loan-show-page .action-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .loan-show-page .action-list form {
+    margin: 0;
+  }
+  .loan-show-page .action-list-btn {
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #d9e2f1;
+    border-radius: 10px;
+    color: #344054;
+    display: flex;
+    font-size: 0.8rem;
+    font-weight: 700;
+    gap: 0.6rem;
+    justify-content: flex-start;
+    padding: 0.58rem 0.72rem;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    width: 100%;
+  }
+  .loan-show-page .action-list-btn:hover {
+    text-decoration: none;
+    transform: translateY(-1px);
+  }
+  .loan-show-page .action-list-btn i {
+    width: 16px;
+    text-align: center;
+  }
+  .loan-show-page .action-list-btn.approve {
+    border-color: #ccebd8;
+    color: #1f7a3d;
+    background: #f3fcf6;
+  }
+  .loan-show-page .action-list-btn.reject {
+    border-color: #f3c9c9;
+    color: #b42318;
+    background: #fff5f5;
+  }
+  .loan-show-page .action-list-btn.cancel {
+    border-color: #ffe3a5;
+    color: #8a6a13;
+    background: #fff9e8;
+  }
+  .loan-show-page .action-list-btn.back {
+    border-color: #d9e2f1;
+    color: #344054;
+    background: #f8fafc;
+  }
   .loan-show-page .btn-action {
     border-radius: 10px;
     font-size: 0.79rem;
@@ -502,6 +598,52 @@ $fmtD  = fn(?string $dt) => $dt ? date('d M Y', strtotime($dt)) : '-';
     margin-bottom: 0.8rem;
     padding: 0.65rem 0.75rem;
   }
+  .loan-show-page .action-overview-grid {
+    display: grid;
+    gap: 0.65rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .loan-show-page .action-overview-card {
+    background: var(--surface-soft);
+    border: 1px solid #edf2f7;
+    border-radius: 12px;
+    padding: 0.75rem 0.8rem;
+  }
+  .loan-show-page .action-overview-label {
+    color: var(--ink-soft);
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.2rem;
+    text-transform: uppercase;
+  }
+  .loan-show-page .action-overview-value {
+    color: var(--ink);
+    font-size: 0.88rem;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+  .loan-show-page .action-checklist {
+    margin: 0;
+    padding-left: 1rem;
+  }
+  .loan-show-page .action-checklist li {
+    color: #556073;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    margin-bottom: 0.3rem;
+  }
+  .loan-show-page .action-checklist li:last-child {
+    margin-bottom: 0;
+  }
+  .loan-show-page .action-note {
+    background: #f8fbff;
+    border: 1px solid #e4eefb;
+    border-radius: 12px;
+    color: #38516e;
+    font-size: 0.8rem;
+    margin-top: 0.85rem;
+    padding: 0.7rem 0.8rem;
+  }
   @media (max-width: 991.98px) {
     .loan-show-page .action-col {
       position: static;
@@ -512,6 +654,9 @@ $fmtD  = fn(?string $dt) => $dt ? date('d M Y', strtotime($dt)) : '-';
     }
     .loan-show-page .focus-tabs {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .loan-show-page .action-overview-grid {
+      grid-template-columns: 1fr;
     }
   }
   @media (max-width: 575.98px) {
@@ -564,12 +709,44 @@ $fmtD  = fn(?string $dt) => $dt ? date('d M Y', strtotime($dt)) : '-';
         <div class="card-body-modern">
           <div class="meta-grid">
             <div class="meta-item">
+              <div class="meta-label">Kode Proposal</div>
+              <div class="meta-value"><?= esc($proposal['proposal_code'] ?? '-') ?></div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-label">Judul Proposal</div>
+              <div class="meta-value"><?= esc($proposal['title'] ?? '-') ?></div>
+            </div>
+            <div class="meta-item">
               <div class="meta-label">Tipe Peminjaman</div>
               <div class="meta-value"><i class="fas <?= $typeIcon ?> mr-1"></i><?= esc($typeLabel) ?></div>
             </div>
             <div class="meta-item">
               <div class="meta-label">Status Saat Ini</div>
               <div class="meta-value"><?= esc($statusInfo['label']) ?></div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-label">Waktu Pengajuan</div>
+              <div class="meta-value"><?= $fmtDt($proposal['submitted_at'] ?? ($proposal['created_at'] ?? null)) ?></div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-label">Nama Pengusul</div>
+              <div class="meta-value"><?= esc($proposal['proposer_name'] ?? '-') ?></div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-label">NIM</div>
+              <div class="meta-value"><?= esc($proposal['proposer_nim_nik'] ?? '-') ?></div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-label">Email Pengusul</div>
+              <div class="meta-value"><?= esc($proposal['proposer_email'] ?? '-') ?></div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-label">Nomor Telp</div>
+              <div class="meta-value"><?= esc($proposal['proposer_phone'] ?? '-') ?></div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-label">Program Studi</div>
+              <div class="meta-value"><?= esc($proposal['proposer_prodi'] ?? '-') ?></div>
             </div>
             <div class="meta-item">
               <div class="meta-label">Waktu Mulai</div>
@@ -581,6 +758,7 @@ $fmtD  = fn(?string $dt) => $dt ? date('d M Y', strtotime($dt)) : '-';
             </div>
           </div>
           <div class="objective-box">
+            <div class="meta-label mb-1" style="font-size:.68rem;">Tujuan Proposal</div>
             <?= nl2br(esc($proposal['objective'] ?? '-')) ?>
           </div>
         </div>
@@ -598,22 +776,84 @@ $fmtD  = fn(?string $dt) => $dt ? date('d M Y', strtotime($dt)) : '-';
               Tidak ada item dalam proposal ini.
             </div>
           <?php else: ?>
-            <?php foreach ($items as $idx => $item): ?>
-              <div class="item-row">
-                <span class="item-index"><?= $idx + 1 ?></span>
-                <div class="flex-grow-1">
-                  <div class="item-name"><?= esc($isEquipment ? ($item['equipment_name'] ?? '-') : ($item['lab_name'] ?? '-')) ?></div>
-                  <div class="item-note">
-                    <?php if ($isEquipment): ?>
-                      Qty: <?= (int) ($item['qty'] ?? 0) ?>
+            <div class="row selected-grid">
+              <?php foreach ($items as $item): ?>
+              <?php
+                $itemName = $isEquipment ? ($item['equipment_name'] ?? '-') : ($item['lab_name'] ?? '-');
+                $thumbRaw = $isEquipment ? ($item['equipment_photo'] ?? '') : ($item['lab_logo'] ?? '');
+                $thumbUrl = '';
+                if (! empty($thumbRaw)) {
+                    $thumbUrl = preg_match('/^https?:\/\//i', (string) $thumbRaw) ? (string) $thumbRaw : base_url((string) $thumbRaw);
+                }
+              ?>
+              <div class="col-sm-6 col-lg-4 col-xl-3 selected-item">
+                <div class="card border-0 shadow-sm h-100 catalog-card">
+                  <div class="selected-media">
+                    <?php if ($thumbUrl !== ''): ?>
+                      <img src="<?= esc($thumbUrl) ?>" alt="<?= esc($itemName) ?>">
+                      <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.45),transparent)"></div>
+                    <?php else: ?>
+                      <div class="fallback"><i class="fas <?= $isEquipment ? 'fa-tools' : 'fa-door-open' ?>"></i></div>
                     <?php endif; ?>
+                    <?php if ($isEquipment && ! empty($item['equipment_category'])): ?>
+                      <span class="badge badge-light" style="position:absolute;top:8px;left:8px;font-size:.68rem">
+                        <?= esc($item['equipment_category']) ?>
+                      </span>
+                    <?php endif; ?>
+                    <?php if (! $isEquipment && ! empty($item['lab_code'])): ?>
+                      <span class="badge badge-light" style="position:absolute;top:8px;left:8px;font-size:.68rem">
+                        <?= esc($item['lab_code']) ?>
+                      </span>
+                    <?php endif; ?>
+                    <?php if ($isEquipment && isset($item['qty'])): ?>
+                      <span class="badge badge-light" style="position:absolute;top:8px;right:8px;font-size:.68rem;border:1px solid #e5e9f2;">
+                        Qty <?= (int) $item['qty'] ?>
+                      </span>
+                    <?php endif; ?>
+                    <?php if (! $isEquipment && $thumbUrl !== '' && ! empty($itemName)): ?>
+                      <div style="position:absolute;bottom:8px;left:10px;right:10px">
+                        <div class="text-white font-weight-bold" style="font-size:.85rem;text-shadow:0 1px 3px rgba(0,0,0,.6);line-height:1.2">
+                          <?= esc($itemName) ?>
+                        </div>
+                      </div>
+                    <?php endif; ?>
+                  </div>
+                  <div class="card-body p-3 d-flex flex-column">
+                    <?php if ($isEquipment || $thumbUrl === ''): ?>
+                      <div class="selected-name" title="<?= esc($itemName) ?>"><?= esc($itemName) ?></div>
+                    <?php endif; ?>
+
+                    <?php if ($isEquipment): ?>
+                      <div class="text-muted mb-2" style="font-size:.75rem">
+                        <i class="fas fa-flask fa-xs mr-1"></i><?= esc($item['equipment_lab_name'] ?? '-') ?>
+                        <?php if (! empty($item['equipment_lab_location'])): ?>
+                          &bull; <i class="fas fa-map-marker-alt fa-xs mr-1"></i><?= esc($item['equipment_lab_location']) ?>
+                        <?php endif; ?>
+                      </div>
+                    <?php else: ?>
+                      <div class="mb-2">
+                        <?php if (! empty($item['lab_code'])): ?>
+                          <div class="text-muted" style="font-size:.73rem"><i class="fas fa-hashtag fa-xs mr-1"></i><?= esc($item['lab_code']) ?></div>
+                        <?php endif; ?>
+                        <?php if (! empty($item['lab_location'])): ?>
+                          <div class="text-muted" style="font-size:.73rem"><i class="fas fa-map-marker-alt fa-xs mr-1"></i><?= esc($item['lab_location']) ?></div>
+                        <?php endif; ?>
+                        <?php if (! empty($item['lab_capacity'])): ?>
+                          <div class="text-muted" style="font-size:.73rem"><i class="fas fa-users fa-xs mr-1"></i>Kapasitas <?= (int) $item['lab_capacity'] ?> orang</div>
+                        <?php endif; ?>
+                      </div>
+                    <?php endif; ?>
+
                     <?php if (! empty($item['note'])): ?>
-                      <?php if ($isEquipment): ?> &middot; <?php endif; ?><?= esc($item['note']) ?>
+                      <div class="text-muted mt-auto" style="font-size:.73rem">
+                        <i class="fas fa-sticky-note fa-xs mr-1"></i><?= esc($item['note']) ?>
+                      </div>
                     <?php endif; ?>
                   </div>
                 </div>
               </div>
-            <?php endforeach; ?>
+              <?php endforeach; ?>
+            </div>
           <?php endif; ?>
         </div>
       </section>
@@ -651,6 +891,44 @@ $fmtD  = fn(?string $dt) => $dt ? date('d M Y', strtotime($dt)) : '-';
               <?php endforeach; ?>
             </div>
           <?php endif; ?>
+        </div>
+      </section>
+
+      <section class="modern-card focus-panel" id="focus-panel-actions-main">
+        <div class="card-head">
+          <h6>Ringkasan Tindak Lanjut</h6>
+          <span class="chip">Aksi Proposal</span>
+        </div>
+        <div class="card-body-modern">
+          <div class="action-overview-grid">
+            <div class="action-overview-card">
+              <div class="action-overview-label">Status Proposal</div>
+              <div class="action-overview-value"><?= esc($statusInfo['label']) ?></div>
+            </div>
+            <div class="action-overview-card">
+              <div class="action-overview-label">Tipe Peminjaman</div>
+              <div class="action-overview-value"><?= esc($typeLabel) ?></div>
+            </div>
+            <div class="action-overview-card">
+              <div class="action-overview-label">Jumlah Item</div>
+              <div class="action-overview-value"><?= (int) $itemCount ?> item</div>
+            </div>
+          </div>
+
+          <div class="objective-box mt-3">
+            <div class="meta-label mb-1" style="font-size:.68rem;">Checklist Sebelum Menjalankan Aksi</div>
+            <ul class="action-checklist">
+              <li>Pastikan data item sesuai dengan kebutuhan proposal.</li>
+              <li>Periksa kembali periode peminjaman dan status proposal saat ini.</li>
+              <li>Tambahkan catatan yang diperlukan untuk approval/check-out/check-in.</li>
+              <li>Gunakan panel aksi di sisi kanan untuk mengeksekusi proses sesuai role.</li>
+            </ul>
+          </div>
+
+          <div class="action-note">
+            <i class="fas fa-info-circle mr-1"></i>
+            Panel kanan menampilkan aksi yang relevan berdasarkan status proposal dan hak akses pengguna aktif.
+          </div>
         </div>
       </section>
     </div>
@@ -760,81 +1038,62 @@ $fmtD  = fn(?string $dt) => $dt ? date('d M Y', strtotime($dt)) : '-';
         </section>
       <?php endif; ?>
 
-      <?php if (activeGroupCan('lending.approval.l1') && $proposalStatus === 'waiting_l1'): ?>
-        <section class="action-panel">
-          <div class="panel-head"><i class="fas fa-user-check mr-1"></i>Approval Laboran</div>
-          <div class="panel-body">
-            <form action="<?= base_url('loans/' . $proposalPublicId . '/approve-l1') ?>" method="post" class="mb-3">
-              <?= csrf_field() ?>
-              <div class="form-group mb-2">
-                <label>Catatan (opsional)</label>
-                <input type="text" name="approval_l1_note" class="form-control form-control-sm" placeholder="Tambahkan catatan...">
-              </div>
-              <button type="submit" class="btn btn-success btn-sm btn-block btn-action"><i class="fas fa-check mr-1"></i>Setujui Proposal</button>
-            </form>
+      <?php
+        $canApproveL1 = activeGroupCan('lending.approval.l1') && $proposalStatus === 'waiting_l1';
+        $canApproveL2 = activeGroupCan('lending.approval.l2') && $proposalStatus === 'waiting_l2';
+        $canCancelProposal = activeGroupCan('lending.request.cancel')
+          && in_array($proposalStatus, ['waiting_l1', 'waiting_l2'], true)
+          && ((int)($proposal['proposer_id'] ?? 0) === (int)auth()->id() || activeGroupCan('lending.request.manage-all'));
+      ?>
 
-            <form action="<?= base_url('loans/' . $proposalPublicId . '/reject-l1') ?>" method="post">
-              <?= csrf_field() ?>
-              <div class="form-group mb-2">
-                <label>Alasan Penolakan <span class="text-danger">*</span></label>
-                <textarea name="rejected_reason" class="form-control form-control-sm" rows="3" placeholder="Jelaskan alasan penolakan..." required></textarea>
-              </div>
-              <button type="submit" class="btn btn-danger btn-sm btn-block btn-action"><i class="fas fa-times mr-1"></i>Tolak Proposal</button>
-            </form>
+      <?php if ($canApproveL1 || $canApproveL2 || $canCancelProposal): ?>
+        <section class="action-panel">
+          <div class="panel-head"><i class="fas fa-list mr-1"></i>Aksi Proposal</div>
+          <div class="panel-body">
+            <div class="action-list">
+              <?php if ($canApproveL1): ?>
+                <form action="<?= base_url('loans/' . $proposalPublicId . '/approve-l1') ?>" method="post" class="js-swal-approve-form" data-approve-level="L1" data-note-name="approval_l1_note">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="approval_l1_note" value="">
+                  <button type="submit" class="action-list-btn approve"><i class="fas fa-check-circle"></i>Setujui Proposal</button>
+                </form>
+                <form action="<?= base_url('loans/' . $proposalPublicId . '/reject-l1') ?>" method="post" class="js-swal-reject-form" data-reject-level="L1" data-reason-name="rejected_reason">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="rejected_reason" value="">
+                  <button type="submit" class="action-list-btn reject"><i class="fas fa-times-circle"></i>Tolak Proposal</button>
+                </form>
+              <?php endif; ?>
+
+              <?php if ($canApproveL2): ?>
+                <form action="<?= base_url('loans/' . $proposalPublicId . '/approve-l2') ?>" method="post" class="js-swal-approve-form" data-approve-level="L2" data-note-name="approval_l2_note">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="approval_l2_note" value="">
+                  <button type="submit" class="action-list-btn approve"><i class="fas fa-check-circle"></i>Setujui Proposal</button>
+                </form>
+                <form action="<?= base_url('loans/' . $proposalPublicId . '/reject-l2') ?>" method="post" class="js-swal-reject-form" data-reject-level="L2" data-reason-name="rejected_reason">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="rejected_reason" value="">
+                  <button type="submit" class="action-list-btn reject"><i class="fas fa-times-circle"></i>Tolak Proposal</button>
+                </form>
+              <?php endif; ?>
+
+              <?php if ($canCancelProposal): ?>
+                <form action="<?= base_url('loans/' . $proposalPublicId . '/cancel') ?>" method="post" class="js-swal-cancel-form" data-reason-name="cancel_reason">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="cancel_reason" value="">
+                  <button type="submit" class="action-list-btn cancel"><i class="fas fa-ban"></i>Batalkan Proposal</button>
+                </form>
+              <?php endif; ?>
+
+              <a href="<?= base_url('loans') ?>" class="action-list-btn back"><i class="fas fa-arrow-left"></i>Kembali ke Daftar</a>
+            </div>
           </div>
         </section>
+      <?php else: ?>
+        <a href="<?= base_url('loans') ?>" class="btn btn-outline-secondary btn-sm btn-block btn-action" style="border-radius:10px;font-weight:700;">
+          <i class="fas fa-arrow-left mr-1"></i>Kembali ke Daftar
+        </a>
       <?php endif; ?>
-
-      <?php if (activeGroupCan('lending.approval.l2') && $proposalStatus === 'waiting_l2'): ?>
-        <section class="action-panel">
-          <div class="panel-head"><i class="fas fa-user-shield mr-1"></i>Approval Kepala Lab</div>
-          <div class="panel-body">
-            <form action="<?= base_url('loans/' . $proposalPublicId . '/approve-l2') ?>" method="post" class="mb-3">
-              <?= csrf_field() ?>
-              <div class="form-group mb-2">
-                <label>Catatan (opsional)</label>
-                <input type="text" name="approval_l2_note" class="form-control form-control-sm" placeholder="Tambahkan catatan...">
-              </div>
-              <button type="submit" class="btn btn-success btn-sm btn-block btn-action"><i class="fas fa-check mr-1"></i>Setujui Proposal</button>
-            </form>
-
-            <form action="<?= base_url('loans/' . $proposalPublicId . '/reject-l2') ?>" method="post">
-              <?= csrf_field() ?>
-              <div class="form-group mb-2">
-                <label>Alasan Penolakan <span class="text-danger">*</span></label>
-                <textarea name="rejected_reason" class="form-control form-control-sm" rows="3" placeholder="Jelaskan alasan penolakan..." required></textarea>
-              </div>
-              <button type="submit" class="btn btn-danger btn-sm btn-block btn-action"><i class="fas fa-times mr-1"></i>Tolak Proposal</button>
-            </form>
-          </div>
-        </section>
-      <?php endif; ?>
-
-      <?php if (
-        activeGroupCan('lending.request.cancel')
-        && in_array($proposalStatus, ['waiting_l1', 'waiting_l2'], true)
-        && ((int)($proposal['proposer_id'] ?? 0) === (int)auth()->id() || activeGroupCan('lending.request.manage-all'))
-      ): ?>
-        <section class="action-panel">
-          <div class="panel-head"><i class="fas fa-ban mr-1"></i>Batalkan Proposal</div>
-          <div class="panel-body">
-            <form action="<?= base_url('loans/' . $proposalPublicId . '/cancel') ?>" method="post">
-              <?= csrf_field() ?>
-              <div class="form-group mb-2">
-                <label>Alasan Pembatalan <span class="text-danger">*</span></label>
-                <textarea name="cancel_reason" class="form-control form-control-sm" rows="3" placeholder="Jelaskan alasan pembatalan..." required></textarea>
-              </div>
-              <button type="submit" class="btn btn-danger btn-sm btn-block btn-action">
-                <i class="fas fa-ban mr-1"></i>Konfirmasi Batalkan
-              </button>
-            </form>
-          </div>
-        </section>
-      <?php endif; ?>
-
-      <a href="<?= base_url('loans') ?>" class="btn btn-outline-secondary btn-sm btn-block btn-action" style="border-radius:10px;font-weight:700;">
-        <i class="fas fa-arrow-left mr-1"></i>Kembali ke Daftar
-      </a>
     </div>
   </div>
 </div>
@@ -845,6 +1104,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var summaryPanel = document.getElementById('focus-panel-summary');
   var itemsPanel = document.getElementById('focus-panel-items');
   var timelinePanel = document.getElementById('focus-panel-timeline');
+  var actionsMainPanel = document.getElementById('focus-panel-actions-main');
   var actionsPanel = document.getElementById('focus-panel-actions');
   var leftCol = document.getElementById('focus-left-col');
   var tabStorageKey = 'loanShowActiveTab';
@@ -874,6 +1134,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (summaryPanel) summaryPanel.classList.toggle('is-visible', tabName === 'summary');
     if (itemsPanel) itemsPanel.classList.toggle('is-visible', tabName === 'items');
     if (timelinePanel) timelinePanel.classList.toggle('is-visible', tabName === 'timeline');
+    if (actionsMainPanel) actionsMainPanel.classList.toggle('is-visible', tabName === 'actions');
 
     if (actionsPanel) actionsPanel.classList.toggle('is-visible', tabName === 'actions');
 
@@ -911,5 +1172,127 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   setFocusTab(urlTab || savedTab || 'summary');
+
+  document.querySelectorAll('.js-swal-approve-form').forEach(function (form) {
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+
+      var level = (form.getAttribute('data-approve-level') || '').trim() || 'Approval';
+      var noteName = (form.getAttribute('data-note-name') || '').trim();
+
+      Swal.fire({
+        title: 'Setujui Proposal ' + level + '?',
+        text: 'Tambahkan catatan approval sebelum melanjutkan.',
+        icon: 'question',
+        input: 'textarea',
+        inputLabel: 'Catatan Approval',
+        inputPlaceholder: 'Tulis catatan persetujuan...',
+        inputAttributes: { 'aria-label': 'Catatan Approval' },
+        inputAutoTrim: true,
+        showCancelButton: true,
+        confirmButtonText: 'Ya, Setujui',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#28a745',
+        reverseButtons: true,
+        inputValidator: function (value) {
+          if (!value || !value.trim()) {
+            return 'Catatan approval wajib diisi.';
+          }
+        },
+      }).then(function (result) {
+        if (!result.isConfirmed) return;
+
+        if (noteName) {
+          var noteInput = form.querySelector('input[name="' + noteName + '"]');
+          if (noteInput) {
+            noteInput.value = (result.value || '').trim();
+          }
+        }
+
+        form.submit();
+      });
+    });
+  });
+
+  document.querySelectorAll('.js-swal-reject-form').forEach(function (form) {
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+
+      var level = (form.getAttribute('data-reject-level') || '').trim() || 'Approval';
+      var reasonName = (form.getAttribute('data-reason-name') || '').trim();
+
+      Swal.fire({
+        title: 'Tolak Proposal ' + level + '?',
+        text: 'Isi alasan penolakan untuk melanjutkan.',
+        icon: 'warning',
+        input: 'textarea',
+        inputLabel: 'Alasan Penolakan',
+        inputPlaceholder: 'Tulis alasan penolakan proposal...',
+        inputAttributes: { 'aria-label': 'Alasan Penolakan' },
+        inputAutoTrim: true,
+        showCancelButton: true,
+        confirmButtonText: 'Ya, Tolak',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#dc3545',
+        reverseButtons: true,
+        inputValidator: function (value) {
+          if (!value || !value.trim()) {
+            return 'Alasan penolakan wajib diisi.';
+          }
+        },
+      }).then(function (result) {
+        if (!result.isConfirmed) return;
+
+        if (reasonName) {
+          var reasonInput = form.querySelector('input[name="' + reasonName + '"]');
+          if (reasonInput) {
+            reasonInput.value = (result.value || '').trim();
+          }
+        }
+
+        form.submit();
+      });
+    });
+  });
+
+  document.querySelectorAll('.js-swal-cancel-form').forEach(function (form) {
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+
+      var reasonName = (form.getAttribute('data-reason-name') || '').trim();
+
+      Swal.fire({
+        title: 'Batalkan Proposal?',
+        text: 'Isi alasan pembatalan untuk melanjutkan.',
+        icon: 'warning',
+        input: 'textarea',
+        inputLabel: 'Alasan Pembatalan',
+        inputPlaceholder: 'Tulis alasan pembatalan proposal...',
+        inputAttributes: { 'aria-label': 'Alasan Pembatalan' },
+        inputAutoTrim: true,
+        showCancelButton: true,
+        confirmButtonText: 'Ya, Batalkan',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#dc3545',
+        reverseButtons: true,
+        inputValidator: function (value) {
+          if (!value || !value.trim()) {
+            return 'Alasan pembatalan wajib diisi.';
+          }
+        },
+      }).then(function (result) {
+        if (!result.isConfirmed) return;
+
+        if (reasonName) {
+          var reasonInput = form.querySelector('input[name="' + reasonName + '"]');
+          if (reasonInput) {
+            reasonInput.value = (result.value || '').trim();
+          }
+        }
+
+        form.submit();
+      });
+    });
+  });
 });
 </script>

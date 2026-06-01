@@ -332,6 +332,24 @@ $itemCount = count($items);
 <?php
   $startFmtDetail = ! empty($proposal['start_at']) ? date('d M Y, H:i', strtotime((string) $proposal['start_at'])) : '-';
   $endFmtDetail   = ! empty($proposal['end_at']) ? date('d M Y, H:i', strtotime((string) $proposal['end_at'])) : '-';
+  $submittedAtRaw = (string) ($proposal['submitted_at'] ?? ($proposal['created_at'] ?? ''));
+  $submittedFmtDetail = $submittedAtRaw !== '' ? date('d M Y, H:i', strtotime($submittedAtRaw)) : '-';
+  $statusRaw = (string) ($proposal['status'] ?? '');
+  $statusLabelMap = [
+    'draft'       => 'Draft',
+    'waiting_l1'  => 'Menunggu Laboran',
+    'waiting_l2'  => 'Menunggu Ka.Lab',
+    'approved'    => 'Disetujui',
+    'borrowed'    => 'Dipinjam',
+    'late'        => 'Terlambat',
+    'returned'    => 'Dikembalikan',
+    'problematic' => 'Bermasalah',
+    'in_use'      => 'Sedang Digunakan',
+    'completed'   => 'Selesai',
+    'rejected'    => 'Ditolak',
+    'canceled'    => 'Dibatalkan',
+  ];
+  $statusDetail = $statusLabelMap[$statusRaw] ?? ($statusRaw !== '' ? ucwords(str_replace('_', ' ', $statusRaw)) : '-');
 ?>
 
 <div class="modern-shell">
@@ -380,8 +398,40 @@ $itemCount = count($items);
   <div class="card-body p-3">
     <div class="summary-grid">
       <div class="summary-item">
-        <div class="summary-label">Pengusul</div>
+        <div class="summary-label">Kode Proposal</div>
+        <div class="summary-value"><?= esc($proposal['proposal_code'] ?? '-') ?></div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Status Proposal</div>
+        <div class="summary-value"><?= esc($statusDetail) ?></div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Judul Proposal</div>
+        <div class="summary-value"><?= esc($proposal['title'] ?? '-') ?></div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Waktu Pengajuan</div>
+        <div class="summary-value"><?= esc($submittedFmtDetail) ?></div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Nama Pengusul</div>
         <div class="summary-value"><?= esc($proposal['proposer_name'] ?? '-') ?></div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">NIM</div>
+        <div class="summary-value"><?= esc($proposal['proposer_nim_nik'] ?? '-') ?></div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Email Pengusul</div>
+        <div class="summary-value"><?= esc($proposal['proposer_email'] ?? '-') ?></div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Nomor Telp</div>
+        <div class="summary-value"><?= esc($proposal['proposer_phone'] ?? '-') ?></div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Program Studi</div>
+        <div class="summary-value"><?= esc($proposal['proposer_prodi'] ?? '-') ?></div>
       </div>
       <div class="summary-item">
         <div class="summary-label">Tipe Peminjaman</div>
@@ -397,6 +447,7 @@ $itemCount = count($items);
       </div>
     </div>
     <div class="objective-box">
+      <div class="summary-label mb-1" style="font-size:.68rem;">Tujuan Proposal</div>
       <?= nl2br(esc($proposal['objective'] ?? '-')) ?>
     </div>
   </div>
