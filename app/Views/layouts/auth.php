@@ -23,6 +23,10 @@
 </head>
 
 <body>
+  <div aria-hidden="true" class="auth-bg-layer">
+    <span class="auth-bg-blob auth-bg-blob-brand"></span>
+    <span class="auth-bg-blob auth-bg-blob-blue"></span>
+  </div>
   <div id="app">
     <section class="section">
       <div class="container mt-5">
@@ -68,5 +72,53 @@
   <script src="<?= base_url('assets/js/stisla.js') ?>"></script>
   <script src="<?= base_url('assets/js/scripts.js') ?>"></script>
   <script src="<?= base_url('assets/js/custom.js') ?>"></script>
+  <style>
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top right, rgba(251, 231, 231, 0.9) 0, rgba(251, 231, 231, 0.9) 18%, rgba(251, 231, 231, 0) 55%),
+        radial-gradient(circle at left center, rgba(219, 234, 254, 0.9) 0, rgba(219, 234, 254, 0.9) 16%, rgba(219, 234, 254, 0) 50%),
+        linear-gradient(180deg, #ffffff 0%, #f8fbff 52%, #fffaf9 100%);
+      background-attachment: fixed;
+      position: relative;
+      overflow-x: hidden;
+    }
+    .auth-bg-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+    }
+    .auth-bg-blob {
+      position: absolute;
+      border-radius: 9999px;
+      filter: blur(48px);
+      opacity: 0.7;
+      transform: translateZ(0);
+    }
+    .auth-bg-blob-brand {
+      top: -12%;
+      right: -8%;
+      width: 42vw;
+      height: 42vw;
+      min-width: 280px;
+      min-height: 280px;
+      background: rgba(251, 231, 231, 0.85);
+    }
+    .auth-bg-blob-blue {
+      left: -10%;
+      top: 38%;
+      width: 34vw;
+      height: 34vw;
+      min-width: 220px;
+      min-height: 220px;
+      background: rgba(219, 234, 254, 0.8);
+    }
+    #app {
+      position: relative;
+      z-index: 1;
+    }
+  </style>
 </body>
 </html>
