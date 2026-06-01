@@ -7,6 +7,7 @@ use App\Models\LabAssetModel;
 use App\Models\LabModel;
 use App\Models\LoanProposalItemModel;
 use App\Models\LoanProposalModel;
+use App\Models\UserProfileModel;
 use CodeIgniter\I18n\Time;
 
 class LoanProposalController extends BaseController
@@ -110,10 +111,34 @@ class LoanProposalController extends BaseController
             $type = null;
         }
 
+        $user = auth()->user();
+        $profile = null;
+        if ($user !== null) {
+            $profile = (new UserProfileModel())->getByUserId((int) $user->id);
+        }
+
+        $proposer = [
+            'full_name' => (string) ($user->username ?? ''),
+            'nim_nik'   => (string) ($profile['nim_nik'] ?? ''),
+            'email'     => (string) ($user->email ?? ''),
+            'phone'     => (string) ($profile['phone'] ?? ''),
+            'prodi'     => (string) ($profile['prodi'] ?? ''),
+        ];
+
+        $isProfileIncomplete = trim($proposer['nim_nik']) === ''
+            || trim($proposer['phone']) === ''
+            || trim($proposer['prodi']) === '';
+
+        // Prevent users from entering the proposal form until required profile fields are complete.
+        if ($isProfileIncomplete && $type !== null) {
+            return redirect()->to('/loans/create')->with('error', 'Lengkapi data profile (NIM, nomor telp, program studi) di <a href="/profile">halaman profil</a> terlebih dahulu.');
+        }
+
         return $this->renderView('loans/create', [
             'title'      => 'Buat Proposal',
             'page_title' => $type === null ? 'Buat Proposal Peminjaman' : ($type === 'equipment' ? 'Proposal Peminjaman Alat' : 'Proposal Peminjaman Lab'),
             'type'       => $type,
+            'proposer'   => $proposer,
         ]);
     }
 

@@ -7,6 +7,7 @@ $accentBg    = $isEquipment ? 'rgba(79,195,247,.08)' : 'rgba(129,199,132,.08)';
 $accentBtn   = $isEquipment ? 'btn-primary' : 'btn-success';
 $typeLabel   = $isEquipment ? 'Alat' : 'Laboratorium';
 $typeIcon    = $isEquipment ? 'fa-tools' : 'fa-door-open';
+$proposer    = isset($proposer) && is_array($proposer) ? $proposer : [];
 ?>
 
 <style>
@@ -65,40 +66,6 @@ $typeIcon    = $isEquipment ? 'fa-tools' : 'fa-door-open';
   }
   .loan-create-page .shell-body {
     padding: 0.95rem;
-  }
-  .loan-create-page .progress-wrap {
-    align-items: center;
-    display: flex;
-    gap: 0.55rem;
-  }
-  .loan-create-page .progress-node {
-    align-items: center;
-    background: #eef2f7;
-    border-radius: 999px;
-    color: #64748b;
-    display: inline-flex;
-    font-size: 0.72rem;
-    font-weight: 800;
-    gap: 0.35rem;
-    letter-spacing: 0.04em;
-    padding: 0.35rem 0.65rem;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-  .loan-create-page .progress-node.active {
-    background: var(--brand-soft);
-    color: var(--brand);
-  }
-  .loan-create-page .progress-node.done {
-    background: rgba(40, 167, 69, 0.15);
-    color: #1f8f48;
-  }
-  .loan-create-page .progress-line {
-    background: #e5e9f2;
-    border-radius: 999px;
-    flex: 1;
-    height: 2px;
-    min-width: 20px;
   }
   .loan-create-page .type-choice {
     background: #fff;
@@ -204,16 +171,12 @@ $typeIcon    = $isEquipment ? 'fa-tools' : 'fa-door-open';
   .loan-create-page .aside-list li:last-child {
     margin-bottom: 0;
   }
-  @media (max-width: 991.98px) {
-    .loan-create-page .progress-wrap {
-      overflow-x: auto;
-      padding-bottom: 0.2rem;
-    }
-  }
 </style>
 
 <div class="loan-create-page">
+
   <?php if ($type === null): ?>
+
     <div class="row justify-content-center">
       <div class="col-lg-10">
         <div class="shell-card mb-3">
@@ -268,18 +231,6 @@ $typeIcon    = $isEquipment ? 'fa-tools' : 'fa-door-open';
     </div>
   <?php else: ?>
 
-    <div class="shell-card">
-      <div class="shell-body">
-        <div class="progress-wrap">
-          <span class="progress-node active"><i class="fas fa-pen"></i>Step 1: Informasi</span>
-          <span class="progress-line"></span>
-          <span class="progress-node"><i class="fas <?= $typeIcon ?>"></i>Step 2: Pilih <?= esc($typeLabel) ?></span>
-          <span class="progress-line"></span>
-          <span class="progress-node"><i class="fas fa-paper-plane"></i>Step 3: Kirim Approval</span>
-        </div>
-      </div>
-    </div>
-
     <div class="row">
       <div class="col-lg-8">
         <section class="shell-card">
@@ -299,17 +250,37 @@ $typeIcon    = $isEquipment ? 'fa-tools' : 'fa-door-open';
               </div>
             <?php endif; ?>
 
-            <?php if (session('error')): ?>
-              <div class="alert alert-danger alert-dismissible fade show">
-                <?= esc(session('error')) ?>
-                <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
-              </div>
-            <?php endif; ?>
-
             <form action="<?= base_url('loans/store') ?>" method="post" id="proposal-form">
               <?= csrf_field() ?>
               <input type="hidden" name="loan_type" value="<?= esc($type) ?>">
               <input type="hidden" name="requires_l2" value="1">
+
+              <div class="form-group mb-3">
+                <label class="form-label-modern d-block">Data Pengusul</label>
+                <div class="row">
+                  <div class="col-md-6 mb-2">
+                    <label for="proposer_full_name" class="small text-muted mb-1">Nama Lengkap</label>
+                    <input type="text" class="form-control" id="proposer_full_name" name="proposer_full_name" value="<?= esc(old('proposer_full_name', $proposer['full_name'] ?? '')) ?>" readonly>
+                  </div>
+                  <div class="col-md-6 mb-2">
+                    <label for="proposer_nim_nik" class="small text-muted mb-1">NIM</label>
+                    <input type="text" class="form-control" id="proposer_nim_nik" name="proposer_nim_nik" value="<?= esc(old('proposer_nim_nik', $proposer['nim_nik'] ?? '')) ?>" readonly>
+                  </div>
+                  <div class="col-md-6 mb-2">
+                    <label for="proposer_email" class="small text-muted mb-1">Email</label>
+                    <input type="email" class="form-control" id="proposer_email" name="proposer_email" value="<?= esc(old('proposer_email', $proposer['email'] ?? '')) ?>" readonly>
+                  </div>
+                  <div class="col-md-6 mb-2">
+                    <label for="proposer_phone" class="small text-muted mb-1">Nomor Telp</label>
+                    <input type="text" class="form-control" id="proposer_phone" name="proposer_phone" value="<?= esc(old('proposer_phone', $proposer['phone'] ?? '')) ?>" readonly>
+                  </div>
+                  <div class="col-md-12">
+                    <label for="proposer_prodi" class="small text-muted mb-1">Program Studi</label>
+                    <input type="text" class="form-control" id="proposer_prodi" name="proposer_prodi" value="<?= esc(old('proposer_prodi', $proposer['prodi'] ?? '')) ?>" readonly>
+                  </div>
+                </div>
+                <small class="text-muted">Data pengusul diambil dari profil akun. Ubah di menu Profil jika belum sesuai.</small>
+              </div>
 
               <div class="form-group">
                 <label class="form-label-modern" for="title">Judul Proposal <span class="text-danger">*</span></label>
