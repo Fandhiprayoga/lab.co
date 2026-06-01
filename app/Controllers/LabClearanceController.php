@@ -328,6 +328,10 @@ class LabClearanceController extends BaseController
             return redirect()->to('/clearance')->with('error', 'Pengajuan surat bebas lab hanya untuk mahasiswa.');
         }
 
+        if ($redirect = $this->redirectIfProfileIncomplete()) {
+            return $redirect;
+        }
+
         $userId  = (int) auth()->id();
         $user    = auth()->user();
         $profile = (new UserProfileModel())->where('user_id', $userId)->first();
@@ -366,6 +370,10 @@ class LabClearanceController extends BaseController
     {
         if (! activeGroupIs('mahasiswa')) {
             return redirect()->to('/clearance')->with('error', 'Pengajuan surat bebas lab hanya untuk mahasiswa.');
+        }
+
+        if ($redirect = $this->redirectIfProfileIncomplete()) {
+            return $redirect;
         }
 
         $rules = [
@@ -697,5 +705,21 @@ class LabClearanceController extends BaseController
         }
 
         return (int) $request['requester_id'] === (int) auth()->id();
+    }
+
+    private function redirectIfProfileIncomplete()
+    {
+        $profile = (new UserProfileModel())->getByUserId((int) auth()->id());
+
+        $nimNIK = trim((string) ($profile['nim_nik'] ?? ''));
+        $phone  = trim((string) ($profile['phone'] ?? ''));
+        $prodi  = trim((string) ($profile['prodi'] ?? ''));
+
+        if ($nimNIK !== '' && $phone !== '' && $prodi !== '') {
+            return null;
+        }
+
+        return redirect()->to('/profile')
+            ->with('error', 'Lengkapi data profil terlebih dahulu (program studi, NIM, nomor telp) sebelum membuat pengajuan surat bebas lab.');
     }
 }
