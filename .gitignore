@@ -126,3 +126,10 @@ _modules/*
 /phpunit*.xml
 public/uploads/assets/*
 public/uploads/labs/*
+AGENTS.md
+skills-lock.json
+.agents/*
+.clinerules/*
+.cursor/*
+.github/*
+.windsurf/*
