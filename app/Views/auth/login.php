@@ -14,7 +14,7 @@
 
   <div class="card-body">
     <?php if (session('error') !== null) : ?>
-      <div class="alert alert-danger"><?= session('error') ?></div>
+      <!-- <div class="alert alert-danger"><?= session('error') ?></div> -->
     <?php endif ?>
 
     <?php if (session('errors') !== null) : ?>
