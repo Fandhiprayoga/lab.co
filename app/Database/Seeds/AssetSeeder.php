@@ -25,6 +25,10 @@ class AssetSeeder extends Seeder
             throw new RuntimeException('Tabel asset_categories belum tersedia. Jalankan migrasi terlebih dahulu.');
         }
 
+        if (! $this->db->tableExists('asset_items')) {
+            throw new RuntimeException('Tabel asset_items belum tersedia. Jalankan migrasi item-level terlebih dahulu.');
+        }
+
         $categoryMasterName = 'Alat Laboratorium';
         $categoryExists = $this->db->table('asset_categories')
             ->where('name', $categoryMasterName)
@@ -240,6 +244,7 @@ class AssetSeeder extends Seeder
         ];
 
         $table = $this->db->table('lab_assets');
+        $itemTable = $this->db->table('asset_items');
         $now   = date('Y-m-d H:i:s');
 
         foreach ($assets as $asset) {
@@ -279,6 +284,10 @@ class AssetSeeder extends Seeder
                         'minimum_stock'      => $asset['minimum_stock'],
                         'updated_at'         => $now,
                     ]);
+
+                $assetId = (int) $existing['id'];
+                $this->ensureAssetItems($assetId, $labId, $asset, $now);
+                $this->syncMasterAggregateFromItems($assetId, $now);
                 continue;
             }
 
@@ -311,8 +320,159 @@ class AssetSeeder extends Seeder
                 'created_at'         => $now,
                 'updated_at'         => $now,
             ]);
+
+            $assetId = (int) $this->db->insertID();
+            if ($assetId > 0) {
+                $this->ensureAssetItems($assetId, $labId, $asset, $now);
+                $this->syncMasterAggregateFromItems($assetId, $now);
+            }
         }
 
-        echo "AssetSeeder selesai. Data master alat berhasil disiapkan.\n";
+        echo "AssetSeeder selesai. Data master alat dan item alat berhasil disiapkan.\n";
+    }
+
+    private function ensureAssetItems(int $assetId, int $labId, array $asset, string $now): void
+    {
+        $targetTotal = max(0, (int) ($asset['stock_total'] ?? 0));
+        $targetAvailable = max(0, (int) ($asset['stock_available'] ?? 0));
+        if ($targetAvailable > $targetTotal) {
+            $targetAvailable = $targetTotal;
+        }
+
+        $existingItems = $this->db->table('asset_items')
+            ->select('id')
+            ->where('asset_id', $assetId)
+            ->orderBy('id', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        $existingCount = count($existingItems);
+        if ($existingCount >= $targetTotal) {
+            return;
+        }
+
+        $assetCode = trim((string) ($asset['asset_code'] ?? ''));
+        if ($assetCode === '') {
+            $assetCode = 'AST-' . str_pad((string) $assetId, 4, '0', STR_PAD_LEFT);
+        }
+
+        $nextSeq = 1;
+        $lastItemCode = $this->db->table('asset_items')
+            ->select('item_code')
+            ->where('asset_id', $assetId)
+            ->like('item_code', $assetCode . '-', 'after')
+            ->orderBy('item_code', 'DESC')
+            ->limit(1)
+            ->get()
+            ->getRow('item_code');
+
+        if ($lastItemCode && preg_match('/-(\d{4})$/', (string) $lastItemCode, $matches)) {
+            $nextSeq = ((int) $matches[1]) + 1;
+        }
+
+        for ($index = $existingCount + 1; $index <= $targetTotal; $index++) {
+            $inventoryStatus = $index <= $targetAvailable ? 'aktif' : 'dipinjam';
+            $isLoanable = $inventoryStatus === 'aktif' ? 1 : 0;
+
+            $itemCode = $assetCode . '-' . str_pad((string) $nextSeq, 4, '0', STR_PAD_LEFT);
+            while ($this->isDuplicateItemCode($itemCode)) {
+                $nextSeq++;
+                $itemCode = $assetCode . '-' . str_pad((string) $nextSeq, 4, '0', STR_PAD_LEFT);
+            }
+
+            $this->db->table('asset_items')->insert([
+                'public_id'            => $this->uuidV4(),
+                'asset_id'             => $assetId,
+                'item_code'            => $itemCode,
+                'serial_number'        => null,
+                'qr_token'             => bin2hex(random_bytes(12)),
+                'lab_id'               => $labId,
+                'location_detail'      => null,
+                'condition_status'     => 'baik',
+                'inventory_status'     => $inventoryStatus,
+                'is_loanable'          => $isLoanable,
+                'acquisition_date'     => ! empty($asset['acquisition_date']) ? $asset['acquisition_date'] : null,
+                'warranty_until'       => ! empty($asset['warranty_until']) ? $asset['warranty_until'] : null,
+                'notes'                => null,
+                'responsible_user_id'  => null,
+                'created_by'           => null,
+                'updated_by'           => null,
+                'created_at'           => $now,
+                'updated_at'           => $now,
+            ]);
+
+            $nextSeq++;
+        }
+    }
+
+    private function syncMasterAggregateFromItems(int $assetId, string $now): void
+    {
+        $total = (int) $this->db->table('asset_items')
+            ->where('asset_id', $assetId)
+            ->countAllResults();
+
+        $available = (int) $this->db->table('asset_items')
+            ->where('asset_id', $assetId)
+            ->where('inventory_status', 'aktif')
+            ->where('is_loanable', 1)
+            ->countAllResults();
+
+        $isLoanable = $available > 0 ? 1 : 0;
+        $inventoryStatus = $total <= 0 ? 'hilang' : ($available > 0 ? 'aktif' : 'dipinjam');
+
+        $brokenCount = (int) $this->db->table('asset_items')
+            ->where('asset_id', $assetId)
+            ->whereIn('condition_status', ['rusak', 'rusak_berat'])
+            ->countAllResults();
+
+        $needsRepairCount = (int) $this->db->table('asset_items')
+            ->where('asset_id', $assetId)
+            ->whereIn('condition_status', ['perlu_perbaikan', 'rusak_ringan'])
+            ->countAllResults();
+
+        $conditionStatus = 'baik';
+        if ($total > 0) {
+            if ($brokenCount >= $total) {
+                $conditionStatus = 'rusak';
+            } elseif ($needsRepairCount > 0) {
+                $conditionStatus = 'perlu_perbaikan';
+            }
+        }
+
+        $this->db->table('lab_assets')
+            ->where('id', $assetId)
+            ->update([
+                'stock_total'      => $total,
+                'stock_available'  => $available,
+                'is_loanable'      => $isLoanable,
+                'inventory_status' => $inventoryStatus,
+                'condition_status' => $conditionStatus,
+                'updated_at'       => $now,
+            ]);
+    }
+
+    private function isDuplicateItemCode(string $itemCode): bool
+    {
+        return $this->db->table('asset_items')
+            ->where('item_code', $itemCode)
+            ->countAllResults() > 0;
+    }
+
+    private function uuidV4(): string
+    {
+        $bytes = random_bytes(16);
+        $bytes[6] = chr((ord($bytes[6]) & 0x0f) | 0x40);
+        $bytes[8] = chr((ord($bytes[8]) & 0x3f) | 0x80);
+
+        $hex = bin2hex($bytes);
+
+        return sprintf(
+            '%s-%s-%s-%s-%s',
+            substr($hex, 0, 8),
+            substr($hex, 8, 4),
+            substr($hex, 12, 4),
+            substr($hex, 16, 4),
+            substr($hex, 20, 12)
+        );
     }
 }

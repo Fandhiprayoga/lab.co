@@ -28,7 +28,7 @@
 <?php if ($successCount > 0): ?>
 <div class="alert alert-success">
   <i class="fas fa-check-circle mr-1"></i>
-  <strong><?= $successCount ?> data</strong> berhasil diimport ke master aset.
+  <strong><?= $successCount ?> data</strong> master aset berhasil diimport dan item fisik dibentuk otomatis.
 </div>
 <?php endif; ?>
 
@@ -92,8 +92,7 @@
             <th>Nama Alat</th>
             <th>Lab</th>
             <th>Kategori</th>
-            <th>Kondisi</th>
-            <th class="text-center">Stok</th>
+            <th class="text-center">Jumlah Item Dibuat</th>
           </tr>
         </thead>
         <tbody>
@@ -104,8 +103,7 @@
             <td><?= esc($row['name']) ?></td>
             <td><?= esc($row['lab_name']) ?></td>
             <td><?= esc($row['resolved_category'] ?? $row['category']) ?></td>
-            <td><?= esc($row['condition_status']) ?></td>
-            <td class="text-center"><?= (int) $row['stock_available'] ?>/<?= (int) $row['stock_total'] ?></td>
+            <td class="text-center"><?= (int) ($row['created_items'] ?? 0) ?></td>
           </tr>
           <?php endforeach; ?>
         </tbody>

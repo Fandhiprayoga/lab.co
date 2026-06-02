@@ -80,9 +80,7 @@
             <th>Nama Alat</th>
             <th>Lab</th>
             <th>Kategori</th>
-            <th>Kondisi</th>
-            <th class="text-center">Stok Total</th>
-            <th class="text-center">Stok Tersedia</th>
+            <th class="text-center">Jumlah Item</th>
             <th>Kode Aset</th>
             <th>Merk / Model</th>
             <th>Alasan Error</th>
@@ -102,9 +100,7 @@
             <td><?= $row['name'] !== '' ? esc($row['name']) : '<em class="text-muted">—</em>' ?></td>
             <td><?= $row['lab_name'] !== '' ? esc($row['lab_name']) : '<em class="text-muted">—</em>' ?></td>
             <td><?= $row['category'] !== '' ? esc($row['category']) : '<em class="text-muted">—</em>' ?></td>
-            <td><?= $row['condition_status'] !== '' ? esc($row['condition_status']) : '<em class="text-muted">—</em>' ?></td>
-            <td class="text-center"><?= (int) $row['stock_total'] ?></td>
-            <td class="text-center"><?= (int) $row['stock_available'] ?></td>
+            <td class="text-center"><?= (int) ($row['qty_items'] ?? 0) ?></td>
             <td>
               <?php if ($row['asset_code'] !== ''): ?>
                 <code><?= esc($row['asset_code']) ?></code>

@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\AssetCategoryModel;
+use App\Models\AssetItemModel;
 use App\Models\LabAssetModel;
 use App\Models\LabModel;
 use App\Models\UnitModel;
@@ -17,6 +18,7 @@ class LoanAssetController extends BaseController
     private const INVENTORY_STATUSES  = ['aktif', 'dipinjam', 'dalam_perbaikan', 'dihapuskan', 'hilang'];
 
     protected LabAssetModel $assetModel;
+    protected AssetItemModel $assetItemModel;
     protected LabModel $labModel;
     protected AssetCategoryModel $categoryModel;
     protected UnitModel $unitModel;
@@ -24,6 +26,7 @@ class LoanAssetController extends BaseController
     public function __construct()
     {
         $this->assetModel    = new LabAssetModel();
+        $this->assetItemModel = new AssetItemModel();
         $this->labModel      = new LabModel();
         $this->categoryModel = new AssetCategoryModel();
         $this->unitModel     = new UnitModel();
@@ -107,9 +110,6 @@ class LoanAssetController extends BaseController
             'name'             => 'required|min_length[3]',
             'lab_id'           => 'required|is_natural_no_zero',
             'max_loan_hours'   => 'required|is_natural',
-            'stock_total'      => 'required|is_natural_no_zero',
-            'stock_available'  => 'required|is_natural',
-            'condition_status' => 'required|in_list[baik,perlu_perbaikan,rusak]',
             'asset_photo'      => $hasValidTempFile
                 ? 'max_size[asset_photo,2048]|is_image[asset_photo]|mime_in[asset_photo,image/png,image/jpeg,image/webp,image/svg+xml]'
                 : 'permit_empty',
@@ -124,7 +124,6 @@ class LoanAssetController extends BaseController
             'supplier'           => 'permit_empty|max_length[150]',
             'funding_source'     => 'permit_empty|max_length[100]',
             'warranty_until'     => 'permit_empty|valid_date[Y-m-d]',
-            'inventory_status'   => 'permit_empty|in_list[aktif,dipinjam,dalam_perbaikan,dihapuskan,hilang]',
             'responsible_user_id'=> 'permit_empty|is_natural_no_zero',
             'minimum_stock'      => 'permit_empty|is_natural',
             'notes'              => 'permit_empty|max_length[2000]',
@@ -134,13 +133,7 @@ class LoanAssetController extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $stockTotal = (int) $this->request->getPost('stock_total');
-        $stockAvail = (int) $this->request->getPost('stock_available');
         $maxLoanHours = (int) $this->request->getPost('max_loan_hours');
-
-        if ($stockAvail > $stockTotal) {
-            return redirect()->back()->withInput()->with('error', 'Stok tersedia tidak boleh melebihi stok total.');
-        }
 
         $labId = (int) $this->request->getPost('lab_id');
         if (! $this->labModel->find($labId)) {
@@ -150,16 +143,6 @@ class LoanAssetController extends BaseController
         $categoryName = $this->resolveCategoryName((string) $this->request->getPost('category'));
         if ($categoryName === null) {
             return redirect()->back()->withInput()->with('error', 'Kategori alat wajib dipilih dari master kategori aktif.');
-        }
-
-        $conditionStatus = $this->resolveConditionStatus((string) $this->request->getPost('condition_status'));
-        if ($conditionStatus === null) {
-            return redirect()->back()->withInput()->with('error', 'Status kondisi alat tidak valid.');
-        }
-
-        $isLoanable = $this->request->getPost('is_loanable') ? 1 : 0;
-        if ($conditionStatus === self::CONDITION_RUSAK) {
-            $isLoanable = 0;
         }
 
         $photoPath = $this->handlePhotoUpload();
@@ -181,14 +164,20 @@ class LoanAssetController extends BaseController
             'specifications'  => trim((string) $this->request->getPost('specifications')) ?: null,
             'photo'           => $photoPath,
             'max_loan_hours'  => $maxLoanHours,
-            'stock_total'     => $stockTotal,
-            'stock_available' => $stockAvail,
+            'stock_total'     => 0,
+            'stock_available' => 0,
             'is_active'       => $this->request->getPost('is_active') ? 1 : 0,
-            'is_loanable'     => $isLoanable,
-            'condition_status'=> $conditionStatus,
+            'is_loanable'     => 0,
+            'condition_status'=> self::CONDITION_BAIK,
+            'inventory_status'=> 'aktif',
             'created_by'      => auth()->id(),
             'asset_code'      => $assetCode,
         ], $inventory));
+
+        $assetId = (int) $this->assetModel->getInsertID();
+        if ($assetId > 0) {
+            $this->syncAssetStockAggregate($assetId);
+        }
 
         return redirect()->to('/admin/loans/assets')->with('success', 'Master aset berhasil ditambahkan.');
     }
@@ -214,9 +203,6 @@ class LoanAssetController extends BaseController
             'name'             => 'required|min_length[3]',
             'lab_id'           => 'required|is_natural_no_zero',
             'max_loan_hours'   => 'required|is_natural',
-            'stock_total'      => 'required|is_natural_no_zero',
-            'stock_available'  => 'required|is_natural',
-            'condition_status' => 'required|in_list[baik,perlu_perbaikan,rusak]',
             'asset_photo'      => $hasValidTempFile
                 ? 'max_size[asset_photo,2048]|is_image[asset_photo]|mime_in[asset_photo,image/png,image/jpeg,image/webp,image/svg+xml]'
                 : 'permit_empty',
@@ -231,7 +217,6 @@ class LoanAssetController extends BaseController
             'supplier'           => 'permit_empty|max_length[150]',
             'funding_source'     => 'permit_empty|max_length[100]',
             'warranty_until'     => 'permit_empty|valid_date[Y-m-d]',
-            'inventory_status'   => 'permit_empty|in_list[aktif,dipinjam,dalam_perbaikan,dihapuskan,hilang]',
             'responsible_user_id'=> 'permit_empty|is_natural_no_zero',
             'minimum_stock'      => 'permit_empty|is_natural',
             'notes'              => 'permit_empty|max_length[2000]',
@@ -241,17 +226,11 @@ class LoanAssetController extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $stockTotal = (int) $this->request->getPost('stock_total');
-        $stockAvail = (int) $this->request->getPost('stock_available');
         $labId      = (int) $this->request->getPost('lab_id');
         $maxLoanHoursPost = $this->request->getPost('max_loan_hours');
         $maxLoanHours = ($maxLoanHoursPost === null || $maxLoanHoursPost === '')
             ? (int) $asset['max_loan_hours']
             : (int) $maxLoanHoursPost;
-
-        if ($stockTotal < 1 || $stockAvail < 0 || $stockAvail > $stockTotal) {
-            return redirect()->back()->withInput()->with('error', 'Nilai stok tidak valid.');
-        }
 
         if ($maxLoanHours < 0) {
             return redirect()->back()->withInput()->with('error', 'Maksimal jam peminjaman tidak valid.');
@@ -266,24 +245,17 @@ class LoanAssetController extends BaseController
             return redirect()->back()->withInput()->with('error', 'Kategori alat wajib dipilih dari master kategori aktif.');
         }
 
-        $conditionStatus = $this->resolveConditionStatus((string) $this->request->getPost('condition_status'));
-        if ($conditionStatus === null) {
-            return redirect()->back()->withInput()->with('error', 'Status kondisi alat tidak valid.');
-        }
-
-        $isLoanable = $this->request->getPost('is_loanable') ? 1 : 0;
-        if ($conditionStatus === self::CONDITION_RUSAK) {
-            $isLoanable = 0;
-        }
         $photoPath = $this->handlePhotoUpload($asset['photo'] ?? null);
 
-        $inventory = $this->collectInventoryPayload();
+        $inventory = $this->collectInventoryPayload($asset);
         $assetCode = trim((string) $this->request->getPost('asset_code'));
         if ($assetCode === '') {
             $assetCode = $asset['asset_code'] ?? $this->generateAssetCode($labId, $categoryName);
         } elseif ($this->isDuplicateAssetCode($assetCode, $id)) {
             return redirect()->back()->withInput()->with('error', 'Kode aset sudah digunakan, gunakan kode lain.');
         }
+
+        $derivedState = $this->deriveAssetMasterState($id, $asset);
 
         $payload = array_merge([
             'name'            => trim((string) $this->request->getPost('name')),
@@ -293,11 +265,12 @@ class LoanAssetController extends BaseController
             'location'        => null,
             'specifications'  => trim((string) $this->request->getPost('specifications')) ?: null,
             'max_loan_hours'  => $maxLoanHours,
-            'stock_total'     => $stockTotal,
-            'stock_available' => $stockAvail,
+            'stock_total'     => (int) ($derivedState['stock_total'] ?? 0),
+            'stock_available' => (int) ($derivedState['stock_available'] ?? 0),
             'is_active'       => $this->request->getPost('is_active') ? 1 : 0,
-            'is_loanable'     => $isLoanable,
-            'condition_status'=> $conditionStatus,
+            'is_loanable'     => (int) ($derivedState['is_loanable'] ?? 0),
+            'condition_status'=> (string) ($derivedState['condition_status'] ?? self::CONDITION_BAIK),
+            'inventory_status'=> (string) ($derivedState['inventory_status'] ?? 'aktif'),
             'asset_code'      => $assetCode,
             'updated_by'      => auth()->id(),
         ], $inventory);
@@ -307,6 +280,7 @@ class LoanAssetController extends BaseController
         }
 
         $this->assetModel->update($id, $payload);
+        $this->syncAssetStockAggregate($id);
 
         return redirect()->to('/admin/loans/assets')->with('success', 'Master aset berhasil diperbarui.');
     }
@@ -448,6 +422,339 @@ class LoanAssetController extends BaseController
         ]);
     }
 
+    public function itemIndex()
+    {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
+        $filterAssetId = (int) $this->request->getGet('asset_id');
+
+        $builder = db_connect()->table('asset_items ai')
+            ->select('ai.*, a.name AS asset_name, a.asset_code AS master_asset_code, l.name AS lab_name')
+            ->join('lab_assets a', 'a.id = ai.asset_id', 'left')
+            ->join('labs l', 'l.id = ai.lab_id', 'left')
+            ->where('a.asset_type', 'equipment')
+            ->orderBy('a.name', 'ASC')
+            ->orderBy('ai.item_code', 'ASC');
+
+        if ($filterAssetId > 0) {
+            $builder->where('ai.asset_id', $filterAssetId);
+        }
+
+        $items = $builder->get()->getResultArray();
+
+        $assets = db_connect()->table('lab_assets')
+            ->select('id, name, asset_code')
+            ->where('asset_type', 'equipment')
+            ->orderBy('name', 'ASC')
+            ->get()->getResultArray();
+
+        return $this->renderView('loans/asset_items/index', [
+            'title'         => 'Item Alat',
+            'page_title'    => 'Manajemen Item Alat',
+            'items'         => $items,
+            'assets'        => $assets,
+            'filterAssetId' => $filterAssetId,
+        ]);
+    }
+
+    public function itemCreate()
+    {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
+        $selectedAssetId = (int) $this->request->getGet('asset_id');
+        $assets = db_connect()->table('lab_assets')
+            ->select('id, name, asset_code, lab_id, condition_status')
+            ->where('asset_type', 'equipment')
+            ->orderBy('name', 'ASC')
+            ->get()->getResultArray();
+
+        return $this->renderView('loans/asset_items/create', [
+            'title'           => 'Tambah Item Alat',
+            'page_title'      => 'Tambah Item Alat',
+            'assets'          => $assets,
+            'labs'            => $this->getActiveLabs(),
+            'selectedAssetId' => $selectedAssetId,
+            'inventoryStatuses' => self::INVENTORY_STATUSES,
+        ]);
+    }
+
+    public function itemStore()
+    {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
+        $rules = [
+            'asset_id'          => 'required|is_natural_no_zero',
+            'item_code'         => 'permit_empty|max_length[80]',
+            'serial_number'     => 'permit_empty|max_length[100]',
+            'lab_id'            => 'permit_empty|is_natural_no_zero',
+            'location_detail'   => 'permit_empty|max_length[150]',
+            'condition_status'  => 'required|in_list[baik,perlu_perbaikan,rusak,rusak_ringan,rusak_berat]',
+            'inventory_status'  => 'required|in_list[aktif,dipinjam,dalam_perbaikan,dihapuskan,hilang]',
+            'acquisition_date'  => 'permit_empty|valid_date[Y-m-d]',
+            'warranty_until'    => 'permit_empty|valid_date[Y-m-d]',
+            'responsible_user_id' => 'permit_empty|is_natural_no_zero',
+            'notes'             => 'permit_empty|max_length[2000]',
+        ];
+
+        if (! $this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $assetId = (int) $this->request->getPost('asset_id');
+        $asset = $this->assetModel->find($assetId);
+        if (! $asset || ($asset['asset_type'] ?? null) !== 'equipment') {
+            return redirect()->back()->withInput()->with('error', 'Master alat tidak ditemukan.');
+        }
+
+        $labId = $this->request->getPost('lab_id');
+        $labId = ($labId === null || $labId === '') ? ((int) ($asset['lab_id'] ?? 0) ?: null) : (int) $labId;
+        if ($labId !== null && ! $this->labModel->find($labId)) {
+            return redirect()->back()->withInput()->with('error', 'Lab item tidak ditemukan.');
+        }
+
+        $itemCode = trim((string) $this->request->getPost('item_code'));
+        if ($itemCode === '') {
+            $itemCode = $this->generateItemCode($asset);
+        } elseif ($this->isDuplicateItemCode($itemCode)) {
+            return redirect()->back()->withInput()->with('error', 'Item code sudah digunakan.');
+        }
+
+        $conditionStatus = strtolower(trim((string) $this->request->getPost('condition_status')));
+        $inventoryStatus = strtolower(trim((string) $this->request->getPost('inventory_status')));
+        $isLoanable      = $this->request->getPost('is_loanable') ? 1 : 0;
+        if (in_array($conditionStatus, ['rusak', 'rusak_berat'], true)) {
+            $isLoanable = 0;
+        }
+        if ($inventoryStatus !== 'aktif') {
+            $isLoanable = 0;
+        }
+
+        $this->assetItemModel->insert([
+            'asset_id'            => $assetId,
+            'item_code'           => $itemCode,
+            'serial_number'       => trim((string) $this->request->getPost('serial_number')) ?: null,
+            'lab_id'              => $labId,
+            'location_detail'     => trim((string) $this->request->getPost('location_detail')) ?: null,
+            'condition_status'    => $conditionStatus,
+            'inventory_status'    => $inventoryStatus,
+            'is_loanable'         => $isLoanable,
+            'acquisition_date'    => trim((string) $this->request->getPost('acquisition_date')) ?: null,
+            'warranty_until'      => trim((string) $this->request->getPost('warranty_until')) ?: null,
+            'notes'               => trim((string) $this->request->getPost('notes')) ?: null,
+            'responsible_user_id' => ($this->request->getPost('responsible_user_id') ?: null),
+            'created_by'          => auth()->id(),
+            'updated_by'          => auth()->id(),
+        ]);
+
+        $this->syncAssetStockAggregate($assetId);
+
+        return redirect()->to('/admin/loans/asset-items?asset_id=' . $assetId)->with('success', 'Item alat berhasil ditambahkan.');
+    }
+
+    public function itemEdit(int $id)
+    {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
+        $item = $this->assetItemModel->find($id);
+        if (! $item) {
+            return redirect()->to('/admin/loans/asset-items')->with('error', 'Item alat tidak ditemukan.');
+        }
+
+        $assets = db_connect()->table('lab_assets')
+            ->select('id, name, asset_code, lab_id, condition_status')
+            ->where('asset_type', 'equipment')
+            ->orderBy('name', 'ASC')
+            ->get()->getResultArray();
+
+        return $this->renderView('loans/asset_items/edit', [
+            'title'           => 'Edit Item Alat',
+            'page_title'      => 'Edit Item Alat',
+            'item'            => $item,
+            'assets'          => $assets,
+            'labs'            => $this->getActiveLabs(),
+            'inventoryStatuses' => self::INVENTORY_STATUSES,
+        ]);
+    }
+
+    public function itemUpdate(int $id)
+    {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
+        $item = $this->assetItemModel->find($id);
+        if (! $item) {
+            return redirect()->to('/admin/loans/asset-items')->with('error', 'Item alat tidak ditemukan.');
+        }
+
+        $rules = [
+            'asset_id'          => 'required|is_natural_no_zero',
+            'item_code'         => 'required|max_length[80]',
+            'serial_number'     => 'permit_empty|max_length[100]',
+            'lab_id'            => 'permit_empty|is_natural_no_zero',
+            'location_detail'   => 'permit_empty|max_length[150]',
+            'condition_status'  => 'required|in_list[baik,perlu_perbaikan,rusak,rusak_ringan,rusak_berat]',
+            'inventory_status'  => 'required|in_list[aktif,dipinjam,dalam_perbaikan,dihapuskan,hilang]',
+            'acquisition_date'  => 'permit_empty|valid_date[Y-m-d]',
+            'warranty_until'    => 'permit_empty|valid_date[Y-m-d]',
+            'responsible_user_id' => 'permit_empty|is_natural_no_zero',
+            'notes'             => 'permit_empty|max_length[2000]',
+        ];
+
+        if (! $this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $assetId = (int) $this->request->getPost('asset_id');
+        $asset = $this->assetModel->find($assetId);
+        if (! $asset || ($asset['asset_type'] ?? null) !== 'equipment') {
+            return redirect()->back()->withInput()->with('error', 'Master alat tidak ditemukan.');
+        }
+
+        $itemCode = trim((string) $this->request->getPost('item_code'));
+        if ($this->isDuplicateItemCode($itemCode, $id)) {
+            return redirect()->back()->withInput()->with('error', 'Item code sudah digunakan.');
+        }
+
+        $labId = $this->request->getPost('lab_id');
+        $labId = ($labId === null || $labId === '') ? ((int) ($asset['lab_id'] ?? 0) ?: null) : (int) $labId;
+        if ($labId !== null && ! $this->labModel->find($labId)) {
+            return redirect()->back()->withInput()->with('error', 'Lab item tidak ditemukan.');
+        }
+
+        $conditionStatus = strtolower(trim((string) $this->request->getPost('condition_status')));
+        $inventoryStatus = strtolower(trim((string) $this->request->getPost('inventory_status')));
+        $isLoanable      = $this->request->getPost('is_loanable') ? 1 : 0;
+        if (in_array($conditionStatus, ['rusak', 'rusak_berat'], true)) {
+            $isLoanable = 0;
+        }
+        if ($inventoryStatus !== 'aktif') {
+            $isLoanable = 0;
+        }
+
+        $previousAssetId = (int) ($item['asset_id'] ?? 0);
+
+        $this->assetItemModel->update($id, [
+            'asset_id'            => $assetId,
+            'item_code'           => $itemCode,
+            'serial_number'       => trim((string) $this->request->getPost('serial_number')) ?: null,
+            'lab_id'              => $labId,
+            'location_detail'     => trim((string) $this->request->getPost('location_detail')) ?: null,
+            'condition_status'    => $conditionStatus,
+            'inventory_status'    => $inventoryStatus,
+            'is_loanable'         => $isLoanable,
+            'acquisition_date'    => trim((string) $this->request->getPost('acquisition_date')) ?: null,
+            'warranty_until'      => trim((string) $this->request->getPost('warranty_until')) ?: null,
+            'notes'               => trim((string) $this->request->getPost('notes')) ?: null,
+            'responsible_user_id' => ($this->request->getPost('responsible_user_id') ?: null),
+            'updated_by'          => auth()->id(),
+        ]);
+
+        if ($previousAssetId > 0 && $previousAssetId !== $assetId) {
+            $this->syncAssetStockAggregate($previousAssetId);
+        }
+        $this->syncAssetStockAggregate($assetId);
+
+        return redirect()->to('/admin/loans/asset-items?asset_id=' . $assetId)->with('success', 'Item alat berhasil diperbarui.');
+    }
+
+    public function itemDelete(int $id)
+    {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
+        $item = $this->assetItemModel->find($id);
+        if (! $item) {
+            return redirect()->to('/admin/loans/asset-items')->with('error', 'Item alat tidak ditemukan.');
+        }
+
+        $activeAssignmentExists = db_connect()->table('loan_proposal_item_assignments')
+            ->where('asset_item_id', $id)
+            ->where('returned_at IS NULL', null, false)
+            ->countAllResults() > 0;
+
+        if ($activeAssignmentExists) {
+            return redirect()->to('/admin/loans/asset-items?asset_id=' . (int) $item['asset_id'])
+                ->with('error', 'Item tidak bisa dihapus karena masih terikat peminjaman aktif.');
+        }
+
+        $assetId = (int) ($item['asset_id'] ?? 0);
+        $this->assetItemModel->delete($id);
+        if ($assetId > 0) {
+            $this->syncAssetStockAggregate($assetId);
+        }
+
+        return redirect()->to('/admin/loans/asset-items?asset_id=' . $assetId)->with('success', 'Item alat berhasil dihapus.');
+    }
+
+    public function itemBulkGenerate()
+    {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
+        $assetId = (int) $this->request->getPost('asset_id');
+        $qty     = (int) $this->request->getPost('qty');
+
+        if ($assetId < 1 || $qty < 1) {
+            return redirect()->to('/admin/loans/asset-items')->with('error', 'Asset dan jumlah generate wajib valid.');
+        }
+
+        if ($qty > 500) {
+            return redirect()->to('/admin/loans/asset-items?asset_id=' . $assetId)->with('error', 'Maksimal generate sekaligus adalah 500 item.');
+        }
+
+        $asset = $this->assetModel->find($assetId);
+        if (! $asset || ($asset['asset_type'] ?? null) !== 'equipment') {
+            return redirect()->to('/admin/loans/asset-items')->with('error', 'Master alat tidak ditemukan.');
+        }
+
+        $created = 0;
+        for ($i = 0; $i < $qty; $i++) {
+            $conditionStatus = (string) ($asset['condition_status'] ?? 'baik');
+            if (! in_array($conditionStatus, ['baik', 'perlu_perbaikan', 'rusak', 'rusak_ringan', 'rusak_berat'], true)) {
+                $conditionStatus = 'baik';
+            }
+
+            $isLoanable = 1;
+            if (in_array($conditionStatus, ['rusak', 'rusak_berat'], true)) {
+                $isLoanable = 0;
+            }
+
+            $this->assetItemModel->insert([
+                'asset_id'            => $assetId,
+                'item_code'           => $this->generateItemCode($asset),
+                'serial_number'       => null,
+                'lab_id'              => (int) ($asset['lab_id'] ?? 0) ?: null,
+                'location_detail'     => null,
+                'condition_status'    => $conditionStatus,
+                'inventory_status'    => 'aktif',
+                'is_loanable'         => $isLoanable,
+                'acquisition_date'    => null,
+                'warranty_until'      => null,
+                'notes'               => 'Generated bulk from item management page',
+                'responsible_user_id' => null,
+                'created_by'          => auth()->id(),
+                'updated_by'          => auth()->id(),
+            ]);
+            $created++;
+        }
+
+        $this->syncAssetStockAggregate($assetId);
+
+        return redirect()->to('/admin/loans/asset-items?asset_id=' . $assetId)
+            ->with('success', 'Berhasil generate ' . $created . ' item alat.');
+    }
+
     private function guardAccess()
     {
         if (! activeGroupCan('lending.master.manage')) {
@@ -513,48 +820,125 @@ class LoanAssetController extends BaseController
     /**
      * Kumpulkan field-field inventaris dari POST. Semua opsional & nullable.
      */
-    private function collectInventoryPayload(): array
+    private function collectInventoryPayload(array $currentAsset = []): array
     {
         $req = $this->request;
 
-        $acquisitionSource = (string) $req->getPost('acquisition_source');
+        $acquisitionSourcePost = $req->getPost('acquisition_source');
+        $acquisitionSource = $acquisitionSourcePost === null
+            ? (string) ($currentAsset['acquisition_source'] ?? 'pembelian')
+            : (string) $acquisitionSourcePost;
         if (! in_array($acquisitionSource, self::ACQUISITION_SOURCES, true)) {
             $acquisitionSource = 'pembelian';
         }
 
-        $inventoryStatus = (string) $req->getPost('inventory_status');
+        $inventoryStatusPost = $req->getPost('inventory_status');
+        $inventoryStatus = $inventoryStatusPost === null
+            ? (string) ($currentAsset['inventory_status'] ?? 'aktif')
+            : (string) $inventoryStatusPost;
         if (! in_array($inventoryStatus, self::INVENTORY_STATUSES, true)) {
             $inventoryStatus = 'aktif';
         }
 
         $unitId = $req->getPost('unit_id');
+        if ($unitId === null && array_key_exists('unit_id', $currentAsset)) {
+            $unitId = $currentAsset['unit_id'];
+        }
         $unitId = ($unitId === null || $unitId === '') ? null : (int) $unitId;
 
         $responsibleUserId = $req->getPost('responsible_user_id');
+        if ($responsibleUserId === null && array_key_exists('responsible_user_id', $currentAsset)) {
+            $responsibleUserId = $currentAsset['responsible_user_id'];
+        }
         $responsibleUserId = ($responsibleUserId === null || $responsibleUserId === '') ? null : (int) $responsibleUserId;
 
         $purchasePrice = $req->getPost('purchase_price');
+        if ($purchasePrice === null && array_key_exists('purchase_price', $currentAsset)) {
+            $purchasePrice = $currentAsset['purchase_price'];
+        }
         $purchasePrice = ($purchasePrice === null || $purchasePrice === '') ? null : (float) $purchasePrice;
 
-        $minimumStock = (int) $req->getPost('minimum_stock');
+        $minimumStockPost = $req->getPost('minimum_stock');
+        $minimumStock = $minimumStockPost === null
+            ? (int) ($currentAsset['minimum_stock'] ?? 0)
+            : (int) $minimumStockPost;
 
         $emptyToNull = static fn (?string $v): ?string => ($v === null || trim($v) === '') ? null : trim($v);
 
+        $textOrFallback = static function (string $key) use ($req, $currentAsset, $emptyToNull): ?string {
+            $posted = $req->getPost($key);
+            if ($posted === null && array_key_exists($key, $currentAsset)) {
+                return $emptyToNull((string) $currentAsset[$key]);
+            }
+
+            return $emptyToNull(is_string($posted) ? $posted : null);
+        };
+
         return [
-            'serial_number'       => $emptyToNull($req->getPost('serial_number')),
-            'brand'               => $emptyToNull($req->getPost('brand')),
-            'model'               => $emptyToNull($req->getPost('model')),
+            'serial_number'       => $textOrFallback('serial_number'),
+            'brand'               => $textOrFallback('brand'),
+            'model'               => $textOrFallback('model'),
             'unit_id'             => $unitId,
-            'acquisition_date'    => $emptyToNull($req->getPost('acquisition_date')),
+            'acquisition_date'    => $textOrFallback('acquisition_date'),
             'acquisition_source'  => $acquisitionSource,
             'purchase_price'      => $purchasePrice,
-            'supplier'            => $emptyToNull($req->getPost('supplier')),
-            'funding_source'      => $emptyToNull($req->getPost('funding_source')),
-            'warranty_until'      => $emptyToNull($req->getPost('warranty_until')),
+            'supplier'            => $textOrFallback('supplier'),
+            'funding_source'      => $textOrFallback('funding_source'),
+            'warranty_until'      => $textOrFallback('warranty_until'),
             'inventory_status'    => $inventoryStatus,
             'responsible_user_id' => $responsibleUserId,
             'minimum_stock'       => max(0, $minimumStock),
-            'notes'               => $emptyToNull($req->getPost('notes')),
+            'notes'               => $textOrFallback('notes'),
+        ];
+    }
+
+    private function deriveAssetMasterState(int $assetId, array $fallbackAsset): array
+    {
+        $db = db_connect();
+
+        $total = (int) $db->table('asset_items')
+            ->where('asset_id', $assetId)
+            ->countAllResults();
+
+        $available = (int) $db->table('asset_items')
+            ->where('asset_id', $assetId)
+            ->where('inventory_status', 'aktif')
+            ->where('is_loanable', 1)
+            ->countAllResults();
+
+        if ($total < 1) {
+            return [
+                'stock_total'      => (int) ($fallbackAsset['stock_total'] ?? 0),
+                'stock_available'  => (int) ($fallbackAsset['stock_available'] ?? 0),
+                'is_loanable'      => (int) ($fallbackAsset['is_loanable'] ?? 1),
+                'condition_status' => (string) ($fallbackAsset['condition_status'] ?? self::CONDITION_BAIK),
+                'inventory_status' => (string) ($fallbackAsset['inventory_status'] ?? 'aktif'),
+            ];
+        }
+
+        $hasBroken = $db->table('asset_items')
+            ->where('asset_id', $assetId)
+            ->whereIn('condition_status', ['rusak', 'rusak_berat'])
+            ->countAllResults() > 0;
+
+        $hasNeedsRepair = $db->table('asset_items')
+            ->where('asset_id', $assetId)
+            ->whereIn('condition_status', ['perlu_perbaikan', 'rusak_ringan'])
+            ->countAllResults() > 0;
+
+        $conditionStatus = self::CONDITION_BAIK;
+        if ($hasBroken) {
+            $conditionStatus = self::CONDITION_RUSAK;
+        } elseif ($hasNeedsRepair) {
+            $conditionStatus = self::CONDITION_PERLU_PERBAIKAN;
+        }
+
+        return [
+            'stock_total'      => $total,
+            'stock_available'  => $available,
+            'is_loanable'      => $available > 0 ? 1 : 0,
+            'condition_status' => $conditionStatus,
+            'inventory_status' => $available > 0 ? 'aktif' : 'dipinjam',
         ];
     }
 
@@ -851,13 +1235,10 @@ class LoanAssetController extends BaseController
             'Nama Alat*',
             'Nama Lab*',
             'Kategori*',
-            'Kondisi* (baik/perlu_perbaikan/rusak)',
-            'Stok Total*',
-            'Stok Tersedia*',
+            'Jumlah Item*',
             'Maks Jam Pinjam* (0=Unlimited)',
             'Merk',
             'Model',
-            'No. Seri',
             'Kode Aset (kosong=otomatis)',
             'Satuan (simbol)',
             'Sumber Perolehan (pembelian/hibah/pinjaman/produksi)',
@@ -866,8 +1247,6 @@ class LoanAssetController extends BaseController
             'Supplier',
             'Sumber Dana',
             'Garansi Hingga (YYYY-MM-DD)',
-            'Status Inventaris (aktif/dipinjam/dalam_perbaikan/dihapuskan/hilang)',
-            'Boleh Dipinjam (Ya/Tidak)',
             'Status Aktif (Ya/Tidak)',
             'Stok Minimum',
             'Spesifikasi',
@@ -878,13 +1257,10 @@ class LoanAssetController extends BaseController
             'Mikroskop Binokuler',
             'Lab Biologi',
             'Alat Optik',
-            'baik',
-            '5',
             '5',
             '8',
             'Olympus',
             'CX23',
-            'SN-001',
             '',
             'unit',
             'pembelian',
@@ -893,8 +1269,6 @@ class LoanAssetController extends BaseController
             'PT Optik Jaya',
             'APBN',
             '2027-01-15',
-            'aktif',
-            'Ya',
             'Ya',
             '1',
             'Pembesaran 40x-1000x',
@@ -903,7 +1277,8 @@ class LoanAssetController extends BaseController
 
         // Fetch reference data from DB for the reference section
         $db   = db_connect();
-        $labs = $db->table('labs')->where('is_active', 1)->orderBy('name', 'ASC')->get()->getColumn('name');
+        $labRows = $db->table('labs')->select('name')->where('is_active', 1)->orderBy('name', 'ASC')->get()->getResultArray();
+        $labs = array_column($labRows, 'name');
         $categories = $this->categoryModel->where('is_active', 1)->orderBy('name', 'ASC')->findColumn('name');
         $units = $db->table('units')->where('is_active', 1)->orderBy('name', 'ASC')->get()->getResultArray();
 
@@ -928,10 +1303,8 @@ class LoanAssetController extends BaseController
         foreach (($units ?? []) as $unit) {
             fputcsv($out, ['# SATUAN', $unit['symbol'], $unit['name']]);
         }
-        fputcsv($out, ['# KONDISI: baik | perlu_perbaikan | rusak']);
         fputcsv($out, ['# SUMBER PEROLEHAN: pembelian | hibah | pinjaman | produksi']);
-        fputcsv($out, ['# STATUS INVENTARIS: aktif | dipinjam | dalam_perbaikan | dihapuskan | hilang']);
-        fputcsv($out, ['# BOLEH DIPINJAM / STATUS AKTIF: Ya | Tidak']);
+        fputcsv($out, ['# STATUS AKTIF: Ya | Tidak']);
         fputcsv($out, ['# FORMAT TANGGAL: YYYY-MM-DD  (contoh: 2025-01-15)']);
 
         fclose($out);
@@ -956,7 +1329,8 @@ class LoanAssetController extends BaseController
         }
 
         $db   = db_connect();
-        $labs = $db->table('labs')->where('is_active', 1)->orderBy('name', 'ASC')->get()->getColumn('name');
+        $labRows = $db->table('labs')->select('name')->where('is_active', 1)->orderBy('name', 'ASC')->get()->getResultArray();
+        $labs = array_column($labRows, 'name');
         $cats = $this->categoryModel->where('is_active', 1)->orderBy('name', 'ASC')->findColumn('name');
 
         if (empty($labs) || empty($cats)) {
@@ -966,14 +1340,12 @@ class LoanAssetController extends BaseController
 
         $headers = [
             'Nama Alat*', 'Nama Lab*', 'Kategori*',
-            'Kondisi* (baik/perlu_perbaikan/rusak)', 'Stok Total*', 'Stok Tersedia*',
-            'Maks Jam Pinjam* (0=Unlimited)', 'Merk', 'Model', 'No. Seri',
+            'Jumlah Item*', 'Maks Jam Pinjam* (0=Unlimited)', 'Merk', 'Model',
             'Kode Aset (kosong=otomatis)', 'Satuan (simbol)',
             'Sumber Perolehan (pembelian/hibah/pinjaman/produksi)',
             'Tanggal Perolehan (YYYY-MM-DD)', 'Harga Beli', 'Supplier', 'Sumber Dana',
             'Garansi Hingga (YYYY-MM-DD)',
-            'Status Inventaris (aktif/dipinjam/dalam_perbaikan/dihapuskan/hilang)',
-            'Boleh Dipinjam (Ya/Tidak)', 'Status Aktif (Ya/Tidak)',
+            'Status Aktif (Ya/Tidak)',
             'Stok Minimum', 'Spesifikasi', 'Catatan',
         ];
 
@@ -985,30 +1357,17 @@ class LoanAssetController extends BaseController
         $cat1 = $cats[1] ?? $cats[0];
 
         $sampleRows = [
-            // 1 — normal, auto asset code
-            [$lab0, $cat0, 'baik',            '10', '10', '8',  'Dell',   'OptiPlex 3080', 'SN-PC-001', '',           'unit', 'pembelian',  '2023-06-01', '12000000', 'PT Solusi Komputer', 'APBN',       '2026-06-01', 'aktif',          'Ya',   'Ya',   '2', 'Intel Core i5, RAM 8GB, SSD 256GB',  ''],
-            // 2 — stok partial
-            [$lab0, $cat0, 'baik',            '5',  '3',  '4',  'Logitech','MK235',        'SN-KB-001', '',           'set', 'pembelian',  '2022-03-10', '350000',   'Tokopedia',          'APBN',       '',           'aktif',          'Ya',   'Ya',   '1', 'Keyboard + mouse wireless',          'Perlu penggantian baterai'],
-            // 3 — perlu perbaikan
-            [$lab1, $cat0, 'perlu_perbaikan', '3',  '1',  '0',  'Cisco',  'Catalyst 2960', 'SN-SW-001', '',           'unit', 'pembelian',  '2021-01-15', '8500000',  'PT Jaringan Nusantara','Hibah',  '2024-01-15', 'dalam_perbaikan','Tidak', 'Ya',  '1', 'Switch 24 port managed',             '2 port tidak berfungsi'],
-            // 4 — hibah, no brand
-            [$lab1, $cat1, 'baik',            '8',  '8',  '0',  '',       '',              '',          '',           'unit', 'hibah',      '2020-07-17', '',         '',                   'Hibah Industri','',       'aktif',          'Ya',   'Ya',   '0', '',                                   'Hibah dari alumni'],
-            // 5 — explicit asset code
-            [$lab2, $cat0, 'baik',            '2',  '2',  '6',  'Epson',  'EB-X51',        'SN-PRJ-001','PRJ-001',    'unit', 'pembelian',  '2024-02-20', '7200000',  'PT Optik Prima',     'BOPTN',      '2027-02-20', 'aktif',          'Ya',   'Ya',   '1', 'Projector XGA 3800 lumen',           ''],
-            // 6 — Maks Jam 0 (Unlimited)
-            [$lab2, $cat1, 'baik',            '30', '25', '0',  '',       'Lipat 3x1m',    '',          '',           'pcs', 'pembelian',  '2023-09-01', '150000',   'Toko Perlengkapan',  'APBN',       '',           'aktif',          'Tidak','Ya',   '5', 'Meja lipat serbaguna',               ''],
-            // 7 — rusak, tidak boleh dipinjam
-            [$lab0, $cat0, 'rusak',           '1',  '0',  '0',  'HP',     'LaserJet M402n','SN-PRN-007','',           'unit', 'pembelian',  '2019-05-12', '3500000',  'Bhinneka',           'APBN',       '',           'dihapuskan',     'Tidak','Ya',   '0', 'Printer laser A4',                   'Rusak total, menunggu penghapusan'],
-            // 8 — unlimited pinjam, stok besar
-            [$lab1, $cat0, 'baik',            '15', '15', '0',  'TP-Link','TL-WA901ND',    '',          '',           'unit', 'pembelian',  '2022-11-05', '450000',   'Shopee',             'APBN',       '2025-11-05', 'aktif',          'Ya',   'Ya',   '3', 'Access point 450 Mbps dual band',    ''],
-            // 9 — stok minimum, produksi
-            [$lab2, $cat0, 'baik',            '4',  '4',  '2',  '',       'Prototipe Sensor','',        '',           'pcs', 'produksi',   '2025-01-01', '',         '',                   'Dana Penelitian','',      'aktif',          'Ya',   'Ya',   '1', 'Sensor suhu & kelembaban buatan lab','Prototipe internal'],
-            // 10 — pinjaman
-            [$lab1, $cat1, 'baik',            '6',  '6',  '4',  'ASUS',   'VA24DQ',        'SN-MON-010','',           'unit', 'pinjaman',   '2024-08-01', '2100000',  'Peminjam Eksternal', 'Pinjaman',   '2025-08-01', 'dipinjam',       'Ya',   'Ya',   '1', 'Monitor IPS 24 inch Full HD',        'Dipinjam dari institusi mitra'],
+            [$lab0, $cat0, '10', '8',  'Dell',   'OptiPlex 3080', '',        'unit', 'pembelian', '2023-06-01', '12000000', 'PT Solusi Komputer', 'APBN',        '2026-06-01', 'Ya', '2', 'Intel Core i5, RAM 8GB, SSD 256GB', ''],
+            [$lab0, $cat0, '5',  '4',  'Logitech','MK235',        '',        'set',  'pembelian', '2022-03-10', '350000',   'Tokopedia',          'APBN',        '',           'Ya', '1', 'Keyboard + mouse wireless',         'Perlu penggantian baterai'],
+            [$lab1, $cat0, '3',  '0',  'Cisco',  'Catalyst 2960', '',        'unit', 'pembelian', '2021-01-15', '8500000',  'PT Jaringan Nusantara', 'Hibah',   '2024-01-15', 'Ya', '1', 'Switch 24 port managed',            'Aset lama untuk praktikum'],
+            [$lab1, $cat1, '8',  '0',  '',       '',              '',        'unit', 'hibah',     '2020-07-17', '',         '',                   'Hibah Industri', '',      'Ya', '0', '',                                  'Hibah dari alumni'],
+            [$lab2, $cat0, '2',  '6',  'Epson',  'EB-X51',        'PRJ-001', 'unit', 'pembelian', '2024-02-20', '7200000',  'PT Optik Prima',     'BOPTN',       '2027-02-20', 'Ya', '1', 'Projector XGA 3800 lumen',          ''],
+            [$lab2, $cat1, '30', '0',  '',       'Lipat 3x1m',    '',        'pcs',  'pembelian', '2023-09-01', '150000',   'Toko Perlengkapan',  'APBN',        '',           'Ya', '5', 'Meja lipat serbaguna',              ''],
+            [$lab0, $cat0, '1',  '0',  'HP',     'LaserJet M402n','',        'unit', 'pembelian', '2019-05-12', '3500000',  'Bhinneka',           'APBN',        '',           'Tidak', '0', 'Printer laser A4',               'Untuk pengadaan ulang'],
+            [$lab1, $cat0, '15', '0',  'TP-Link','TL-WA901ND',    '',        'unit', 'pembelian', '2022-11-05', '450000',   'Shopee',             'APBN',        '2025-11-05', 'Ya', '3', 'Access point 450 Mbps dual band',   ''],
+            [$lab2, $cat0, '4',  '2',  '',       'Prototipe Sensor','',       'pcs',  'produksi',  '2025-01-01', '',         '',                   'Dana Penelitian', '',      'Ya', '1', 'Sensor suhu & kelembaban buatan lab','Prototipe internal'],
+            [$lab1, $cat1, '6',  '4',  'ASUS',   'VA24DQ',        '',        'unit', 'pinjaman',  '2024-08-01', '2100000',  'Peminjam Eksternal', 'Pinjaman',    '2025-08-01', 'Ya', '1', 'Monitor IPS 24 inch Full HD',       'Dipinjam dari institusi mitra'],
         ];
-
-        $today  = date('Y');
-        $future = ($today + 3) . '-01-01';
 
         ob_start();
         $out = fopen('php://output', 'w');
@@ -1016,18 +1375,16 @@ class LoanAssetController extends BaseController
         fputcsv($out, $headers);
 
         foreach ($sampleRows as $i => $cols) {
-            [$labName, $catName, $condition,
-             $stockTotal, $stockAvail, $maxHour, $brand, $model, $serial, $code,
+            [$labName, $catName, $qty, $maxHour, $brand, $model, $code,
              $unitSymbol, $acqSrc, $acqDate, $price, $supplier, $fund, $warranty,
-             $invStatus, $isLoanable, $isActive, $minStock, $spec, $notes] = $cols;
+             $isActive, $minStock, $spec, $notes] = $cols;
 
             fputcsv($out, [
                 "Alat Contoh " . ($i + 1),  // Nama Alat
-                $labName, $catName, $condition,
-                $stockTotal, $stockAvail, $maxHour,
-                $brand, $model, $serial, $code, $unitSymbol, $acqSrc, $acqDate,
-                $price, $supplier, $fund, $warranty, $invStatus,
-                $isLoanable, $isActive, $minStock, $spec, $notes,
+                $labName, $catName, $qty, $maxHour,
+                $brand, $model, $code, $unitSymbol, $acqSrc, $acqDate,
+                $price, $supplier, $fund, $warranty,
+                $isActive, $minStock, $spec, $notes,
             ]);
         }
 
@@ -1148,7 +1505,16 @@ class LoanAssetController extends BaseController
                 'created_by' => auth()->id(),
             ]));
 
-            $successRows[] = array_merge($row, ['asset_code' => $assetCode]);
+            $assetId = (int) $this->assetModel->getInsertID();
+            if ($assetId > 0) {
+                $this->ensureImportedAssetItems($assetId, $row['qty_items'], $row['lab_id'], $row['payload']);
+                $this->syncAssetStockAggregate($assetId);
+            }
+
+            $successRows[] = array_merge($row, [
+                'asset_code' => $assetCode,
+                'created_items' => (int) $row['qty_items'],
+            ]);
         }
 
         return $this->renderView('loans/assets/import_result', [
@@ -1218,22 +1584,19 @@ class LoanAssetController extends BaseController
                 continue;
             }
 
-            $row = array_pad($row, 24, '');
+            $row = array_pad($row, 19, '');
 
             [
-                $name, $labName, $category, $conditionStatus,
-                $stockTotal, $stockAvailable, $maxLoanHours,
-                $brand, $model, $serialNumber, $assetCode,
+                $name, $labName, $category, $qtyItems, $maxLoanHours,
+                $brand, $model, $assetCode,
                 $unitSymbol, $acquisitionSource, $acquisitionDate,
                 $purchasePrice, $supplier, $fundingSource, $warrantyUntil,
-                $inventoryStatus, $isLoanable, $isActive,
-                $minimumStock, $specifications, $notes,
+                $isActive, $minimumStock, $specifications, $notes,
             ] = $row;
 
             $name            = trim($name);
             $labName         = trim($labName);
             $category        = trim($category);
-            $conditionStatus = strtolower(trim($conditionStatus));
             $assetCodeTrim   = trim($assetCode);
 
             $errors = [];
@@ -1258,10 +1621,9 @@ class LoanAssetController extends BaseController
                 $errors[] = "Kategori '{$category}' tidak ditemukan atau tidak aktif";
             }
 
-            if ($conditionStatus === '') {
-                $errors[] = 'Kondisi wajib diisi';
-            } elseif (! in_array($conditionStatus, ['baik', 'perlu_perbaikan', 'rusak'], true)) {
-                $errors[] = "Kondisi '{$conditionStatus}' tidak valid — gunakan: baik / perlu_perbaikan / rusak";
+            $qtyItemsInt = (int) trim($qtyItems);
+            if ($qtyItemsInt < 1) {
+                $errors[] = 'Jumlah item wajib diisi minimal 1';
             }
 
             // Asset code duplicate check
@@ -1275,12 +1637,6 @@ class LoanAssetController extends BaseController
                 }
             }
 
-            $stockTotalInt   = max(1, (int) $stockTotal);
-            $stockAvailInt   = max(0, (int) $stockAvailable);
-            if ($stockAvailInt > $stockTotalInt) {
-                $errors[] = "Stok tersedia ({$stockAvailInt}) melebihi stok total ({$stockTotalInt})";
-                $stockAvailInt = $stockTotalInt;
-            }
             $maxLoanHoursInt = max(0, (int) $maxLoanHours);
 
             $unitId = null;
@@ -1292,16 +1648,6 @@ class LoanAssetController extends BaseController
             $acquisitionSourceTrim = strtolower(trim($acquisitionSource));
             if (! in_array($acquisitionSourceTrim, self::ACQUISITION_SOURCES, true)) {
                 $acquisitionSourceTrim = 'pembelian';
-            }
-
-            $inventoryStatusTrim = strtolower(trim($inventoryStatus));
-            if (! in_array($inventoryStatusTrim, self::INVENTORY_STATUSES, true)) {
-                $inventoryStatusTrim = 'aktif';
-            }
-
-            $isLoanableInt = (strtolower(trim($isLoanable)) === 'ya') ? 1 : 0;
-            if ($conditionStatus === self::CONDITION_RUSAK) {
-                $isLoanableInt = 0;
             }
 
             $isActiveInt      = (strtolower(trim($isActive)) !== 'tidak') ? 1 : 0;
@@ -1332,12 +1678,11 @@ class LoanAssetController extends BaseController
                     'location'           => null,
                     'specifications'     => $emptyToNull($specifications),
                     'max_loan_hours'     => $maxLoanHoursInt,
-                    'stock_total'        => $stockTotalInt,
-                    'stock_available'    => $stockAvailInt,
+                    'stock_total'        => 0,
+                    'stock_available'    => 0,
                     'is_active'          => $isActiveInt,
-                    'is_loanable'        => $isLoanableInt,
-                    'condition_status'   => $conditionStatus,
-                    'serial_number'      => $emptyToNull($serialNumber),
+                    'is_loanable'        => 0,
+                    'condition_status'   => self::CONDITION_BAIK,
                     'brand'              => $emptyToNull($brand),
                     'model'              => $emptyToNull($model),
                     'unit_id'            => $unitId,
@@ -1347,7 +1692,7 @@ class LoanAssetController extends BaseController
                     'supplier'           => $emptyToNull($supplier),
                     'funding_source'     => $emptyToNull($fundingSource),
                     'warranty_until'     => $warrantyUntilVal,
-                    'inventory_status'   => $inventoryStatusTrim,
+                    'inventory_status'   => 'aktif',
                     'minimum_stock'      => $minimumStockInt,
                     'notes'              => $emptyToNull($notes),
                 ];
@@ -1360,9 +1705,7 @@ class LoanAssetController extends BaseController
                 'lab_id'           => $labId,
                 'category'         => $category,
                 'resolved_category'=> $resolvedCategory,
-                'condition_status' => $conditionStatus,
-                'stock_total'      => $stockTotalInt,
-                'stock_available'  => $stockAvailInt,
+                'qty_items'        => $qtyItemsInt,
                 'asset_code'       => $assetCodeTrim,
                 'brand'            => trim($brand),
                 'model'            => trim($model),
@@ -1374,5 +1717,151 @@ class LoanAssetController extends BaseController
 
         fclose($handle);
         return $rows;
+    }
+
+    private function ensureImportedAssetItems(int $assetId, int $qtyItems, int $labId, array $payload): void
+    {
+        $qtyItems = max(0, $qtyItems);
+        if ($qtyItems < 1) {
+            return;
+        }
+
+        $asset = $this->assetModel->find($assetId);
+        if (! is_array($asset)) {
+            return;
+        }
+
+        $acquisitionDate = $payload['acquisition_date'] ?? null;
+        $warrantyUntil = $payload['warranty_until'] ?? null;
+
+        for ($i = 0; $i < $qtyItems; $i++) {
+            $itemCode = $this->generateItemCode($asset);
+            $this->assetItemModel->insert([
+                'asset_id'         => $assetId,
+                'item_code'        => $itemCode,
+                'serial_number'    => null,
+                'lab_id'           => $labId,
+                'location_detail'  => null,
+                'condition_status' => 'baik',
+                'inventory_status' => 'aktif',
+                'is_loanable'      => 1,
+                'acquisition_date' => $acquisitionDate,
+                'warranty_until'   => $warrantyUntil,
+                'notes'            => null,
+                'created_by'       => auth()->id(),
+                'updated_by'       => auth()->id(),
+            ]);
+        }
+    }
+
+    private function generateItemCode(array $asset): string
+    {
+        $assetId = (int) ($asset['id'] ?? 0);
+        $base = trim((string) ($asset['asset_code'] ?? ''));
+        if ($base === '') {
+            $base = 'AST-' . str_pad((string) $assetId, 4, '0', STR_PAD_LEFT);
+        }
+
+        $lastItemCode = db_connect()->table('asset_items')
+            ->select('item_code')
+            ->where('asset_id', $assetId)
+            ->like('item_code', $base . '-', 'after')
+            ->orderBy('id', 'DESC')
+            ->limit(1)
+            ->get()
+            ->getRow('item_code');
+
+        $nextSeq = 1;
+        if ($lastItemCode && preg_match('/-(\d{4})$/', (string) $lastItemCode, $match)) {
+            $nextSeq = ((int) $match[1]) + 1;
+        }
+
+        $candidate = $base . '-' . str_pad((string) $nextSeq, 4, '0', STR_PAD_LEFT);
+        while ($this->isDuplicateItemCode($candidate)) {
+            $nextSeq++;
+            $candidate = $base . '-' . str_pad((string) $nextSeq, 4, '0', STR_PAD_LEFT);
+        }
+
+        return $candidate;
+    }
+
+    private function isDuplicateItemCode(string $itemCode, ?int $ignoreId = null): bool
+    {
+        $builder = $this->assetItemModel->where('item_code', $itemCode);
+        if ($ignoreId !== null) {
+            $builder->where('id !=', $ignoreId);
+        }
+
+        return $builder->countAllResults() > 0;
+    }
+
+    private function syncAssetStockAggregate(int $assetId): void
+    {
+        if ($assetId < 1) {
+            return;
+        }
+
+        $db = db_connect();
+
+        $asset = $db->table('lab_assets')
+            ->select('condition_status')
+            ->where('id', $assetId)
+            ->get()
+            ->getRowArray();
+
+        $fallbackCondition = (string) ($asset['condition_status'] ?? self::CONDITION_BAIK);
+        if (! in_array($fallbackCondition, [self::CONDITION_BAIK, self::CONDITION_PERLU_PERBAIKAN, self::CONDITION_RUSAK], true)) {
+            $fallbackCondition = self::CONDITION_BAIK;
+        }
+
+        $total = (int) $db->table('asset_items')
+            ->where('asset_id', $assetId)
+            ->countAllResults();
+
+        $available = (int) $db->table('asset_items')
+            ->where('asset_id', $assetId)
+            ->where('inventory_status', 'aktif')
+            ->where('is_loanable', 1)
+            ->countAllResults();
+
+        $loanableCount = (int) $db->table('asset_items')
+            ->where('asset_id', $assetId)
+            ->where('is_loanable', 1)
+            ->where('inventory_status !=', 'hilang')
+            ->countAllResults();
+
+        $brokenCount = (int) $db->table('asset_items')
+            ->where('asset_id', $assetId)
+            ->whereIn('condition_status', ['rusak', 'rusak_berat'])
+            ->countAllResults();
+
+        $needsRepairCount = (int) $db->table('asset_items')
+            ->where('asset_id', $assetId)
+            ->whereIn('condition_status', ['perlu_perbaikan', 'rusak', 'rusak_ringan', 'rusak_berat'])
+            ->countAllResults();
+
+        $inventoryStatus = $total <= 0 ? 'hilang' : ($available > 0 ? 'aktif' : 'dipinjam');
+
+        $conditionStatus = $fallbackCondition;
+        if ($total > 0) {
+            if ($brokenCount >= $total) {
+                $conditionStatus = self::CONDITION_RUSAK;
+            } elseif ($needsRepairCount > 0) {
+                $conditionStatus = self::CONDITION_PERLU_PERBAIKAN;
+            } else {
+                $conditionStatus = self::CONDITION_BAIK;
+            }
+        }
+
+        $db->table('lab_assets')
+            ->where('id', $assetId)
+            ->update([
+                'stock_total'      => $total,
+                'stock_available'  => $available,
+                'inventory_status' => $inventoryStatus,
+                'condition_status' => $conditionStatus,
+                'is_loanable'      => $loanableCount > 0 ? 1 : 0,
+                'updated_by'       => auth()->id(),
+            ]);
     }
 }

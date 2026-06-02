@@ -86,6 +86,41 @@ $statusMap = [
 $statusInfo = $statusMap[$proposalStatus] ?? ['label' => $proposalStatus, 'tone' => 'neutral', 'icon' => 'fa-question'];
 $itemCount = count($items);
 
+$assignmentHistory = [];
+foreach ($items as $item) {
+  if (($item['item_type'] ?? '') !== 'equipment') {
+    continue;
+  }
+
+  $proposalItemId = (int) ($item['id'] ?? 0);
+  $equipmentName = (string) ($item['equipment_name'] ?? ('Item #' . ((int) ($item['equipment_id'] ?? 0))));
+  $assignedRows = is_array($item['assigned_items'] ?? null) ? $item['assigned_items'] : [];
+
+  foreach ($assignedRows as $row) {
+    $assetItemId = (int) ($row['asset_item_id'] ?? 0);
+    $itemCode = trim((string) ($row['item_code'] ?? ''));
+    $serialNumber = trim((string) ($row['serial_number'] ?? ''));
+    $returnedAt = (string) ($row['returned_at'] ?? '');
+
+    $assignmentHistory[] = [
+      'proposal_item_id' => $proposalItemId,
+      'equipment_name' => $equipmentName,
+      'asset_item_id' => $assetItemId,
+      'item_code' => $itemCode !== '' ? $itemCode : ('#' . $assetItemId),
+      'serial_number' => $serialNumber,
+      'checkout_condition' => (string) ($row['checkout_condition'] ?? ''),
+      'return_condition' => (string) ($row['return_condition'] ?? ''),
+      'inventory_status' => (string) ($row['inventory_status'] ?? ''),
+      'returned_at' => $returnedAt,
+      'assignment_state' => $returnedAt !== '' ? 'returned' : 'on-loan',
+    ];
+  }
+}
+
+$assignmentTotalCount = count($assignmentHistory);
+$assignmentOnLoanCount = count(array_filter($assignmentHistory, static fn(array $row): bool => ($row['assignment_state'] ?? '') === 'on-loan'));
+$assignmentReturnedCount = count(array_filter($assignmentHistory, static fn(array $row): bool => ($row['assignment_state'] ?? '') === 'returned'));
+
 // Build timeline from proposal fields
 $timeline = [];
 
@@ -739,6 +774,14 @@ $fmtD  = fn(?string $dt) => $dt ? date('d M Y', strtotime($dt)) : '-';
           </span>
           <span class="focus-tab-sub">Daftar item dalam proposal.</span>
         </button>
+        <button type="button" class="focus-tab-btn" data-focus-tab="assignments">
+          <i class="fas fa-link"></i>
+          <span class="d-flex align-items-center" style="gap:.35rem;">
+            <span class="focus-tab-title">Riwayat Assignment</span>
+            <span class="focus-tab-count"><?= (int) $assignmentTotalCount ?></span>
+          </span>
+          <span class="focus-tab-sub">Detail item fisik yang teralokasi.</span>
+        </button>
         <button type="button" class="focus-tab-btn" data-focus-tab="timeline">
           <i class="fas fa-history"></i>
           <span class="d-flex align-items-center" style="gap:.35rem;">
@@ -905,10 +948,125 @@ $fmtD  = fn(?string $dt) => $dt ? date('d M Y', strtotime($dt)) : '-';
                         <i class="fas fa-sticky-note fa-xs mr-1"></i><?= esc($item['note']) ?>
                       </div>
                     <?php endif; ?>
+
+                    <?php if ($isEquipment): ?>
+                      <?php $assignedItems = is_array($item['assigned_items'] ?? null) ? $item['assigned_items'] : []; ?>
+                      <?php if (! empty($assignedItems)): ?>
+                        <div class="mt-2 pt-2" style="border-top:1px dashed #e5e7eb;">
+                          <div class="text-uppercase text-muted mb-1" style="font-size:.63rem;letter-spacing:.04em;">Item Fisik Ter-Assign</div>
+                          <div class="d-flex flex-column" style="gap:4px;">
+                            <?php foreach ($assignedItems as $assigned): ?>
+                              <?php
+                                $code = trim((string) ($assigned['item_code'] ?? ''));
+                                $serial = trim((string) ($assigned['serial_number'] ?? ''));
+                                $returnedAt = (string) ($assigned['returned_at'] ?? '');
+                                $statusLabel = $returnedAt !== '' ? 'returned' : 'on-loan';
+                                $statusClass = $returnedAt !== '' ? 'badge-success' : 'badge-warning';
+                              ?>
+                              <div class="d-flex justify-content-between align-items-center" style="gap:6px;">
+                                <div class="text-truncate" style="font-size:.72rem;color:#334155;max-width:70%;" title="<?= esc($code !== '' ? $code : ('#' . (int) ($assigned['asset_item_id'] ?? 0))) ?>">
+                                  <i class="fas fa-barcode fa-xs mr-1 text-muted"></i>
+                                  <?= esc($code !== '' ? $code : ('#' . (int) ($assigned['asset_item_id'] ?? 0))) ?>
+                                  <?php if ($serial !== ''): ?>
+                                    <span class="text-muted">(SN: <?= esc($serial) ?>)</span>
+                                  <?php endif; ?>
+                                </div>
+                                <span class="badge <?= $statusClass ?>" style="font-size:.6rem;"><?= esc($statusLabel) ?></span>
+                              </div>
+                            <?php endforeach; ?>
+                          </div>
+                        </div>
+                      <?php elseif (! empty($proposal['checkout_at'])): ?>
+                        <div class="mt-2 pt-2 text-muted" style="border-top:1px dashed #e5e7eb;font-size:.7rem;">
+                          <i class="fas fa-info-circle mr-1"></i>Belum ada assignment item fisik untuk data checkout lama.
+                        </div>
+                      <?php endif; ?>
+                    <?php endif; ?>
                   </div>
                 </div>
               </div>
               <?php endforeach; ?>
+            </div>
+          <?php endif; ?>
+        </div>
+      </section>
+
+      <section class="modern-card focus-panel" id="focus-panel-assignments">
+        <div class="card-head">
+          <h6>Riwayat Assignment Item Fisik</h6>
+          <span class="chip"><?= (int) $assignmentTotalCount ?> assignment</span>
+        </div>
+        <div class="card-body-modern">
+          <?php if (! $isEquipment): ?>
+            <div class="text-center text-muted py-3">
+              Riwayat assignment item fisik hanya tersedia untuk peminjaman alat.
+            </div>
+          <?php elseif (empty($assignmentHistory)): ?>
+            <div class="text-center text-muted py-3">
+              <i class="fas fa-link d-block mb-2" style="font-size:1.2rem;opacity:.45"></i>
+              Belum ada assignment item fisik pada proposal ini.
+            </div>
+          <?php else: ?>
+            <div class="row mb-3">
+              <div class="col-md-4 mb-2 mb-md-0">
+                <div class="p-2 rounded" style="background:#f8fafc;border:1px solid #e5e7eb;">
+                  <div class="text-muted" style="font-size:.7rem;">Total Assignment</div>
+                  <div style="font-size:1.05rem;font-weight:800;color:#111827;"><?= (int) $assignmentTotalCount ?></div>
+                </div>
+              </div>
+              <div class="col-md-4 mb-2 mb-md-0">
+                <div class="p-2 rounded" style="background:#fffbeb;border:1px solid #fde68a;">
+                  <div class="text-muted" style="font-size:.7rem;">Masih Dipinjam</div>
+                  <div style="font-size:1.05rem;font-weight:800;color:#92400e;"><?= (int) $assignmentOnLoanCount ?></div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="p-2 rounded" style="background:#ecfdf5;border:1px solid #a7f3d0;">
+                  <div class="text-muted" style="font-size:.7rem;">Sudah Kembali</div>
+                  <div style="font-size:1.05rem;font-weight:800;color:#065f46;"><?= (int) $assignmentReturnedCount ?></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-sm table-bordered" style="font-size:.78rem;">
+                <thead class="thead-light">
+                  <tr>
+                    <th style="min-width:190px;">Item Proposal</th>
+                    <th style="min-width:140px;">Item Code</th>
+                    <th style="min-width:140px;">Serial Number</th>
+                    <th style="min-width:120px;">Status Assignment</th>
+                    <th style="min-width:120px;">Status Inventory</th>
+                    <th style="min-width:130px;">Kondisi Checkout</th>
+                    <th style="min-width:130px;">Kondisi Check-in</th>
+                    <th style="min-width:150px;">Waktu Kembali</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php foreach ($assignmentHistory as $row): ?>
+                    <?php
+                      $assignmentState = (string) ($row['assignment_state'] ?? 'on-loan');
+                      $badgeClass = $assignmentState === 'returned' ? 'badge-success' : 'badge-warning';
+                      $inventoryStatus = trim((string) ($row['inventory_status'] ?? ''));
+                      $checkoutCondition = trim((string) ($row['checkout_condition'] ?? ''));
+                      $returnCondition = trim((string) ($row['return_condition'] ?? ''));
+                    ?>
+                    <tr>
+                      <td>
+                        <div style="font-weight:700;"><?= esc($row['equipment_name'] ?? '-') ?></div>
+                        <div class="text-muted">Proposal item #<?= (int) ($row['proposal_item_id'] ?? 0) ?></div>
+                      </td>
+                      <td><span style="font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;"><?= esc($row['item_code'] ?? '-') ?></span></td>
+                      <td><?= esc(($row['serial_number'] ?? '') !== '' ? (string) $row['serial_number'] : '-') ?></td>
+                      <td><span class="badge <?= $badgeClass ?>"><?= esc($assignmentState) ?></span></td>
+                      <td><?= esc($inventoryStatus !== '' ? str_replace('_', ' ', $inventoryStatus) : '-') ?></td>
+                      <td><?= esc($checkoutCondition !== '' ? str_replace('_', ' ', $checkoutCondition) : '-') ?></td>
+                      <td><?= esc($returnCondition !== '' ? str_replace('_', ' ', $returnCondition) : '-') ?></td>
+                      <td><?= $fmtDt((string) ($row['returned_at'] ?? '')) ?></td>
+                    </tr>
+                  <?php endforeach; ?>
+                </tbody>
+              </table>
             </div>
           <?php endif; ?>
         </div>
@@ -1227,6 +1385,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var focusTabs = document.querySelectorAll('#focus-tabs-show [data-focus-tab]');
   var summaryPanel = document.getElementById('focus-panel-summary');
   var itemsPanel = document.getElementById('focus-panel-items');
+  var assignmentsPanel = document.getElementById('focus-panel-assignments');
   var timelinePanel = document.getElementById('focus-panel-timeline');
   var actionsMainPanel = document.getElementById('focus-panel-actions-main');
   var actionsPanel = document.getElementById('focus-panel-actions');
@@ -1234,7 +1393,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var tabStorageKey = 'loanShowActiveTab';
 
   function normalizeTabName(tabName) {
-    var allowed = ['summary', 'items', 'timeline', 'actions'];
+    var allowed = ['summary', 'items', 'assignments', 'timeline', 'actions'];
     return allowed.indexOf(tabName) !== -1 ? tabName : 'summary';
   }
 
@@ -1257,6 +1416,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (summaryPanel) summaryPanel.classList.toggle('is-visible', tabName === 'summary');
     if (itemsPanel) itemsPanel.classList.toggle('is-visible', tabName === 'items');
+    if (assignmentsPanel) assignmentsPanel.classList.toggle('is-visible', tabName === 'assignments');
     if (timelinePanel) timelinePanel.classList.toggle('is-visible', tabName === 'timeline');
     if (actionsMainPanel) actionsMainPanel.classList.toggle('is-visible', tabName === 'actions');
 

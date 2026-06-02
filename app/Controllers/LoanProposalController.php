@@ -4,8 +4,10 @@ namespace App\Controllers;
 
 use App\Models\AssetMaintenanceModel;
 use App\Models\AssetMovementModel;
+use App\Models\AssetItemModel;
 use App\Models\LabAssetModel;
 use App\Models\LabModel;
+use App\Models\LoanProposalItemAssignmentModel;
 use App\Models\LoanProposalItemModel;
 use App\Models\LoanProposalModel;
 use App\Models\UserProfileModel;
@@ -31,6 +33,8 @@ class LoanProposalController extends BaseController
 
     protected LoanProposalModel $proposalModel;
     protected LoanProposalItemModel $itemModel;
+    protected LoanProposalItemAssignmentModel $itemAssignmentModel;
+    protected AssetItemModel $assetItemModel;
     protected LabAssetModel $assetModel;
     protected LabModel $labModel;
     protected AssetMovementModel $movementModel;
@@ -40,6 +44,8 @@ class LoanProposalController extends BaseController
     {
         $this->proposalModel = new LoanProposalModel();
         $this->itemModel     = new LoanProposalItemModel();
+        $this->itemAssignmentModel = new LoanProposalItemAssignmentModel();
+        $this->assetItemModel = new AssetItemModel();
         $this->assetModel    = new LabAssetModel();
         $this->labModel      = new LabModel();
         $this->movementModel = new AssetMovementModel();
@@ -260,6 +266,37 @@ class LoanProposalController extends BaseController
             ->orderBy('i.id', 'ASC')
             ->get()->getResultArray();
 
+        $itemIds = array_values(array_filter(array_map(static fn(array $item): int => (int) ($item['id'] ?? 0), $items)));
+        $assignmentsByProposalItem = [];
+        if (! empty($itemIds)) {
+            $assignmentRows = db_connect()->table('loan_proposal_item_assignments pia')
+                ->select('pia.proposal_item_id, pia.asset_item_id, pia.checkout_condition, pia.return_condition, pia.returned_at, ai.item_code, ai.serial_number, ai.inventory_status')
+                ->join('asset_items ai', 'ai.id = pia.asset_item_id', 'left')
+                ->whereIn('pia.proposal_item_id', $itemIds)
+                ->orderBy('pia.id', 'ASC')
+                ->get()
+                ->getResultArray();
+
+            foreach ($assignmentRows as $row) {
+                $proposalItemId = (int) ($row['proposal_item_id'] ?? 0);
+                if ($proposalItemId < 1) {
+                    continue;
+                }
+
+                if (! isset($assignmentsByProposalItem[$proposalItemId])) {
+                    $assignmentsByProposalItem[$proposalItemId] = [];
+                }
+
+                $assignmentsByProposalItem[$proposalItemId][] = $row;
+            }
+        }
+
+        foreach ($items as &$item) {
+            $proposalItemId = (int) ($item['id'] ?? 0);
+            $item['assigned_items'] = $assignmentsByProposalItem[$proposalItemId] ?? [];
+        }
+        unset($item);
+
         // Resolve actor usernames for timeline
         $actorIds = array_values(array_unique(array_filter([
             $proposal['approval_l1_by'] ?? null,
@@ -345,13 +382,21 @@ class LoanProposalController extends BaseController
 
         if ($loanType === 'equipment') {
             $equipmentBuilder = db_connect()->table('lab_assets a')
-                ->select('a.id, a.name, a.category, a.photo, a.specifications, a.stock_available, a.stock_total, l.name AS lab_name, l.location AS lab_location')
+                ->select("a.id, a.name, a.category, a.photo, a.specifications, COALESCE(inv.available_count, 0) AS stock_available, COALESCE(inv.total_count, 0) AS stock_total, l.name AS lab_name, l.location AS lab_location")
                 ->join('labs l', 'l.id = a.lab_id', 'left')
+                ->join("(
+                    SELECT
+                        asset_id,
+                        COUNT(*) AS total_count,
+                        SUM(CASE WHEN inventory_status = 'aktif' AND is_loanable = 1 THEN 1 ELSE 0 END) AS available_count
+                    FROM asset_items
+                    GROUP BY asset_id
+                ) inv", 'inv.asset_id = a.id', 'left', false)
                 ->where('a.is_active', 1)
                 ->where('a.asset_type', 'equipment')
                 ->where('a.is_loanable', 1)
                 ->where('a.condition_status', 'baik')
-                ->where('a.stock_available >', 0)
+                ->where('COALESCE(inv.available_count, 0) >', 0)
                 ->orderBy('a.name', 'ASC');
 
             if ($selectedEquipmentLabId !== null) {
@@ -413,7 +458,13 @@ class LoanProposalController extends BaseController
             return redirect()->to('/loans/' . $publicId . '/items')->with('error', 'Kondisi alat tidak memenuhi syarat untuk dipinjam.');
         }
 
-        if ($qty > (int) $equipment['stock_available']) {
+        $availableQty = (int) db_connect()->table('asset_items')
+            ->where('asset_id', $equipmentId)
+            ->where('inventory_status', 'aktif')
+            ->where('is_loanable', 1)
+            ->countAllResults();
+
+        if ($qty > $availableQty) {
             return redirect()->to('/loans/' . $publicId . '/items')->with('error', 'Jumlah alat melebihi stok tersedia.');
         }
 
@@ -643,6 +694,8 @@ class LoanProposalController extends BaseController
         }
 
         $assetMap = [];
+        $availableItemPoolByAsset = [];
+        $assignmentCandidatesByProposalItem = [];
         foreach ($items as $item) {
             $assetId = (int) ($item['equipment_id'] ?? 0);
             if ($assetId < 1) {
@@ -654,10 +707,28 @@ class LoanProposalController extends BaseController
                 return redirect()->to('/loans/' . $publicId)->with('error', 'Salah satu aset tidak valid untuk check-out.');
             }
 
-            if ((int) ($asset['stock_available'] ?? 0) < (int) ($item['qty'] ?? 0)) {
+            $qty = max(0, (int) ($item['qty'] ?? 0));
+            if ($qty < 1) {
+                continue;
+            }
+
+            if (! array_key_exists($assetId, $availableItemPoolByAsset)) {
+                $availableItemPoolByAsset[$assetId] = db_connect()->table('asset_items')
+                    ->select('id, item_code, inventory_status, is_loanable')
+                    ->where('asset_id', $assetId)
+                    ->where('inventory_status', 'aktif')
+                    ->where('is_loanable', 1)
+                    ->orderBy('id', 'ASC')
+                    ->get()
+                    ->getResultArray();
+            }
+
+            $candidateItems = array_splice($availableItemPoolByAsset[$assetId], 0, $qty);
+            if (count($candidateItems) < $qty) {
                 return redirect()->to('/loans/' . $publicId)->with('error', 'Stok aset ' . ($asset['name'] ?? '-') . ' tidak mencukupi.');
             }
 
+            $assignmentCandidatesByProposalItem[(int) ($item['id'] ?? 0)] = $candidateItems;
             $assetMap[$assetId] = $asset;
         }
 
@@ -692,33 +763,74 @@ class LoanProposalController extends BaseController
             return redirect()->to('/loans/' . $publicId)->with('error', 'Status proposal sudah berubah, silakan muat ulang halaman.');
         }
 
+        $touchedAssetIds = [];
         foreach ($items as $item) {
+            $proposalItemId = (int) ($item['id'] ?? 0);
             $assetId = (int) ($item['equipment_id'] ?? 0);
-            if ($assetId < 1 || ! isset($assetMap[$assetId])) {
+            if ($proposalItemId < 1 || $assetId < 1 || ! isset($assetMap[$assetId])) {
                 continue;
             }
 
             $asset = $assetMap[$assetId];
-            $qty   = (int) ($item['qty'] ?? 1);
+            $assignedItems = $assignmentCandidatesByProposalItem[$proposalItemId] ?? [];
+            if (empty($assignedItems)) {
+                continue;
+            }
 
-            $this->assetModel->update($assetId, [
-                'stock_available'  => (int) $asset['stock_available'] - $qty,
-                'inventory_status' => 'dipinjam',
-            ]);
+            foreach ($assignedItems as $assignedItem) {
+                $assetItemId = (int) ($assignedItem['id'] ?? 0);
+                if ($assetItemId < 1) {
+                    continue;
+                }
 
-            $this->movementModel->insert([
-                'asset_id'       => $assetId,
-                'movement_type'  => 'borrow',
-                'quantity'       => -1 * $qty,
-                'from_lab_id'    => (int) ($asset['lab_id'] ?? 0) ?: null,
-                'to_lab_id'      => null,
-                'reference_type' => 'loan_proposal',
-                'reference_id'   => $proposalId,
-                'movement_date'  => $now,
-                'notes'          => 'Auto: check-out proposal ' . ($proposal['proposal_code'] ?? '#'.$proposalId) . '. Kondisi awal: ' . $condition,
-                'created_by'     => auth()->id(),
-                'created_at'     => $now,
-            ]);
+                $updatedAssetItem = $db->table('asset_items')
+                    ->where('id', $assetItemId)
+                    ->where('inventory_status', 'aktif')
+                    ->where('is_loanable', 1)
+                    ->update([
+                        'inventory_status' => 'dipinjam',
+                        'updated_by'       => auth()->id(),
+                        'updated_at'       => $now,
+                    ]);
+
+                if (! $updatedAssetItem || $db->affectedRows() < 1) {
+                    $db->transRollback();
+                    return redirect()->to('/loans/' . $publicId)->with('error', 'Salah satu item alat sudah tidak tersedia, silakan ulangi check-out.');
+                }
+
+                $this->itemAssignmentModel->insert([
+                    'proposal_item_id'   => $proposalItemId,
+                    'asset_item_id'      => $assetItemId,
+                    'assigned_by'        => auth()->id(),
+                    'assigned_at'        => $now,
+                    'checkout_condition' => $condition,
+                    'checkout_note'      => null,
+                ]);
+
+                $itemCode = trim((string) ($assignedItem['item_code'] ?? ''));
+                $this->movementModel->insert([
+                    'asset_id'       => $assetId,
+                    'asset_item_id'  => $assetItemId,
+                    'movement_type'  => 'borrow',
+                    'quantity'       => -1,
+                    'from_lab_id'    => (int) ($asset['lab_id'] ?? 0) ?: null,
+                    'to_lab_id'      => null,
+                    'reference_type' => 'loan_proposal',
+                    'reference_id'   => $proposalId,
+                    'movement_date'  => $now,
+                    'notes'          => 'Auto: check-out item proposal ' . ($proposal['proposal_code'] ?? '#'.$proposalId)
+                        . '. Item: ' . ($itemCode !== '' ? $itemCode : ('#' . $assetItemId))
+                        . '. Kondisi awal: ' . $condition,
+                    'created_by'     => auth()->id(),
+                    'created_at'     => $now,
+                ]);
+            }
+
+            $touchedAssetIds[$assetId] = true;
+        }
+
+        foreach (array_keys($touchedAssetIds) as $assetId) {
+            $this->syncAssetStockAggregate((int) $assetId);
         }
 
         $db->transComplete();
@@ -891,104 +1003,281 @@ class LoanProposalController extends BaseController
                 return redirect()->to('/loans/' . $publicId)->with('error', 'Status proposal sudah berubah, silakan muat ulang halaman.');
             }
 
+            $touchedAssetIds = [];
             foreach ($parsedItems as $payload) {
                 $item          = $payload['item'];
                 $asset         = $payload['asset'];
                 $assetId       = (int) ($asset['id'] ?? 0);
+                $proposalItemId = (int) ($item['id'] ?? 0);
                 $qtyGood       = (int) $payload['qty_good'];
                 $qtyDamaged    = (int) $payload['qty_damaged'];
                 $qtyLost       = (int) $payload['qty_lost'];
                 $itemNote      = (string) $payload['note'];
                 $itemCondition = (string) $payload['condition'];
 
-                $maintenanceId = null;
-                if ($qtyDamaged > 0) {
+                $activeAssignments = [];
+                if ($proposalItemId > 0) {
+                    $activeAssignments = $this->itemAssignmentModel
+                        ->where('proposal_item_id', $proposalItemId)
+                        ->where('returned_at IS NULL', null, false)
+                        ->orderBy('id', 'ASC')
+                        ->findAll();
+                }
+
+                // Legacy fallback: old borrowed records may not have assignment rows.
+                if (empty($activeAssignments)) {
+                    $maintenanceId = null;
+                    if ($qtyDamaged > 0) {
+                        $this->maintenanceModel->insert([
+                            'asset_id'              => $assetId,
+                            'maintenance_type'      => 'corrective',
+                            'scheduled_date'        => date('Y-m-d'),
+                            'status'                => 'scheduled',
+                            'description'           => 'Kerusakan saat check-in proposal ' . ($proposal['proposal_code'] ?? ('#' . $proposalId)),
+                            'result_notes'          => $itemNote !== '' ? $itemNote : null,
+                            'next_maintenance_date' => null,
+                            'created_by'            => auth()->id(),
+                        ]);
+                        $maintenanceId = (int) $this->maintenanceModel->getInsertID();
+                    }
+
+                    $this->itemModel->update($proposalItemId, [
+                        'qty_returned_good'     => $qtyGood,
+                        'qty_returned_damaged'  => $qtyDamaged,
+                        'qty_returned_lost'     => $qtyLost,
+                        'returned_by_user_id'   => auth()->id(),
+                        'return_condition'      => $itemCondition,
+                        'return_note'           => $itemNote !== '' ? $itemNote : null,
+                        'maintenance_record_id' => $maintenanceId,
+                        'returned_at'           => $now,
+                    ]);
+
+                    $newStockAvailable = max(0, (int) ($asset['stock_available'] ?? 0) + $qtyGood);
+                    $newStockTotal = max(0, (int) ($asset['stock_total'] ?? 0) - $qtyLost);
+
+                    $assetUpdate = [
+                        'stock_available' => $newStockAvailable,
+                        'stock_total'     => $newStockTotal,
+                        'inventory_status' => $newStockTotal <= 0 ? 'hilang' : 'aktif',
+                    ];
+
+                    if ($qtyDamaged > 0 && in_array($itemCondition, ['rusak_ringan', 'rusak_berat'], true)) {
+                        $assetUpdate['condition_status'] = $itemCondition;
+                    }
+
+                    $this->assetModel->update($assetId, $assetUpdate);
+
+                    if ($qtyGood > 0) {
+                        $this->movementModel->insert([
+                            'asset_id'       => $assetId,
+                            'movement_type'  => 'return',
+                            'quantity'       => $qtyGood,
+                            'from_lab_id'    => null,
+                            'to_lab_id'      => (int) ($asset['lab_id'] ?? 0) ?: null,
+                            'reference_type' => 'loan_proposal',
+                            'reference_id'   => $proposalId,
+                            'movement_date'  => $now,
+                            'notes'          => 'Auto: check-in item proposal ' . ($proposal['proposal_code'] ?? '#'.$proposalId) . ' (kondisi: ' . $itemCondition . ')',
+                            'created_by'     => auth()->id(),
+                            'created_at'     => $now,
+                        ]);
+                    }
+
+                    if ($qtyDamaged > 0) {
+                        $this->movementModel->insert([
+                            'asset_id'       => $assetId,
+                            'movement_type'  => 'adjustment',
+                            'quantity'       => -1 * $qtyDamaged,
+                            'from_lab_id'    => null,
+                            'to_lab_id'      => (int) ($asset['lab_id'] ?? 0) ?: null,
+                            'reference_type' => 'loan_proposal',
+                            'reference_id'   => $proposalId,
+                            'movement_date'  => $now,
+                            'notes'          => 'Auto: item rusak saat check-in proposal ' . ($proposal['proposal_code'] ?? '#'.$proposalId) . ($itemNote !== '' ? ' | ' . $itemNote : ''),
+                            'created_by'     => auth()->id(),
+                            'created_at'     => $now,
+                        ]);
+                    }
+
+                    if ($qtyLost > 0) {
+                        $this->movementModel->insert([
+                            'asset_id'       => $assetId,
+                            'movement_type'  => 'disposal',
+                            'quantity'       => -1 * $qtyLost,
+                            'from_lab_id'    => null,
+                            'to_lab_id'      => (int) ($asset['lab_id'] ?? 0) ?: null,
+                            'reference_type' => 'loan_proposal',
+                            'reference_id'   => $proposalId,
+                            'movement_date'  => $now,
+                            'notes'          => 'Auto: item hilang saat check-in proposal ' . ($proposal['proposal_code'] ?? '#'.$proposalId) . ($itemNote !== '' ? ' | ' . $itemNote : ''),
+                            'created_by'     => auth()->id(),
+                            'created_at'     => $now,
+                        ]);
+                    }
+
+                    continue;
+                }
+
+                $qtyBorrowedByAssignments = count($activeAssignments);
+                if ($qtyBorrowedByAssignments !== ($qtyGood + $qtyDamaged + $qtyLost)) {
+                    $db->transRollback();
+                    return redirect()->to('/loans/' . $publicId . '?tab=actions')->with(
+                        'error',
+                        'Data assignment item tidak sinkron untuk item ' . ($asset['name'] ?? 'alat') . '. Silakan hubungi admin.'
+                    );
+                }
+
+                $goodAssignments = array_slice($activeAssignments, 0, $qtyGood);
+                $damagedAssignments = array_slice($activeAssignments, $qtyGood, $qtyDamaged);
+                $lostAssignments = array_slice($activeAssignments, $qtyGood + $qtyDamaged, $qtyLost);
+
+                foreach ($goodAssignments as $assignment) {
+                    $assetItemId = (int) ($assignment['asset_item_id'] ?? 0);
+                    if ($assetItemId < 1) {
+                        continue;
+                    }
+
+                    $this->assetItemModel->update($assetItemId, [
+                        'inventory_status' => 'aktif',
+                        'updated_by'       => auth()->id(),
+                    ]);
+
+                    $this->itemAssignmentModel->update((int) $assignment['id'], [
+                        'return_condition' => 'baik',
+                        'return_note'      => $itemNote !== '' ? $itemNote : null,
+                        'returned_at'      => $now,
+                    ]);
+
+                    $assetItem = $this->assetItemModel->find($assetItemId);
+                    $itemCode = trim((string) ($assetItem['item_code'] ?? ''));
+                    $this->movementModel->insert([
+                        'asset_id'       => $assetId,
+                        'asset_item_id'  => $assetItemId,
+                        'movement_type'  => 'return',
+                        'quantity'       => 1,
+                        'from_lab_id'    => null,
+                        'to_lab_id'      => (int) ($asset['lab_id'] ?? 0) ?: null,
+                        'reference_type' => 'loan_proposal',
+                        'reference_id'   => $proposalId,
+                        'movement_date'  => $now,
+                        'notes'          => 'Auto: check-in item ' . ($itemCode !== '' ? $itemCode : ('#' . $assetItemId))
+                            . ' proposal ' . ($proposal['proposal_code'] ?? '#'.$proposalId),
+                        'created_by'     => auth()->id(),
+                        'created_at'     => $now,
+                    ]);
+                }
+
+                $damagedCondition = in_array($itemCondition, ['rusak_ringan', 'rusak_berat'], true)
+                    ? $itemCondition
+                    : 'rusak_ringan';
+
+                foreach ($damagedAssignments as $assignment) {
+                    $assetItemId = (int) ($assignment['asset_item_id'] ?? 0);
+                    if ($assetItemId < 1) {
+                        continue;
+                    }
+
                     $this->maintenanceModel->insert([
                         'asset_id'              => $assetId,
+                        'asset_item_id'         => $assetItemId,
                         'maintenance_type'      => 'corrective',
                         'scheduled_date'        => date('Y-m-d'),
                         'status'                => 'scheduled',
-                        'description'           => 'Kerusakan saat check-in proposal ' . ($proposal['proposal_code'] ?? ('#' . $proposalId)),
+                        'description'           => 'Kerusakan item saat check-in proposal ' . ($proposal['proposal_code'] ?? ('#' . $proposalId)),
                         'result_notes'          => $itemNote !== '' ? $itemNote : null,
                         'next_maintenance_date' => null,
                         'created_by'            => auth()->id(),
                     ]);
                     $maintenanceId = (int) $this->maintenanceModel->getInsertID();
+
+                    $this->assetItemModel->update($assetItemId, [
+                        'inventory_status' => 'dalam_perbaikan',
+                        'condition_status' => $damagedCondition,
+                        'is_loanable'      => 0,
+                        'updated_by'       => auth()->id(),
+                    ]);
+
+                    $this->itemAssignmentModel->update((int) $assignment['id'], [
+                        'return_condition'      => $damagedCondition,
+                        'return_note'           => $itemNote !== '' ? $itemNote : null,
+                        'returned_at'           => $now,
+                        'maintenance_record_id' => $maintenanceId,
+                    ]);
+
+                    $assetItem = $this->assetItemModel->find($assetItemId);
+                    $itemCode = trim((string) ($assetItem['item_code'] ?? ''));
+                    $this->movementModel->insert([
+                        'asset_id'       => $assetId,
+                        'asset_item_id'  => $assetItemId,
+                        'movement_type'  => 'adjustment',
+                        'quantity'       => -1,
+                        'from_lab_id'    => null,
+                        'to_lab_id'      => (int) ($asset['lab_id'] ?? 0) ?: null,
+                        'reference_type' => 'loan_proposal',
+                        'reference_id'   => $proposalId,
+                        'movement_date'  => $now,
+                        'notes'          => 'Auto: item rusak saat check-in proposal ' . ($proposal['proposal_code'] ?? '#'.$proposalId)
+                            . '. Item: ' . ($itemCode !== '' ? $itemCode : ('#' . $assetItemId))
+                            . ($itemNote !== '' ? ' | ' . $itemNote : ''),
+                        'created_by'     => auth()->id(),
+                        'created_at'     => $now,
+                    ]);
                 }
 
-                $this->itemModel->update((int) ($item['id'] ?? 0), [
+                foreach ($lostAssignments as $assignment) {
+                    $assetItemId = (int) ($assignment['asset_item_id'] ?? 0);
+                    if ($assetItemId < 1) {
+                        continue;
+                    }
+
+                    $this->assetItemModel->update($assetItemId, [
+                        'inventory_status' => 'hilang',
+                        'is_loanable'      => 0,
+                        'updated_by'       => auth()->id(),
+                    ]);
+
+                    $this->itemAssignmentModel->update((int) $assignment['id'], [
+                        'return_condition' => 'hilang',
+                        'return_note'      => $itemNote !== '' ? $itemNote : null,
+                        'returned_at'      => $now,
+                    ]);
+
+                    $assetItem = $this->assetItemModel->find($assetItemId);
+                    $itemCode = trim((string) ($assetItem['item_code'] ?? ''));
+                    $this->movementModel->insert([
+                        'asset_id'       => $assetId,
+                        'asset_item_id'  => $assetItemId,
+                        'movement_type'  => 'disposal',
+                        'quantity'       => -1,
+                        'from_lab_id'    => null,
+                        'to_lab_id'      => (int) ($asset['lab_id'] ?? 0) ?: null,
+                        'reference_type' => 'loan_proposal',
+                        'reference_id'   => $proposalId,
+                        'movement_date'  => $now,
+                        'notes'          => 'Auto: item hilang saat check-in proposal ' . ($proposal['proposal_code'] ?? '#'.$proposalId)
+                            . '. Item: ' . ($itemCode !== '' ? $itemCode : ('#' . $assetItemId))
+                            . ($itemNote !== '' ? ' | ' . $itemNote : ''),
+                        'created_by'     => auth()->id(),
+                        'created_at'     => $now,
+                    ]);
+                }
+
+                $this->itemModel->update($proposalItemId, [
                     'qty_returned_good'     => $qtyGood,
                     'qty_returned_damaged'  => $qtyDamaged,
                     'qty_returned_lost'     => $qtyLost,
                     'returned_by_user_id'   => auth()->id(),
                     'return_condition'      => $itemCondition,
                     'return_note'           => $itemNote !== '' ? $itemNote : null,
-                    'maintenance_record_id' => $maintenanceId,
+                    'maintenance_record_id' => null,
                     'returned_at'           => $now,
                 ]);
 
-                $newStockAvailable = max(0, (int) ($asset['stock_available'] ?? 0) + $qtyGood);
-                $newStockTotal = max(0, (int) ($asset['stock_total'] ?? 0) - $qtyLost);
+                $touchedAssetIds[$assetId] = true;
+            }
 
-                $assetUpdate = [
-                    'stock_available' => $newStockAvailable,
-                    'stock_total'     => $newStockTotal,
-                    'inventory_status' => $newStockTotal <= 0 ? 'hilang' : 'aktif',
-                ];
-
-                if ($qtyDamaged > 0 && in_array($itemCondition, ['rusak_ringan', 'rusak_berat'], true)) {
-                    $assetUpdate['condition_status'] = $itemCondition;
-                }
-
-                $this->assetModel->update($assetId, $assetUpdate);
-
-                if ($qtyGood > 0) {
-                    $this->movementModel->insert([
-                        'asset_id'       => $assetId,
-                        'movement_type'  => 'return',
-                        'quantity'       => $qtyGood,
-                        'from_lab_id'    => null,
-                        'to_lab_id'      => (int) ($asset['lab_id'] ?? 0) ?: null,
-                        'reference_type' => 'loan_proposal',
-                        'reference_id'   => $proposalId,
-                        'movement_date'  => $now,
-                        'notes'          => 'Auto: check-in item proposal ' . ($proposal['proposal_code'] ?? '#'.$proposalId) . ' (kondisi: ' . $itemCondition . ')',
-                        'created_by'     => auth()->id(),
-                        'created_at'     => $now,
-                    ]);
-                }
-
-                if ($qtyDamaged > 0) {
-                    $this->movementModel->insert([
-                        'asset_id'       => $assetId,
-                        'movement_type'  => 'adjustment',
-                        'quantity'       => -1 * $qtyDamaged,
-                        'from_lab_id'    => null,
-                        'to_lab_id'      => (int) ($asset['lab_id'] ?? 0) ?: null,
-                        'reference_type' => 'loan_proposal',
-                        'reference_id'   => $proposalId,
-                        'movement_date'  => $now,
-                        'notes'          => 'Auto: item rusak saat check-in proposal ' . ($proposal['proposal_code'] ?? '#'.$proposalId) . ($itemNote !== '' ? ' | ' . $itemNote : ''),
-                        'created_by'     => auth()->id(),
-                        'created_at'     => $now,
-                    ]);
-                }
-
-                if ($qtyLost > 0) {
-                    $this->movementModel->insert([
-                        'asset_id'       => $assetId,
-                        'movement_type'  => 'disposal',
-                        'quantity'       => -1 * $qtyLost,
-                        'from_lab_id'    => null,
-                        'to_lab_id'      => (int) ($asset['lab_id'] ?? 0) ?: null,
-                        'reference_type' => 'loan_proposal',
-                        'reference_id'   => $proposalId,
-                        'movement_date'  => $now,
-                        'notes'          => 'Auto: item hilang saat check-in proposal ' . ($proposal['proposal_code'] ?? '#'.$proposalId) . ($itemNote !== '' ? ' | ' . $itemNote : ''),
-                        'created_by'     => auth()->id(),
-                        'created_at'     => $now,
-                    ]);
-                }
+            foreach (array_keys($touchedAssetIds) as $touchedAssetId) {
+                $this->syncAssetStockAggregate((int) $touchedAssetId);
             }
 
             $db->transComplete();
@@ -1031,7 +1320,9 @@ class LoanProposalController extends BaseController
                 return redirect()->to('/loans/' . $publicId)->with('error', 'Status proposal sudah berubah, silakan muat ulang halaman.');
             }
 
+            $touchedAssetIds = [];
             foreach ($items as $item) {
+                $proposalItemId = (int) ($item['id'] ?? 0);
                 $assetId = (int) ($item['equipment_id'] ?? 0);
                 if ($assetId < 1 || ! isset($assetMap[$assetId])) {
                     continue;
@@ -1039,6 +1330,71 @@ class LoanProposalController extends BaseController
 
                 $asset = $assetMap[$assetId];
                 $qty   = (int) ($item['qty'] ?? 1);
+
+                $activeAssignments = [];
+                if ($proposalItemId > 0) {
+                    $activeAssignments = $this->itemAssignmentModel
+                        ->where('proposal_item_id', $proposalItemId)
+                        ->where('returned_at IS NULL', null, false)
+                        ->orderBy('id', 'ASC')
+                        ->findAll();
+                }
+
+                if (! empty($activeAssignments)) {
+                    foreach ($activeAssignments as $assignment) {
+                        $assetItemId = (int) ($assignment['asset_item_id'] ?? 0);
+                        if ($assetItemId < 1) {
+                            continue;
+                        }
+
+                        $this->assetItemModel->update($assetItemId, [
+                            'inventory_status' => $isLostCondition ? 'hilang' : 'aktif',
+                            'is_loanable'      => $isLostCondition ? 0 : 1,
+                            'updated_by'       => auth()->id(),
+                        ]);
+
+                        $this->itemAssignmentModel->update((int) $assignment['id'], [
+                            'return_condition' => $condition,
+                            'return_note'      => $issueNote !== '' ? $issueNote : null,
+                            'returned_at'      => $now,
+                        ]);
+
+                        $assetItem = $this->assetItemModel->find($assetItemId);
+                        $itemCode = trim((string) ($assetItem['item_code'] ?? ''));
+                        $this->movementModel->insert([
+                            'asset_id'       => $assetId,
+                            'asset_item_id'  => $assetItemId,
+                            'movement_type'  => $isLostCondition ? 'disposal' : 'return',
+                            'quantity'       => $isLostCondition ? -1 : 1,
+                            'from_lab_id'    => null,
+                            'to_lab_id'      => (int) ($asset['lab_id'] ?? 0) ?: null,
+                            'reference_type' => 'loan_proposal',
+                            'reference_id'   => $proposalId,
+                            'movement_date'  => $now,
+                            'notes'          => 'Auto: check-in item ' . ($itemCode !== '' ? $itemCode : ('#' . $assetItemId))
+                                . ' proposal ' . ($proposal['proposal_code'] ?? '#'.$proposalId)
+                                . '. Kondisi akhir: ' . $condition
+                                . ($issueNote !== '' ? ' | ' . $issueNote : ''),
+                            'created_by'     => auth()->id(),
+                            'created_at'     => $now,
+                        ]);
+                    }
+
+                    $qtyFromAssignments = count($activeAssignments);
+                    $this->itemModel->update($proposalItemId, [
+                        'qty_returned_good'     => $isLostCondition ? 0 : $qtyFromAssignments,
+                        'qty_returned_damaged'  => 0,
+                        'qty_returned_lost'     => $isLostCondition ? $qtyFromAssignments : 0,
+                        'returned_by_user_id'   => auth()->id(),
+                        'return_condition'      => $condition,
+                        'return_note'           => $issueNote !== '' ? $issueNote : null,
+                        'maintenance_record_id' => null,
+                        'returned_at'           => $now,
+                    ]);
+
+                    $touchedAssetIds[$assetId] = true;
+                    continue;
+                }
 
                 if (! $isLostCondition) {
                     $this->assetModel->update($assetId, [
@@ -1075,6 +1431,10 @@ class LoanProposalController extends BaseController
                     'created_by'     => auth()->id(),
                     'created_at'     => $now,
                 ]);
+            }
+
+            foreach (array_keys($touchedAssetIds) as $touchedAssetId) {
+                $this->syncAssetStockAggregate((int) $touchedAssetId);
             }
 
             $db->transComplete();
@@ -1598,5 +1958,35 @@ class LoanProposalController extends BaseController
             'status'  => self::STATUS_LATE,
             'is_late' => 1,
         ]);
+    }
+
+    private function syncAssetStockAggregate(int $assetId): void
+    {
+        if ($assetId < 1) {
+            return;
+        }
+
+        $db = db_connect();
+
+        $total = (int) $db->table('asset_items')
+            ->where('asset_id', $assetId)
+            ->countAllResults();
+
+        $available = (int) $db->table('asset_items')
+            ->where('asset_id', $assetId)
+            ->where('inventory_status', 'aktif')
+            ->where('is_loanable', 1)
+            ->countAllResults();
+
+        $inventoryStatus = $total <= 0 ? 'hilang' : ($available > 0 ? 'aktif' : 'dipinjam');
+
+        $db->table('lab_assets')
+            ->where('id', $assetId)
+            ->update([
+                'stock_total'      => $total,
+                'stock_available'  => $available,
+                'inventory_status' => $inventoryStatus,
+                'updated_by'       => auth()->id(),
+            ]);
     }
 }

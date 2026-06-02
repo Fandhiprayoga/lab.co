@@ -15,6 +15,7 @@ class AssetMaintenanceModel extends Model
 
     protected $allowedFields = [
         'asset_id',
+        'asset_item_id',
         'maintenance_type',
         'scheduled_date',
         'performed_date',

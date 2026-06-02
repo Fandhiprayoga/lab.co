@@ -1,3 +1,7 @@
+<?php $labs = $labs ?? []; ?>
+<?php $categories = $categories ?? []; ?>
+<?php $units = $units ?? []; ?>
+
 <div class="row">
   <!-- Left: Upload Form -->
   <div class="col-lg-5">
@@ -22,7 +26,8 @@
           <strong><i class="fas fa-info-circle mr-1"></i> Petunjuk Import:</strong>
           <ol class="mb-0 mt-2 pl-4">
             <li>Download template CSV di bawah</li>
-            <li>Isi data sesuai format — kolom bertanda <strong>*</strong> wajib diisi</li>
+              <li>Isi data header/master sesuai format — kolom bertanda <strong>*</strong> wajib diisi</li>
+              <li>Kolom <strong>Jumlah Item*</strong> dipakai sistem untuk otomatis membentuk item fisik</li>
             <li>Gunakan nilai <strong>persis sama</strong> dengan daftar referensi di sebelah kanan</li>
             <li>Upload file → sistem akan menampilkan <strong>preview &amp; validasi</strong> per baris</li>
             <li>Tinjau hasilnya, lalu klik <strong>Proses Import</strong> untuk menyimpan baris yang valid</li>
@@ -167,13 +172,6 @@
           <div class="tab-pane fade" id="ref-enum" role="tabpanel">
             <div class="row">
               <div class="col-md-6">
-                <p class="font-weight-bold small mb-1">Kondisi* <code>kondisi</code></p>
-                <div class="ref-grid mb-3">
-                  <span class="ref-badge ref-success" data-copy="baik">baik</span>
-                  <span class="ref-badge ref-warning" data-copy="perlu_perbaikan">perlu_perbaikan</span>
-                  <span class="ref-badge ref-danger" data-copy="rusak">rusak</span>
-                </div>
-
                 <p class="font-weight-bold small mb-1">Sumber Perolehan</p>
                 <div class="ref-grid mb-3">
                   <span class="ref-badge" data-copy="pembelian">pembelian</span>
@@ -182,21 +180,20 @@
                   <span class="ref-badge" data-copy="produksi">produksi</span>
                 </div>
 
-                <p class="font-weight-bold small mb-1">Boleh Dipinjam / Status Aktif</p>
+                <p class="font-weight-bold small mb-1">Status Aktif</p>
                 <div class="ref-grid mb-3">
                   <span class="ref-badge ref-success" data-copy="Ya">Ya</span>
                   <span class="ref-badge ref-danger" data-copy="Tidak">Tidak</span>
                 </div>
               </div>
               <div class="col-md-6">
-                <p class="font-weight-bold small mb-1">Status Inventaris</p>
+                <p class="font-weight-bold small mb-1">Jumlah Item</p>
                 <div class="ref-grid mb-3">
-                  <span class="ref-badge ref-success" data-copy="aktif">aktif</span>
-                  <span class="ref-badge ref-info" data-copy="dipinjam">dipinjam</span>
-                  <span class="ref-badge ref-warning" data-copy="dalam_perbaikan">dalam_perbaikan</span>
-                  <span class="ref-badge ref-danger" data-copy="dihapuskan">dihapuskan</span>
-                  <span class="ref-badge ref-secondary" data-copy="hilang">hilang</span>
+                  <span class="ref-badge ref-info" data-copy="1">1</span>
+                  <span class="ref-badge ref-info" data-copy="5">5</span>
+                  <span class="ref-badge ref-info" data-copy="10">10</span>
                 </div>
+                <small class="text-muted">Masukkan bilangan bulat positif. Sistem akan membuat item fisik otomatis.</small>
 
                 <p class="font-weight-bold small mb-1">Format Tanggal</p>
                 <div class="ref-grid">

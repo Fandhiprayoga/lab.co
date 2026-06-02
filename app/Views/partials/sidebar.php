@@ -228,6 +228,12 @@ function isDropdownActive(array $paths): string {
       </li>
       <?php endif; ?>
 
+      <?php if (activeGroupCan('lending.master.manage')): ?>
+      <li class="<?= isMenuActive('admin/loans/asset-items') ? 'active' : '' ?>">
+        <a class="nav-link" href="<?= base_url('admin/loans/asset-items') ?>"><i class="fas fa-barcode"></i> <span>Item Alat</span></a>
+      </li>
+      <?php endif; ?>
+
       <?php if (activeGroupCan('lending.master.movements.manage')): ?>
       <li class="<?= isMenuActive('admin/loans/movements') ?>">
         <a class="nav-link" href="<?= base_url('admin/loans/movements') ?>"><i class="fas fa-exchange-alt"></i> <span>Mutasi Aset</span></a>

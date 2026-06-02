@@ -13,6 +13,7 @@ class AssetMovementModel extends Model
 
     protected $allowedFields = [
         'asset_id',
+        'asset_item_id',
         'movement_type',
         'quantity',
         'from_lab_id',

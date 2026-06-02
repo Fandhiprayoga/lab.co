@@ -219,6 +219,17 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
             $routes->get('(:num)/qr/image', 'LoanAssetController::qrImage/$1');
         });
 
+        // Loan Asset Items (Item-level tracking)
+        $routes->group('loans/asset-items', ['filter' => 'permission:lending.master.manage'], static function ($routes) {
+            $routes->get('/', 'LoanAssetController::itemIndex');
+            $routes->get('create', 'LoanAssetController::itemCreate');
+            $routes->get('edit/(:num)', 'LoanAssetController::itemEdit/$1');
+            $routes->post('store', 'LoanAssetController::itemStore');
+            $routes->post('update/(:num)', 'LoanAssetController::itemUpdate/$1');
+            $routes->post('delete/(:num)', 'LoanAssetController::itemDelete/$1');
+            $routes->post('bulk-generate', 'LoanAssetController::itemBulkGenerate');
+        });
+
         // Loan Asset Categories Master Data
         $routes->group('loans/asset-categories', ['filter' => 'permission:lending.master.manage'], static function ($routes) {
             $routes->get('/', 'AssetCategoryController::index');

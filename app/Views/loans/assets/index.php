@@ -215,6 +215,9 @@ sort($categoryOptions);
                     <?php endif; ?>
                   </td>
                   <td>
+                    <a href="<?= base_url('admin/loans/asset-items?asset_id=' . $asset['id']) ?>" class="btn btn-sm btn-secondary" title="Kelola Item">
+                      <i class="fas fa-barcode"></i>
+                    </a>
                     <a href="<?= base_url('admin/loans/assets/edit/' . $asset['id']) ?>" class="btn btn-sm btn-info" title="Edit">
                       <i class="fas fa-edit"></i>
                     </a>

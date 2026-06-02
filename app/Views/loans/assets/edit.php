@@ -33,8 +33,10 @@
               <small class="form-text text-muted">Format auto: <code>LAB{lab}-{KAT}-{YY}-{seq}</code>. Boleh override manual.</small>
             </div>
             <div class="form-group col-md-6">
-              <label for="serial_number">Serial Number</label>
-              <input type="text" id="serial_number" name="serial_number" class="form-control" value="<?= old('serial_number', $asset['serial_number'] ?? '') ?>" maxlength="100">
+              <label>Item Fisik</label>
+              <div class="form-control bg-light text-muted" style="height:auto;">
+                Serial number dan identitas unit fisik dikelola di menu Item Alat.
+              </div>
             </div>
           </div>
 
@@ -84,33 +86,23 @@
             <small class="form-text text-muted">Isi 0 untuk tanpa batas waktu peminjaman (unlimited).</small>
           </div>
 
-          <div class="form-group">
-            <label for="condition_status">Status Kondisi Alat</label>
-            <?php $selectedCondition = old('condition_status', (string) ($asset['condition_status'] ?? 'baik')); ?>
-            <select id="condition_status" name="condition_status" class="form-control" required>
-              <option value="baik" <?= $selectedCondition === 'baik' ? 'selected' : '' ?>>Baik</option>
-              <option value="perlu_perbaikan" <?= $selectedCondition === 'perlu_perbaikan' ? 'selected' : '' ?>>Perlu Perbaikan</option>
-              <option value="rusak" <?= $selectedCondition === 'rusak' ? 'selected' : '' ?>>Rusak</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <div class="custom-control custom-switch">
-              <input type="checkbox" class="custom-control-input" id="is_loanable" name="is_loanable" value="1" <?= old('is_loanable', (string) ($asset['is_loanable'] ?? '1')) === '1' ? 'checked' : '' ?>>
-              <label class="custom-control-label" for="is_loanable">Status Boleh Dipinjam</label>
+          <div class="alert alert-light border">
+            <div class="font-weight-bold mb-2">Ringkasan Inventaris (otomatis dari Item Alat)</div>
+            <div class="row">
+              <div class="col-md-4 mb-2 mb-md-0">
+                <small class="text-muted d-block">Stok Total</small>
+                <strong><?= (int) ($asset['stock_total'] ?? 0) ?></strong>
+              </div>
+              <div class="col-md-4 mb-2 mb-md-0">
+                <small class="text-muted d-block">Stok Tersedia</small>
+                <strong><?= (int) ($asset['stock_available'] ?? 0) ?></strong>
+              </div>
+              <div class="col-md-4">
+                <small class="text-muted d-block">Kondisi Header</small>
+                <strong><?= esc(ucwords(str_replace('_', ' ', (string) ($asset['condition_status'] ?? 'baik')))) ?></strong>
+              </div>
             </div>
-            <small class="form-text text-muted">Jika alat berstatus rusak, sistem otomatis menonaktifkan status boleh dipinjam.</small>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group col-md-6">
-              <label for="stock_total">Stok Total</label>
-              <input type="number" id="stock_total" name="stock_total" min="1" value="<?= old('stock_total', (string) ($asset['stock_total'] ?? '1')) ?>" class="form-control" required>
-            </div>
-            <div class="form-group col-md-6">
-              <label for="stock_available">Stok Tersedia</label>
-              <input type="number" id="stock_available" name="stock_available" min="0" value="<?= old('stock_available', (string) ($asset['stock_available'] ?? '0')) ?>" class="form-control" required>
-            </div>
+            <small class="text-muted d-block mt-2">Status inventaris, loanability, dan kondisi unit fisik dikelola di menu Item Alat.</small>
           </div>
 
           <div class="form-group">
@@ -180,24 +172,10 @@
               <label for="warranty_until">Garansi Sampai</label>
               <input type="date" id="warranty_until" name="warranty_until" class="form-control" value="<?= old('warranty_until', $asset['warranty_until'] ?? '') ?>">
             </div>
-            <div class="form-group col-md-4">
-              <label for="inventory_status">Status Inventaris</label>
-              <?php $selInv = old('inventory_status', (string) ($asset['inventory_status'] ?? 'aktif')); ?>
-              <select id="inventory_status" name="inventory_status" class="form-control">
-                <?php foreach ($inventoryStatuses as $st): ?>
-                  <option value="<?= esc($st) ?>" <?= $selInv === $st ? 'selected' : '' ?>><?= esc(str_replace('_', ' ', ucfirst($st))) ?></option>
-                <?php endforeach; ?>
-              </select>
-            </div>
-            <div class="form-group col-md-4">
+            <div class="form-group col-md-8">
               <label for="minimum_stock">Stok Minimum</label>
               <input type="number" min="0" id="minimum_stock" name="minimum_stock" class="form-control" value="<?= old('minimum_stock', (string) ($asset['minimum_stock'] ?? '0')) ?>">
             </div>
-          </div>
-
-          <div class="form-group">
-            <label for="responsible_user_id">ID Penanggung Jawab (User)</label>
-            <input type="number" min="1" id="responsible_user_id" name="responsible_user_id" class="form-control" value="<?= old('responsible_user_id', $asset['responsible_user_id'] ?? '') ?>">
           </div>
 
           <div class="form-group">

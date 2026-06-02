@@ -240,6 +240,13 @@ class MenuRegistry
                 'group'      => null,
             ],
             [
+                'label'      => 'Item Alat',
+                'url'        => 'admin/loans/asset-items',
+                'icon'       => 'fas fa-barcode',
+                'permission' => 'lending.master.manage',
+                'group'      => null,
+            ],
+            [
                 'label'      => 'Mutasi Aset',
                 'url'        => 'admin/loans/movements',
                 'icon'       => 'fas fa-exchange-alt',
