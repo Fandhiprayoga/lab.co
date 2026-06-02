@@ -35,6 +35,8 @@ class LoanProposalModel extends Model
         'checkin_by',
         'checkin_condition',
         'checkin_at',
+        'checkin_phase',
+        'checkin_started_at',
         'started_use_by',
         'started_use_at',
         'finished_use_by',

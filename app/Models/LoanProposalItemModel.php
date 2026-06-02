@@ -18,6 +18,14 @@ class LoanProposalItemModel extends Model
         'equipment_id',
         'lab_id',
         'qty',
+        'qty_returned_good',
+        'qty_returned_damaged',
+        'qty_returned_lost',
+        'returned_by_user_id',
+        'return_condition',
+        'return_note',
+        'maintenance_record_id',
+        'returned_at',
         'note',
     ];
 

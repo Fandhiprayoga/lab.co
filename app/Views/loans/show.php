@@ -1079,19 +1079,51 @@ $fmtD  = fn(?string $dt) => $dt ? date('d M Y', strtotime($dt)) : '-';
           <div class="panel-body">
             <form action="<?= base_url('loans/' . $proposalPublicId . '/checkin') ?>" method="post">
               <?= csrf_field() ?>
-              <div class="form-group">
-                <label>Kondisi Akhir</label>
-                <select name="checkin_condition" class="form-control form-control-sm" required>
-                  <option value="baik">Baik</option>
-                  <option value="rusak_ringan">Rusak Ringan</option>
-                  <option value="rusak_berat">Rusak Berat</option>
-                  <option value="hilang">Hilang</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Catatan Masalah (opsional)</label>
-                <textarea name="issue_note" class="form-control form-control-sm" rows="2" placeholder="Isi jika ada kerusakan/kehilangan"></textarea>
-              </div>
+              <p class="text-muted small mb-2">
+                Isi kuantitas per item. Total <em>baik + rusak + hilang</em> harus sama dengan jumlah pinjam pada item tersebut.
+              </p>
+
+              <?php $checkinItems = array_values(array_filter($items, static fn(array $it): bool => ($it['item_type'] ?? '') === 'equipment')); ?>
+              <?php foreach ($checkinItems as $idx => $checkItem): ?>
+                <?php
+                  $itemPublicId = (string) ($checkItem['public_id'] ?? ('item_' . $idx));
+                  $itemQty = (int) ($checkItem['qty'] ?? 0);
+                  $itemName = (string) ($checkItem['equipment_name'] ?? ('Item #' . ((int) ($checkItem['equipment_id'] ?? 0))));
+                ?>
+                <div class="border rounded p-2 mb-2" style="border-color:#e5e7eb !important;">
+                  <div class="small font-weight-bold mb-2"><?= esc($itemName) ?> <span class="text-muted">(Qty pinjam: <?= $itemQty ?>)</span></div>
+                  <div class="form-row">
+                    <div class="form-group col-4">
+                      <label class="mb-1">Baik</label>
+                      <input type="number" min="0" max="<?= $itemQty ?>" name="items[<?= esc($itemPublicId) ?>][qty_good]" value="<?= $itemQty ?>" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="form-group col-4">
+                      <label class="mb-1">Rusak</label>
+                      <input type="number" min="0" max="<?= $itemQty ?>" name="items[<?= esc($itemPublicId) ?>][qty_damaged]" value="0" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="form-group col-4">
+                      <label class="mb-1">Hilang</label>
+                      <input type="number" min="0" max="<?= $itemQty ?>" name="items[<?= esc($itemPublicId) ?>][qty_lost]" value="0" class="form-control form-control-sm" required>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group col-md-5 mb-1">
+                      <label class="mb-1">Kondisi Item</label>
+                      <select name="items[<?= esc($itemPublicId) ?>][condition]" class="form-control form-control-sm" required>
+                        <option value="baik">Baik</option>
+                        <option value="rusak_ringan">Rusak Ringan</option>
+                        <option value="rusak_berat">Rusak Berat</option>
+                        <option value="hilang">Hilang</option>
+                      </select>
+                    </div>
+                    <div class="form-group col-md-7 mb-1">
+                      <label class="mb-1">Catatan Item (opsional)</label>
+                      <input type="text" name="items[<?= esc($itemPublicId) ?>][note]" class="form-control form-control-sm" placeholder="Contoh: 1 unit rusak di bagian tombol">
+                    </div>
+                  </div>
+                </div>
+              <?php endforeach; ?>
+
               <button type="submit" class="btn btn-success btn-sm btn-block btn-action">
                 <i class="fas fa-undo mr-1"></i>Proses Check-in
               </button>

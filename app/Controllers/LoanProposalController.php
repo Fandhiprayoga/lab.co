@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Models\AssetMaintenanceModel;
 use App\Models\AssetMovementModel;
 use App\Models\LabAssetModel;
 use App\Models\LabModel;
@@ -33,6 +34,7 @@ class LoanProposalController extends BaseController
     protected LabAssetModel $assetModel;
     protected LabModel $labModel;
     protected AssetMovementModel $movementModel;
+    protected AssetMaintenanceModel $maintenanceModel;
 
     public function __construct()
     {
@@ -41,6 +43,7 @@ class LoanProposalController extends BaseController
         $this->assetModel    = new LabAssetModel();
         $this->labModel      = new LabModel();
         $this->movementModel = new AssetMovementModel();
+        $this->maintenanceModel = new AssetMaintenanceModel();
     }
 
     public function index()
@@ -781,77 +784,303 @@ class LoanProposalController extends BaseController
             return redirect()->to('/loans/' . $publicId)->with('error', 'Proposal ini sudah pernah di-checkin.');
         }
 
-        $condition = strtolower(trim((string) $this->request->getPost('checkin_condition')) ?: 'baik');
-        if (! in_array($condition, self::CHECKIN_CONDITIONS, true)) {
-            return redirect()->to('/loans/' . $publicId)->with('error', 'Kondisi checkin tidak valid.');
-        }
+        $postedItems = $this->request->getPost('items');
+        $now         = Time::now()->toDateTimeString();
 
-        $issueNote = trim((string) $this->request->getPost('issue_note'));
-        $now       = Time::now()->toDateTimeString();
+        if (is_array($postedItems) && ! empty($postedItems)) {
+            $parsedItems      = [];
+            $summaryNotes     = [];
+            $hasIssue         = false;
+            $summaryCondition = 'baik';
 
-        $isLostCondition = $condition === 'hilang';
-        $hasIssue        = $issueNote !== '' || $isLostCondition;
-        $status          = $hasIssue ? self::STATUS_ISSUE : self::STATUS_RETURNED;
+            foreach ($items as $item) {
+                $assetId = (int) ($item['equipment_id'] ?? 0);
+                if ($assetId < 1 || ! isset($assetMap[$assetId])) {
+                    continue;
+                }
 
-        $db = db_connect();
-        $db->transStart();
+                $itemPublicId = (string) ($item['public_id'] ?? '');
+                $itemKey      = $itemPublicId !== '' ? $itemPublicId : (string) ((int) ($item['id'] ?? 0));
+                $rawItem      = $postedItems[$itemKey] ?? null;
 
-        $updated = $db->table('loan_proposals')
-            ->where('id', $proposalId)
-            ->whereIn('status', [self::STATUS_BORROWED, self::STATUS_LATE])
-            ->where('checkin_at IS NULL', null, false)
-            ->update([
-            'status'            => $status,
-            'checkin_by'        => auth()->id(),
-            'checkin_condition' => $condition,
-            'checkin_at'        => $now,
-            'issue_flag'        => $hasIssue ? 1 : 0,
-            'issue_note'        => $issueNote !== '' ? $issueNote : null,
-            ]);
+                if (! is_array($rawItem)) {
+                    return redirect()->to('/loans/' . $publicId . '?tab=actions')->with('error', 'Input check-in item tidak lengkap.');
+                }
 
-        if (! $updated || $db->affectedRows() < 1) {
-            $db->transRollback();
-            return redirect()->to('/loans/' . $publicId)->with('error', 'Status proposal sudah berubah, silakan muat ulang halaman.');
-        }
+                $qtyBorrowed = (int) ($item['qty'] ?? 0);
+                $qtyGood     = max(0, (int) ($rawItem['qty_good'] ?? 0));
+                $qtyDamaged  = max(0, (int) ($rawItem['qty_damaged'] ?? 0));
+                $qtyLost     = max(0, (int) ($rawItem['qty_lost'] ?? 0));
+                $totalInput  = $qtyGood + $qtyDamaged + $qtyLost;
 
-        foreach ($items as $item) {
-            $assetId = (int) ($item['equipment_id'] ?? 0);
-            if ($assetId < 1 || ! isset($assetMap[$assetId])) {
-                continue;
+                if ($totalInput !== $qtyBorrowed) {
+                    return redirect()->to('/loans/' . $publicId . '?tab=actions')->with(
+                        'error',
+                        'Jumlah check-in untuk item ' . ($assetMap[$assetId]['name'] ?? 'alat') . ' harus tepat ' . $qtyBorrowed . '.'
+                    );
+                }
+
+                $itemCondition = strtolower(trim((string) ($rawItem['condition'] ?? '')));
+                if ($itemCondition === '') {
+                    if ($qtyLost > 0) {
+                        $itemCondition = 'hilang';
+                    } elseif ($qtyDamaged > 0) {
+                        $itemCondition = 'rusak_ringan';
+                    } else {
+                        $itemCondition = 'baik';
+                    }
+                }
+
+                if (! in_array($itemCondition, self::CHECKIN_CONDITIONS, true)) {
+                    return redirect()->to('/loans/' . $publicId . '?tab=actions')->with('error', 'Kondisi check-in item tidak valid.');
+                }
+
+                $itemNote = trim((string) ($rawItem['note'] ?? ''));
+                if ($qtyDamaged > 0 || $qtyLost > 0) {
+                    $hasIssue = true;
+                    if ($qtyLost > 0) {
+                        $summaryCondition = 'hilang';
+                    } elseif ($summaryCondition !== 'hilang') {
+                        $summaryCondition = 'rusak_ringan';
+                    }
+
+                    $summaryNotes[] = ($assetMap[$assetId]['name'] ?? 'Alat')
+                        . ': baik=' . $qtyGood
+                        . ', rusak=' . $qtyDamaged
+                        . ', hilang=' . $qtyLost
+                        . ($itemNote !== '' ? ' (' . $itemNote . ')' : '');
+                }
+
+                $parsedItems[] = [
+                    'item'          => $item,
+                    'asset'         => $assetMap[$assetId],
+                    'qty_good'      => $qtyGood,
+                    'qty_damaged'   => $qtyDamaged,
+                    'qty_lost'      => $qtyLost,
+                    'condition'     => $itemCondition,
+                    'note'          => $itemNote,
+                ];
             }
 
-            $asset = $assetMap[$assetId];
-            $qty   = (int) ($item['qty'] ?? 1);
+            if (empty($parsedItems)) {
+                return redirect()->to('/loans/' . $publicId . '?tab=actions')->with('error', 'Tidak ada item alat yang diproses untuk check-in.');
+            }
 
-            if (! $isLostCondition) {
-                $this->assetModel->update($assetId, [
-                    'stock_available'  => (int) $asset['stock_available'] + $qty,
-                    'inventory_status' => 'aktif',
+            $status = $hasIssue ? self::STATUS_ISSUE : self::STATUS_RETURNED;
+
+            $db = db_connect();
+            $db->transStart();
+
+            $updated = $db->table('loan_proposals')
+                ->where('id', $proposalId)
+                ->whereIn('status', [self::STATUS_BORROWED, self::STATUS_LATE])
+                ->where('checkin_at IS NULL', null, false)
+                ->update([
+                    'status'             => $status,
+                    'checkin_by'         => auth()->id(),
+                    'checkin_condition'  => $summaryCondition,
+                    'checkin_at'         => $now,
+                    'checkin_phase'      => 'complete',
+                    'checkin_started_at' => $proposal['checkin_started_at'] ?? $now,
+                    'issue_flag'         => $hasIssue ? 1 : 0,
+                    'issue_note'         => ! empty($summaryNotes) ? implode(' | ', $summaryNotes) : null,
                 ]);
-            } else {
-                $this->assetModel->update($assetId, [
-                    'inventory_status' => 'hilang',
+
+            if (! $updated || $db->affectedRows() < 1) {
+                $db->transRollback();
+                return redirect()->to('/loans/' . $publicId)->with('error', 'Status proposal sudah berubah, silakan muat ulang halaman.');
+            }
+
+            foreach ($parsedItems as $payload) {
+                $item          = $payload['item'];
+                $asset         = $payload['asset'];
+                $assetId       = (int) ($asset['id'] ?? 0);
+                $qtyGood       = (int) $payload['qty_good'];
+                $qtyDamaged    = (int) $payload['qty_damaged'];
+                $qtyLost       = (int) $payload['qty_lost'];
+                $itemNote      = (string) $payload['note'];
+                $itemCondition = (string) $payload['condition'];
+
+                $maintenanceId = null;
+                if ($qtyDamaged > 0) {
+                    $this->maintenanceModel->insert([
+                        'asset_id'              => $assetId,
+                        'maintenance_type'      => 'corrective',
+                        'scheduled_date'        => date('Y-m-d'),
+                        'status'                => 'scheduled',
+                        'description'           => 'Kerusakan saat check-in proposal ' . ($proposal['proposal_code'] ?? ('#' . $proposalId)),
+                        'result_notes'          => $itemNote !== '' ? $itemNote : null,
+                        'next_maintenance_date' => null,
+                        'created_by'            => auth()->id(),
+                    ]);
+                    $maintenanceId = (int) $this->maintenanceModel->getInsertID();
+                }
+
+                $this->itemModel->update((int) ($item['id'] ?? 0), [
+                    'qty_returned_good'     => $qtyGood,
+                    'qty_returned_damaged'  => $qtyDamaged,
+                    'qty_returned_lost'     => $qtyLost,
+                    'returned_by_user_id'   => auth()->id(),
+                    'return_condition'      => $itemCondition,
+                    'return_note'           => $itemNote !== '' ? $itemNote : null,
+                    'maintenance_record_id' => $maintenanceId,
+                    'returned_at'           => $now,
+                ]);
+
+                $newStockAvailable = max(0, (int) ($asset['stock_available'] ?? 0) + $qtyGood);
+                $newStockTotal = max(0, (int) ($asset['stock_total'] ?? 0) - $qtyLost);
+
+                $assetUpdate = [
+                    'stock_available' => $newStockAvailable,
+                    'stock_total'     => $newStockTotal,
+                    'inventory_status' => $newStockTotal <= 0 ? 'hilang' : 'aktif',
+                ];
+
+                if ($qtyDamaged > 0 && in_array($itemCondition, ['rusak_ringan', 'rusak_berat'], true)) {
+                    $assetUpdate['condition_status'] = $itemCondition;
+                }
+
+                $this->assetModel->update($assetId, $assetUpdate);
+
+                if ($qtyGood > 0) {
+                    $this->movementModel->insert([
+                        'asset_id'       => $assetId,
+                        'movement_type'  => 'return',
+                        'quantity'       => $qtyGood,
+                        'from_lab_id'    => null,
+                        'to_lab_id'      => (int) ($asset['lab_id'] ?? 0) ?: null,
+                        'reference_type' => 'loan_proposal',
+                        'reference_id'   => $proposalId,
+                        'movement_date'  => $now,
+                        'notes'          => 'Auto: check-in item proposal ' . ($proposal['proposal_code'] ?? '#'.$proposalId) . ' (kondisi: ' . $itemCondition . ')',
+                        'created_by'     => auth()->id(),
+                        'created_at'     => $now,
+                    ]);
+                }
+
+                if ($qtyDamaged > 0) {
+                    $this->movementModel->insert([
+                        'asset_id'       => $assetId,
+                        'movement_type'  => 'adjustment',
+                        'quantity'       => -1 * $qtyDamaged,
+                        'from_lab_id'    => null,
+                        'to_lab_id'      => (int) ($asset['lab_id'] ?? 0) ?: null,
+                        'reference_type' => 'loan_proposal',
+                        'reference_id'   => $proposalId,
+                        'movement_date'  => $now,
+                        'notes'          => 'Auto: item rusak saat check-in proposal ' . ($proposal['proposal_code'] ?? '#'.$proposalId) . ($itemNote !== '' ? ' | ' . $itemNote : ''),
+                        'created_by'     => auth()->id(),
+                        'created_at'     => $now,
+                    ]);
+                }
+
+                if ($qtyLost > 0) {
+                    $this->movementModel->insert([
+                        'asset_id'       => $assetId,
+                        'movement_type'  => 'disposal',
+                        'quantity'       => -1 * $qtyLost,
+                        'from_lab_id'    => null,
+                        'to_lab_id'      => (int) ($asset['lab_id'] ?? 0) ?: null,
+                        'reference_type' => 'loan_proposal',
+                        'reference_id'   => $proposalId,
+                        'movement_date'  => $now,
+                        'notes'          => 'Auto: item hilang saat check-in proposal ' . ($proposal['proposal_code'] ?? '#'.$proposalId) . ($itemNote !== '' ? ' | ' . $itemNote : ''),
+                        'created_by'     => auth()->id(),
+                        'created_at'     => $now,
+                    ]);
+                }
+            }
+
+            $db->transComplete();
+            if (! $db->transStatus()) {
+                return redirect()->to('/loans/' . $publicId)->with('error', 'Gagal memproses check-in proposal.');
+            }
+        } else {
+            // Backward compatibility for old check-in payload.
+            $condition = strtolower(trim((string) $this->request->getPost('checkin_condition')) ?: 'baik');
+            if (! in_array($condition, self::CHECKIN_CONDITIONS, true)) {
+                return redirect()->to('/loans/' . $publicId)->with('error', 'Kondisi checkin tidak valid.');
+            }
+
+            $issueNote = trim((string) $this->request->getPost('issue_note'));
+
+            $isLostCondition = $condition === 'hilang';
+            $hasIssue        = $issueNote !== '' || $isLostCondition;
+            $status          = $hasIssue ? self::STATUS_ISSUE : self::STATUS_RETURNED;
+
+            $db = db_connect();
+            $db->transStart();
+
+            $updated = $db->table('loan_proposals')
+                ->where('id', $proposalId)
+                ->whereIn('status', [self::STATUS_BORROWED, self::STATUS_LATE])
+                ->where('checkin_at IS NULL', null, false)
+                ->update([
+                    'status'             => $status,
+                    'checkin_by'         => auth()->id(),
+                    'checkin_condition'  => $condition,
+                    'checkin_at'         => $now,
+                    'checkin_phase'      => 'complete',
+                    'checkin_started_at' => $proposal['checkin_started_at'] ?? $now,
+                    'issue_flag'         => $hasIssue ? 1 : 0,
+                    'issue_note'         => $issueNote !== '' ? $issueNote : null,
+                ]);
+
+            if (! $updated || $db->affectedRows() < 1) {
+                $db->transRollback();
+                return redirect()->to('/loans/' . $publicId)->with('error', 'Status proposal sudah berubah, silakan muat ulang halaman.');
+            }
+
+            foreach ($items as $item) {
+                $assetId = (int) ($item['equipment_id'] ?? 0);
+                if ($assetId < 1 || ! isset($assetMap[$assetId])) {
+                    continue;
+                }
+
+                $asset = $assetMap[$assetId];
+                $qty   = (int) ($item['qty'] ?? 1);
+
+                if (! $isLostCondition) {
+                    $this->assetModel->update($assetId, [
+                        'stock_available'  => (int) $asset['stock_available'] + $qty,
+                        'inventory_status' => 'aktif',
+                    ]);
+                } else {
+                    $this->assetModel->update($assetId, [
+                        'inventory_status' => 'hilang',
+                    ]);
+                }
+
+                $this->itemModel->update((int) ($item['id'] ?? 0), [
+                    'qty_returned_good'     => $isLostCondition ? 0 : $qty,
+                    'qty_returned_damaged'  => 0,
+                    'qty_returned_lost'     => $isLostCondition ? $qty : 0,
+                    'returned_by_user_id'   => auth()->id(),
+                    'return_condition'      => $condition,
+                    'return_note'           => $issueNote !== '' ? $issueNote : null,
+                    'maintenance_record_id' => null,
+                    'returned_at'           => $now,
+                ]);
+
+                $this->movementModel->insert([
+                    'asset_id'       => $assetId,
+                    'movement_type'  => $isLostCondition ? 'disposal' : 'return',
+                    'quantity'       => $isLostCondition ? -1 * $qty : $qty,
+                    'from_lab_id'    => null,
+                    'to_lab_id'      => (int) ($asset['lab_id'] ?? 0) ?: null,
+                    'reference_type' => 'loan_proposal',
+                    'reference_id'   => $proposalId,
+                    'movement_date'  => $now,
+                    'notes'          => 'Auto: check-in proposal ' . ($proposal['proposal_code'] ?? '#'.$proposalId) . '. Kondisi akhir: ' . $condition . ($issueNote !== '' ? ' | ' . $issueNote : ''),
+                    'created_by'     => auth()->id(),
+                    'created_at'     => $now,
                 ]);
             }
 
-            $this->movementModel->insert([
-                'asset_id'       => $assetId,
-                'movement_type'  => $isLostCondition ? 'disposal' : 'return',
-                'quantity'       => $isLostCondition ? -1 * $qty : $qty,
-                'from_lab_id'    => null,
-                'to_lab_id'      => (int) ($asset['lab_id'] ?? 0) ?: null,
-                'reference_type' => 'loan_proposal',
-                'reference_id'   => $proposalId,
-                'movement_date'  => $now,
-                'notes'          => 'Auto: check-in proposal ' . ($proposal['proposal_code'] ?? '#'.$proposalId) . '. Kondisi akhir: ' . $condition . ($issueNote !== '' ? ' | ' . $issueNote : ''),
-                'created_by'     => auth()->id(),
-                'created_at'     => $now,
-            ]);
-        }
-
-        $db->transComplete();
-        if (! $db->transStatus()) {
-            return redirect()->to('/loans/' . $publicId)->with('error', 'Gagal memproses check-in proposal.');
+            $db->transComplete();
+            if (! $db->transStatus()) {
+                return redirect()->to('/loans/' . $publicId)->with('error', 'Gagal memproses check-in proposal.');
+            }
         }
 
         send_notification((int) $proposal['proposer_id'], 'loan.checked_in', [
