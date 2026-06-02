@@ -278,27 +278,30 @@
       genModal.appendTo('body');
     }
 
-    function initFilterAssetSelect2() {
-      var filterSelect = $('#filter-asset-id');
-      if (!filterSelect.length || !$.fn.select2) {
-        return;
+    function initSingleSelect2(selector, placeholder) {
+      var el = $(selector);
+      if (!el.length || !$.fn.select2) return;
+
+      if (el.data('select2')) {
+        el.select2('destroy');
       }
 
-      if (filterSelect.hasClass('select2-hidden-accessible')) {
-        return;
-      }
-
-      filterSelect.select2({
-        placeholder: 'Semua Master Alat',
+      el.select2({
+        placeholder: placeholder,
         allowClear: true,
         width: '100%',
         dropdownParent: drawer
       });
     }
 
-    if ($.fn.select2) {
-      initFilterAssetSelect2();
-    } else {
+    function initFilterSelect2s() {
+      initSingleSelect2('#filter-asset-id', 'Semua Master Alat');
+      initSingleSelect2('#filter-lab-id', 'Semua Lab');
+    }
+
+    function ensureSelect2Loaded(callback) {
+      if ($.fn.select2) { callback(); return; }
+
       if (!$('link[data-asset-select2-css]').length) {
         $('<link>', {
           rel: 'stylesheet',
@@ -308,9 +311,7 @@
       }
 
       $.getScript('<?= base_url('assets/modules/select2/dist/js/select2.min.js') ?>')
-        .done(function () {
-          initFilterAssetSelect2();
-        });
+        .done(callback);
     }
 
     function setDrawerState(open) {
@@ -427,11 +428,20 @@
     });
 
     $('#open-item-filter').on('click', function () {
-      initFilterAssetSelect2();
       setDrawerState(true);
+      ensureSelect2Loaded(initFilterSelect2s);
     });
 
+    function destroyFilterSelect2s() {
+      ['#filter-asset-id', '#filter-lab-id'].forEach(function (sel) {
+        if ($(sel).data('select2')) {
+          $(sel).select2('destroy');
+        }
+      });
+    }
+
     $('#close-item-filter, #asset-item-filter-overlay').on('click', function () {
+      destroyFilterSelect2s();
       setDrawerState(false);
     });
 
@@ -443,7 +453,7 @@
 
     $('#reset-item-filter').on('click', function () {
       $('#filter-asset-id').val('').trigger('change.select2');
-      $('#filter-lab-id').val('');
+      $('#filter-lab-id').val('').trigger('change.select2');
       $('#filter-condition').val('');
       $('#filter-inventory').val('');
       $('#filter-loanable').val('');
@@ -457,7 +467,7 @@
         $('#filter-asset-id').val('').trigger('change.select2');
       }
       if (key === 'lab') {
-        $('#filter-lab-id').val('');
+        $('#filter-lab-id').val('').trigger('change.select2');
       }
       if (key === 'condition') {
         $('#filter-condition').val('');

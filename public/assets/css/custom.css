@@ -5,7 +5,10 @@
  * 
  */
 
-/* Fix modal backdrop z-index for Stisla template */
+/* Fix modal z-index for Stisla template */
+.modal {
+  z-index: 9999 !important;
+}
 .modal-backdrop {
   z-index: 9998 !important;
 }
