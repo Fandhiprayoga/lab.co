@@ -38,6 +38,13 @@ class MenuRegistry
             // Peminjaman Lab
             // -------------------------------------------------------
             [
+                'label'      => 'Beranda Peminjaman',
+                'url'        => 'loans/beranda',
+                'icon'       => 'fas fa-home',
+                'permission' => 'lending.access',
+                'group'      => null,
+            ],
+            [
                 'label'      => 'Buat Proposal Peminjaman',
                 'url'        => 'loans/create',
                 'icon'       => 'fas fa-file-alt',

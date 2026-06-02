@@ -104,6 +104,45 @@ class LoanProposalController extends BaseController
         ]);
     }
 
+    /**
+     * Beranda modul peminjaman untuk menjelaskan fitur, alur proses,
+     * serta role yang terlibat dalam peminjaman lab dan alat.
+     */
+    public function beranda()
+    {
+        $this->syncLateStatuses();
+
+        $isManager = $this->canManageGlobal();
+
+        $countByStatuses = static function (array $statuses) use ($isManager): int {
+            $builder = db_connect()->table('loan_proposals')->whereIn('status', $statuses);
+            if (! $isManager) {
+                $builder->where('proposer_id', auth()->id());
+            }
+
+            return $builder->countAllResults();
+        };
+
+        $totalBuilder = db_connect()->table('loan_proposals');
+        if (! $isManager) {
+            $totalBuilder->where('proposer_id', auth()->id());
+        }
+
+        $stats = [
+            'total'    => $totalBuilder->countAllResults(),
+            'pending'  => $countByStatuses([self::STATUS_WAITING_L1, self::STATUS_WAITING_L2]),
+            'approved' => $countByStatuses([self::STATUS_APPROVED]),
+            'running'  => $countByStatuses([self::STATUS_BORROWED, self::STATUS_LATE, self::STATUS_IN_USE]),
+        ];
+
+        return $this->renderView('loans/beranda', [
+            'title'      => 'Beranda Peminjaman',
+            'page_title' => 'Beranda Peminjaman Lab & Alat',
+            'isManager'  => $isManager,
+            'stats'      => $stats,
+        ]);
+    }
+
     public function create()
     {
         $type = $this->request->getGet('type');

@@ -60,6 +60,7 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
 
     // Loan Module
     $routes->group('loans', ['filter' => 'permission:lending.access'], static function ($routes) {
+        $routes->get('beranda', 'LoanProposalController::beranda');
         $routes->get('/', 'LoanProposalController::index', ['filter' => 'permission:lending.request.track']);
         $routes->get('create', 'LoanProposalController::create', ['filter' => 'permission:lending.request.create']);
         $routes->post('store', 'LoanProposalController::store', ['filter' => 'permission:lending.request.create']);

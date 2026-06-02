@@ -40,6 +40,10 @@ function isDropdownActive(array $paths): string {
       <?php if (activeGroupCan('lending.access')): ?>
       <li class="menu-header">Peminjaman Lab</li>
 
+      <li class="<?= isMenuActive('loans/beranda') ?>">
+        <a class="nav-link" href="<?= base_url('loans/beranda') ?>"><i class="fas fa-home"></i> <span>Beranda Peminjaman</span></a>
+      </li>
+
       <?php if (activeGroupCan('lending.request.create')): ?>
       <li class="<?= isMenuActive('loans/create') ?>">
         <a class="nav-link" href="<?= base_url('loans/create') ?>"><i class="fas fa-file-alt"></i> <span>Buat Proposal</span></a>
@@ -47,7 +51,7 @@ function isDropdownActive(array $paths): string {
       <?php endif; ?>
 
       <?php if (activeGroupCan('lending.request.track')): ?>
-      <li class="<?= (strpos($currentUrl, 'loans') === 0) && !isMenuActive('loans/create') && !isMenuActive('loans/analytics') ? 'active' : '' ?>">
+      <li class="<?= (strpos($currentUrl, 'loans') === 0) && !isMenuActive('loans/create') && !isMenuActive('loans/analytics') && !isMenuActive('loans/beranda') ? 'active' : '' ?>">
         <a class="nav-link" href="<?= base_url('loans') ?>"><i class="fas fa-clipboard-list"></i> <span>Permohonan</span></a>
       </li>
       <?php endif; ?>
