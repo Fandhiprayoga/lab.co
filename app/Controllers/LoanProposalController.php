@@ -267,7 +267,7 @@ class LoanProposalController extends BaseController
         $proposalId = (int) ($proposal['id'] ?? 0);
 
         $items = db_connect()->table('loan_proposal_items i')
-            ->select('i.*, a.name AS equipment_name, a.photo AS equipment_photo, a.category AS equipment_category, al.name AS equipment_lab_name, al.location AS equipment_lab_location, l.name AS lab_name, l.code AS lab_code, l.location AS lab_location, l.capacity AS lab_capacity, l.logo AS lab_logo')
+            ->select('i.*, a.name AS equipment_name, a.photo AS equipment_photo, a.category AS equipment_category, al.id AS equipment_lab_id, al.name AS equipment_lab_name, al.location AS equipment_lab_location, l.name AS lab_name, l.code AS lab_code, l.location AS lab_location, l.capacity AS lab_capacity, l.logo AS lab_logo')
             ->join('lab_assets a', 'a.id = i.equipment_id', 'left')
             ->join('labs al', 'al.id = a.lab_id', 'left')
             ->join('labs l', 'l.id = i.lab_id', 'left')
@@ -276,11 +276,33 @@ class LoanProposalController extends BaseController
             ->get()->getResultArray();
 
         $loanType            = $proposal['loan_type'] ?? 'equipment';
+        $selectedEquipmentLabId = null;
+        $selectedEquipmentLabName = null;
+
+        if ($loanType === 'equipment') {
+            foreach ($items as $item) {
+                if (($item['item_type'] ?? '') !== 'equipment') {
+                    continue;
+                }
+
+                $labId = (int) ($item['equipment_lab_id'] ?? 0);
+                if ($labId > 0) {
+                    $selectedEquipmentLabId = $labId;
+                    $selectedEquipmentLabName = (string) ($item['equipment_lab_name'] ?? '');
+                    break;
+                }
+            }
+        }
+
+        $labItemCount        = $loanType === 'lab'
+            ? count(array_filter($items, static fn (array $item): bool => ($item['item_type'] ?? '') === 'lab'))
+            : 0;
+        $labSelectionLocked  = $loanType === 'lab' && $labItemCount >= 1;
         $availableEquipments = [];
         $availableLabs       = [];
 
         if ($loanType === 'equipment') {
-            $availableEquipments = db_connect()->table('lab_assets a')
+            $equipmentBuilder = db_connect()->table('lab_assets a')
                 ->select('a.id, a.name, a.category, a.photo, a.specifications, a.stock_available, a.stock_total, l.name AS lab_name, l.location AS lab_location')
                 ->join('labs l', 'l.id = a.lab_id', 'left')
                 ->where('a.is_active', 1)
@@ -288,8 +310,13 @@ class LoanProposalController extends BaseController
                 ->where('a.is_loanable', 1)
                 ->where('a.condition_status', 'baik')
                 ->where('a.stock_available >', 0)
-                ->orderBy('a.name', 'ASC')
-                ->get()->getResultArray();
+                ->orderBy('a.name', 'ASC');
+
+            if ($selectedEquipmentLabId !== null) {
+                $equipmentBuilder->where('a.lab_id', $selectedEquipmentLabId);
+            }
+
+            $availableEquipments = $equipmentBuilder->get()->getResultArray();
         } else {
             $availableLabs = db_connect()->table('labs l')
                 ->select('l.id, l.name, l.code, l.location, l.capacity, l.logo, l.condition_status')
@@ -307,6 +334,10 @@ class LoanProposalController extends BaseController
             'items'               => $items,
             'availableEquipments' => $availableEquipments,
             'availableLabs'       => $availableLabs,
+            'selectedEquipmentLabId' => $selectedEquipmentLabId,
+            'selectedEquipmentLabName' => $selectedEquipmentLabName,
+            'labItemCount'        => $labItemCount,
+            'labSelectionLocked'  => $labSelectionLocked,
         ]);
     }
 
@@ -344,6 +375,20 @@ class LoanProposalController extends BaseController
             return redirect()->to('/loans/' . $publicId . '/items')->with('error', 'Jumlah alat melebihi stok tersedia.');
         }
 
+        $lockedLabId = db_connect()->table('loan_proposal_items i')
+            ->select('a.lab_id')
+            ->join('lab_assets a', 'a.id = i.equipment_id', 'inner')
+            ->where('i.proposal_id', $proposalId)
+            ->where('i.item_type', 'equipment')
+            ->orderBy('i.id', 'ASC')
+            ->limit(1)
+            ->get()
+            ->getRow('lab_id');
+
+        if ($lockedLabId !== null && (int) $lockedLabId !== (int) ($equipment['lab_id'] ?? 0)) {
+            return redirect()->to('/loans/' . $publicId . '/items')->with('error', 'Untuk proposal ini, alat hanya boleh dipilih dari lab yang sama dengan item pertama.');
+        }
+
         $this->itemModel->insert([
             'proposal_id'   => $proposalId,
             'item_type'     => 'equipment',
@@ -370,6 +415,15 @@ class LoanProposalController extends BaseController
 
         if (($proposal['loan_type'] ?? '') !== 'lab') {
             return redirect()->to('/loans/' . $publicId . '/items')->with('error', 'Proposal ini adalah proposal peminjaman alat, bukan lab.');
+        }
+
+        $existingLabCount = $this->itemModel
+            ->where('proposal_id', $proposalId)
+            ->where('item_type', 'lab')
+            ->countAllResults();
+
+        if ($existingLabCount >= 1) {
+            return redirect()->to('/loans/' . $publicId . '/items')->with('error', 'Proposal peminjaman lab hanya boleh memiliki maksimal 1 item lab.');
         }
 
         $lab = $this->labModel->find($labId);
@@ -451,13 +505,60 @@ class LoanProposalController extends BaseController
             return redirect()->to('/loans/' . $publicId . '/items' . $tabQuery)->with('error', 'Tambahkan minimal 1 item sebelum kirim approval.');
         }
 
-        if (($proposal['loan_type'] ?? 'equipment') === 'lab' && $this->hasLabScheduleConflict($proposalId, $proposal)) {
+        $isLabLoan = ($proposal['loan_type'] ?? 'equipment') === 'lab';
+        $isEquipmentLoan = ! $isLabLoan;
+        $labTermsChecklist = null;
+        $equipmentTermsChecklist = null;
+
+        if ($isEquipmentLoan) {
+            $term1 = $this->request->getPost('equipment_term_sop') === '1';
+            $term2 = $this->request->getPost('equipment_term_return') === '1';
+            $term3 = $this->request->getPost('equipment_term_responsibility') === '1';
+
+            if (! $term1 || ! $term2 || ! $term3) {
+                return redirect()->to('/loans/' . $publicId . '/items' . $tabQuery)
+                    ->with('error', 'Syarat & Ketentuan peminjaman alat wajib dicentang semua sebelum kirim approval.');
+            }
+
+            $equipmentTermsChecklist = json_encode([
+                'sop_commitment' => $term1,
+                'return_commitment' => $term2,
+                'responsibility_ack' => $term3,
+                'accepted_at' => Time::now()->toDateTimeString(),
+            ], JSON_UNESCAPED_UNICODE);
+        }
+
+        if ($isLabLoan) {
+            $term1 = $this->request->getPost('lab_term_cleanliness') === '1';
+            $term2 = $this->request->getPost('lab_term_restore') === '1';
+            $term3 = $this->request->getPost('lab_term_cancellation') === '1';
+
+            if (! $term1 || ! $term2 || ! $term3) {
+                return redirect()->to('/loans/' . $publicId . '/items' . $tabQuery)
+                    ->with('error', 'Syarat & Ketentuan peminjaman lab wajib dicentang semua sebelum kirim approval.');
+            }
+
+            $labTermsChecklist = json_encode([
+                'cleanliness_commitment' => $term1,
+                'restore_commitment' => $term2,
+                'institutional_cancellation_ack' => $term3,
+                'accepted_at' => Time::now()->toDateTimeString(),
+            ], JSON_UNESCAPED_UNICODE);
+        }
+
+        if ($isLabLoan && $itemCount > 1) {
+            return redirect()->to('/loans/' . $publicId . '/items' . $tabQuery)->with('error', 'Proposal peminjaman lab hanya boleh memiliki maksimal 1 item lab.');
+        }
+
+        if ($isLabLoan && $this->hasLabScheduleConflict($proposalId, $proposal)) {
             return redirect()->to('/loans/' . $publicId . '/items' . $tabQuery)->with('error', 'Jadwal bentrok dengan proposal ruangan lain yang masih aktif. Silakan ubah waktu atau item lab.');
         }
 
         $this->proposalModel->update($proposalId, [
             'status'       => self::STATUS_WAITING_L1,
             'submitted_at' => Time::now()->toDateTimeString(),
+            'lab_terms_checks' => $labTermsChecklist,
+            'equipment_terms_checks' => $equipmentTermsChecklist,
         ]);
 
         notify_role('laboran', 'loan.submitted', [

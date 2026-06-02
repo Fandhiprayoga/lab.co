@@ -42,6 +42,8 @@ class LoanProposalModel extends Model
         'is_late',
         'issue_flag',
         'issue_note',
+        'lab_terms_checks',
+        'equipment_terms_checks',
         'rejected_reason',
         'cancel_reason',
         'canceled_by',

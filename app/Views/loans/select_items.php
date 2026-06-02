@@ -12,6 +12,9 @@ $accentBg     = $isEquipment ? 'rgba(79,195,247,.08)' : 'rgba(129,199,132,.08)';
 $accentBorder = $isEquipment ? '#4fc3f7' : '#81c784';
 $typeLabel    = $isEquipment ? 'Alat' : 'Laboratorium';
 $typeIcon     = $isEquipment ? 'fa-tools' : 'fa-door-open';
+$labSelectionLocked = $labSelectionLocked ?? false;
+$selectedEquipmentLabId = isset($selectedEquipmentLabId) ? (int) $selectedEquipmentLabId : null;
+$selectedEquipmentLabName = trim((string) ($selectedEquipmentLabName ?? ''));
 
 $addedIds = array_column($items, $isEquipment ? 'equipment_id' : 'lab_id');
 $itemCount = count($items);
@@ -265,9 +268,12 @@ $itemCount = count($items);
     align-items: center;
     display: flex;
     gap: .58rem;
+    flex-wrap: nowrap;
     margin-left: auto;
+    width: auto;
   }
   .loan-select-page .action-btn-group form {
+    flex: 0 0 auto;
     margin: 0;
   }
   .loan-select-page .btn-action-unified {
@@ -316,13 +322,12 @@ $itemCount = count($items);
     .loan-select-page .action-meta-grid { grid-template-columns: 1fr; }
     .loan-select-page .action-row { justify-content: stretch; }
     .loan-select-page .action-btn-group {
-      flex-direction: column;
-      margin-left: 0;
-      width: 100%;
+      margin-left: auto;
+      width: auto;
     }
     .loan-select-page .action-btn-group form,
     .loan-select-page .action-btn-group .btn {
-      width: 100%;
+      width: auto;
     }
   }
 </style>
@@ -498,6 +503,12 @@ $itemCount = count($items);
 
       <div class="card-body p-3">
         <?php if ($isEquipment): ?>
+        <?php if ($selectedEquipmentLabId !== null): ?>
+          <div class="alert alert-info mb-3 py-2 px-3" style="font-size:.8rem;border-radius:10px;">
+            Katalog dibatasi ke lab yang sama dengan item pertama:
+            <strong><?= esc($selectedEquipmentLabName !== '' ? $selectedEquipmentLabName : ('Lab #' . $selectedEquipmentLabId)) ?></strong>.
+          </div>
+        <?php endif; ?>
         <?php if (empty($availableEquipments)): ?>
           <div class="text-center py-5 text-muted">
             <i class="fas fa-box-open fa-3x mb-3 d-block text-light"></i>
@@ -602,6 +613,11 @@ $itemCount = count($items);
             Tidak ada laboratorium yang tersedia saat ini.
           </div>
         <?php else: ?>
+        <?php if ($labSelectionLocked): ?>
+          <div class="alert alert-info mb-3 py-2 px-3" style="font-size:.8rem;border-radius:10px;">
+            Peminjaman lab hanya dapat memiliki maksimal 1 item lab. Hapus item yang ada jika ingin mengganti pilihan.
+          </div>
+        <?php endif; ?>
         <div class="row catalog-grid" id="catalog-grid">
           <?php foreach ($availableLabs as $lab):
             $alreadyAdded = in_array((string)$lab['id'], array_map('strval', $addedIds));
@@ -654,6 +670,10 @@ $itemCount = count($items);
                   <div class="text-success text-center py-1 small font-weight-semibold border rounded mt-auto" style="background:rgba(40,167,69,.06)">
                     <i class="fas fa-check-circle mr-1"></i>Sudah ada dalam proposal
                   </div>
+                <?php elseif ($labSelectionLocked): ?>
+                  <button type="button" class="btn btn-secondary btn-sm btn-block mt-auto" disabled>
+                    <i class="fas fa-lock mr-1"></i>Maksimal 1 item lab
+                  </button>
                 <?php else: ?>
                 <form action="<?= base_url('loans/' . $proposalPublicId . '/items/lab') ?>" method="post" class="mt-auto">
                   <?= csrf_field() ?>
@@ -846,12 +866,58 @@ $itemCount = count($items);
               </div>
             <?php endif; ?>
 
+            <?php if ($canSubmit): ?>
+              <div class="alert alert-warning mb-2 py-2 px-3" style="font-size:.76rem;border-radius:10px;line-height:1.5;">
+                <div class="font-weight-bold mb-1">Syarat & Ketentuan</div>
+                Silakan centang semua pernyataan berikut sebelum mengirim proposal peminjaman <?= strtolower($typeLabel) ?>.
+              </div>
+              <?php if ($isEquipment): ?>
+                <div class="custom-control custom-checkbox mb-2">
+                  <input type="checkbox" class="custom-control-input" id="equipment-term-sop" name="equipment_term_sop" value="1" form="submit-proposal-form" required>
+                  <label class="custom-control-label" for="equipment-term-sop" style="font-size:.78rem;line-height:1.45;">
+                    Saya berkomitmen menggunakan alat sesuai SOP yang berlaku.
+                  </label>
+                </div>
+                <div class="custom-control custom-checkbox mb-2">
+                  <input type="checkbox" class="custom-control-input" id="equipment-term-return" name="equipment_term_return" value="1" form="submit-proposal-form" required>
+                  <label class="custom-control-label" for="equipment-term-return" style="font-size:.78rem;line-height:1.45;">
+                    Saya bersedia mengembalikan alat dalam kondisi semula dan lengkap seperti saat dipinjam.
+                  </label>
+                </div>
+                <div class="custom-control custom-checkbox mb-2">
+                  <input type="checkbox" class="custom-control-input" id="equipment-term-responsibility" name="equipment_term_responsibility" value="1" form="submit-proposal-form" required>
+                  <label class="custom-control-label" for="equipment-term-responsibility" style="font-size:.78rem;line-height:1.45;">
+                    Saya memahami tanggung jawab atas kerusakan atau kehilangan alat selama masa peminjaman sesuai ketentuan institusi.
+                  </label>
+                </div>
+              <?php else: ?>
+                <div class="custom-control custom-checkbox mb-2">
+                  <input type="checkbox" class="custom-control-input" id="lab-term-cleanliness" name="lab_term_cleanliness" value="1" form="submit-proposal-form" required>
+                  <label class="custom-control-label" for="lab-term-cleanliness" style="font-size:.78rem;line-height:1.45;">
+                    Saya berkomitmen untuk menjaga kebersihan fasilitas selama masa peminjaman.
+                  </label>
+                </div>
+                <div class="custom-control custom-checkbox mb-2">
+                  <input type="checkbox" class="custom-control-input" id="lab-term-restore" name="lab_term_restore" value="1" form="submit-proposal-form" required>
+                  <label class="custom-control-label" for="lab-term-restore" style="font-size:.78rem;line-height:1.45;">
+                    Saya bersedia mengembalikan fasilitas dan peralatan dalam kondisi semula seperti saat awal dipinjam.
+                  </label>
+                </div>
+                <div class="custom-control custom-checkbox mb-2">
+                  <input type="checkbox" class="custom-control-input" id="lab-term-cancellation" name="lab_term_cancellation" value="1" form="submit-proposal-form" required>
+                  <label class="custom-control-label" for="lab-term-cancellation" style="font-size:.78rem;line-height:1.45;">
+                    Saya memahami dan menyetujui bahwa pihak institusi berhak membatalkan izin peminjaman ini secara sepihak jika fasilitas diperlukan untuk acara internal institusi.
+                  </label>
+                </div>
+              <?php endif; ?>
+            <?php endif; ?>
+
             <div class="action-divider"></div>
 
             <div class="action-row">
               <div class="action-btn-group">
               <?php if ($canSubmit): ?>
-                <form action="<?= base_url('loans/' . $proposalPublicId . '/submit') ?>" method="post"
+                <form id="submit-proposal-form" action="<?= base_url('loans/' . $proposalPublicId . '/submit') ?>" method="post"
                       class="js-swal-confirm-form js-preserve-tab-form"
                       data-swal-title="Kirim Proposal?"
                       data-swal-text="Proposal akan dikirim untuk proses approval. Pastikan item sudah lengkap."

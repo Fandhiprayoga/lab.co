@@ -13,6 +13,62 @@ $accentBorder = $isEquipment ? '#4fc3f7'              : '#81c784';
 $typeLabel    = $isEquipment ? 'Alat'                 : 'Laboratorium';
 $typeIcon     = $isEquipment ? 'fa-tools'             : 'fa-door-open';
 
+$equipmentTermsRaw = (string) ($proposal['equipment_terms_checks'] ?? '');
+$equipmentTermsData = [];
+if ($equipmentTermsRaw !== '') {
+  $decoded = json_decode($equipmentTermsRaw, true);
+  if (is_array($decoded)) {
+    $equipmentTermsData = $decoded;
+  }
+}
+
+$equipmentTermsChecklist = [
+  [
+    'label' => 'Saya berkomitmen menggunakan alat sesuai SOP yang berlaku.',
+    'checked' => (bool) ($equipmentTermsData['sop_commitment'] ?? false),
+  ],
+  [
+    'label' => 'Saya bersedia mengembalikan alat dalam kondisi semula dan lengkap seperti saat dipinjam.',
+    'checked' => (bool) ($equipmentTermsData['return_commitment'] ?? false),
+  ],
+  [
+    'label' => 'Saya memahami tanggung jawab atas kerusakan atau kehilangan alat selama masa peminjaman sesuai ketentuan institusi.',
+    'checked' => (bool) ($equipmentTermsData['responsibility_ack'] ?? false),
+  ],
+];
+
+$equipmentTermsAcceptedAt = isset($equipmentTermsData['accepted_at']) && is_string($equipmentTermsData['accepted_at'])
+  ? $equipmentTermsData['accepted_at']
+  : null;
+
+$labTermsRaw = (string) ($proposal['lab_terms_checks'] ?? '');
+$labTermsData = [];
+if ($labTermsRaw !== '') {
+  $decoded = json_decode($labTermsRaw, true);
+  if (is_array($decoded)) {
+    $labTermsData = $decoded;
+  }
+}
+
+$labTermsChecklist = [
+  [
+    'label' => 'Saya berkomitmen untuk menjaga kebersihan fasilitas selama masa peminjaman.',
+    'checked' => (bool) ($labTermsData['cleanliness_commitment'] ?? false),
+  ],
+  [
+    'label' => 'Saya bersedia mengembalikan fasilitas dan peralatan dalam kondisi semula seperti saat awal dipinjam.',
+    'checked' => (bool) ($labTermsData['restore_commitment'] ?? false),
+  ],
+  [
+    'label' => 'Saya memahami dan menyetujui bahwa pihak institusi berhak membatalkan izin peminjaman ini secara sepihak jika fasilitas diperlukan untuk acara internal institusi.',
+    'checked' => (bool) ($labTermsData['institutional_cancellation_ack'] ?? false),
+  ],
+];
+
+$labTermsAcceptedAt = isset($labTermsData['accepted_at']) && is_string($labTermsData['accepted_at'])
+  ? $labTermsData['accepted_at']
+  : null;
+
 $statusMap = [
     'draft'      => ['label' => 'Draft',            'tone' => 'neutral',  'icon' => 'fa-file-alt'],
     'waiting_l1' => ['label' => 'Menunggu Laboran', 'tone' => 'waiting',  'icon' => 'fa-clock'],
@@ -916,13 +972,49 @@ $fmtD  = fn(?string $dt) => $dt ? date('d M Y', strtotime($dt)) : '-';
           </div>
 
           <div class="objective-box mt-3">
-            <div class="meta-label mb-1" style="font-size:.68rem;">Checklist Sebelum Menjalankan Aksi</div>
-            <ul class="action-checklist">
-              <li>Pastikan data item sesuai dengan kebutuhan proposal.</li>
-              <li>Periksa kembali periode peminjaman dan status proposal saat ini.</li>
-              <li>Tambahkan catatan yang diperlukan untuk approval/check-out/check-in.</li>
-              <li>Gunakan panel aksi di sisi kanan untuk mengeksekusi proses sesuai role.</li>
-            </ul>
+            <?php if ($isEquipment): ?>
+              <div class="meta-label mb-1" style="font-size:.68rem;">Syarat & Ketentuan yang Dicentang User</div>
+              <?php if (empty($equipmentTermsData)): ?>
+                <div class="text-muted" style="font-size:.78rem;">
+                  Data checklist belum tersedia pada proposal ini.
+                </div>
+              <?php else: ?>
+                <ul class="action-checklist">
+                  <?php foreach ($equipmentTermsChecklist as $term): ?>
+                    <li>
+                      <i class="fas <?= $term['checked'] ? 'fa-check-circle text-success' : 'fa-times-circle text-danger' ?> mr-1"></i>
+                      <?= esc($term['label']) ?>
+                    </li>
+                  <?php endforeach; ?>
+                </ul>
+                <?php if (! empty($equipmentTermsAcceptedAt)): ?>
+                  <div class="text-muted mt-2" style="font-size:.75rem;">
+                    Dicentang pada: <?= $fmtDt($equipmentTermsAcceptedAt) ?>
+                  </div>
+                <?php endif; ?>
+              <?php endif; ?>
+            <?php else: ?>
+              <div class="meta-label mb-1" style="font-size:.68rem;">Syarat & Ketentuan yang Dicentang User</div>
+              <?php if (empty($labTermsData)): ?>
+                <div class="text-muted" style="font-size:.78rem;">
+                  Data checklist belum tersedia pada proposal ini.
+                </div>
+              <?php else: ?>
+                <ul class="action-checklist">
+                  <?php foreach ($labTermsChecklist as $term): ?>
+                    <li>
+                      <i class="fas <?= $term['checked'] ? 'fa-check-circle text-success' : 'fa-times-circle text-danger' ?> mr-1"></i>
+                      <?= esc($term['label']) ?>
+                    </li>
+                  <?php endforeach; ?>
+                </ul>
+                <?php if (! empty($labTermsAcceptedAt)): ?>
+                  <div class="text-muted mt-2" style="font-size:.75rem;">
+                    Dicentang pada: <?= $fmtDt($labTermsAcceptedAt) ?>
+                  </div>
+                <?php endif; ?>
+              <?php endif; ?>
+            <?php endif; ?>
           </div>
 
           <div class="action-note">
