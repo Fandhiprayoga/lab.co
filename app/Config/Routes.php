@@ -227,6 +227,7 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
             $routes->post('store', 'LoanAssetController::itemStore');
             $routes->post('update/(:num)', 'LoanAssetController::itemUpdate/$1');
             $routes->post('delete/(:num)', 'LoanAssetController::itemDelete/$1');
+            $routes->get('datatable', 'LoanAssetController::itemDatatable');
             $routes->post('bulk-generate', 'LoanAssetController::itemBulkGenerate');
         });
 

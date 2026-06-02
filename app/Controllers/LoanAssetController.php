@@ -430,20 +430,6 @@ class LoanAssetController extends BaseController
 
         $filterAssetId = (int) $this->request->getGet('asset_id');
 
-        $builder = db_connect()->table('asset_items ai')
-            ->select('ai.*, a.name AS asset_name, a.asset_code AS master_asset_code, l.name AS lab_name')
-            ->join('lab_assets a', 'a.id = ai.asset_id', 'left')
-            ->join('labs l', 'l.id = ai.lab_id', 'left')
-            ->where('a.asset_type', 'equipment')
-            ->orderBy('a.name', 'ASC')
-            ->orderBy('ai.item_code', 'ASC');
-
-        if ($filterAssetId > 0) {
-            $builder->where('ai.asset_id', $filterAssetId);
-        }
-
-        $items = $builder->get()->getResultArray();
-
         $assets = db_connect()->table('lab_assets')
             ->select('id, name, asset_code')
             ->where('asset_type', 'equipment')
@@ -453,9 +439,137 @@ class LoanAssetController extends BaseController
         return $this->renderView('loans/asset_items/index', [
             'title'         => 'Item Alat',
             'page_title'    => 'Manajemen Item Alat',
-            'items'         => $items,
             'assets'        => $assets,
+            'labs'          => $this->getActiveLabs(),
             'filterAssetId' => $filterAssetId,
+        ]);
+    }
+
+    public function itemDatatable()
+    {
+        if (! activeGroupCan('lending.master.manage')) {
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Forbidden']);
+        }
+
+        $req = $this->request;
+
+        $draw   = (int) $req->getGet('draw');
+        $start  = max(0, (int) $req->getGet('start'));
+        $length = (int) $req->getGet('length');
+        if ($length <= 0) {
+            $length = 25;
+        }
+
+        $search = trim((string) ($req->getGet('search')['value'] ?? ''));
+        $orderCol = (int) ($req->getGet('order')[0]['column'] ?? 1);
+        $orderDir = strtolower((string) ($req->getGet('order')[0]['dir'] ?? 'asc')) === 'desc' ? 'DESC' : 'ASC';
+
+        $filterAssetId = (int) ($req->getGet('filter_asset_id') ?? 0);
+        $filterLabId = (int) ($req->getGet('filter_lab_id') ?? 0);
+        $filterCondition = trim((string) ($req->getGet('filter_condition') ?? ''));
+        $filterInventory = trim((string) ($req->getGet('filter_inventory') ?? ''));
+        $filterLoanable = trim((string) ($req->getGet('filter_loanable') ?? ''));
+
+        $colMap = [
+            1 => 'ai.item_code',
+            2 => 'a.name',
+            3 => 'ai.serial_number',
+            4 => 'l.name',
+            5 => 'ai.condition_status',
+            6 => 'ai.inventory_status',
+            7 => 'ai.is_loanable',
+        ];
+        $orderField = $colMap[$orderCol] ?? 'ai.item_code';
+
+        $db = db_connect();
+
+        $totalBuilder = $db->table('asset_items ai')
+            ->join('lab_assets a', 'a.id = ai.asset_id', 'inner')
+            ->where('a.asset_type', 'equipment');
+        $recordsTotal = (int) $totalBuilder->countAllResults();
+
+        $countBuilder = $db->table('asset_items ai')
+            ->select('COUNT(DISTINCT ai.id) AS cnt')
+            ->join('lab_assets a', 'a.id = ai.asset_id', 'inner')
+            ->join('labs l', 'l.id = ai.lab_id', 'left')
+            ->where('a.asset_type', 'equipment');
+        $this->applyItemDatatableFilters(
+            $countBuilder,
+            $search,
+            $filterAssetId,
+            $filterLabId,
+            $filterCondition,
+            $filterInventory,
+            $filterLoanable
+        );
+        $recordsFiltered = (int) ($countBuilder->get()->getRow()->cnt ?? 0);
+
+        $dataBuilder = $db->table('asset_items ai')
+            ->select('ai.id, ai.item_code, ai.serial_number, ai.condition_status, ai.inventory_status, ai.is_loanable, a.id AS asset_id, a.name AS asset_name, a.asset_code AS master_asset_code, l.name AS lab_name')
+            ->join('lab_assets a', 'a.id = ai.asset_id', 'inner')
+            ->join('labs l', 'l.id = ai.lab_id', 'left')
+            ->where('a.asset_type', 'equipment');
+        $this->applyItemDatatableFilters(
+            $dataBuilder,
+            $search,
+            $filterAssetId,
+            $filterLabId,
+            $filterCondition,
+            $filterInventory,
+            $filterLoanable
+        );
+
+        $rows = $dataBuilder
+            ->orderBy($orderField, $orderDir)
+            ->orderBy('ai.id', 'ASC')
+            ->limit($length, $start)
+            ->get()
+            ->getResultArray();
+
+        $data = [];
+        $csrfName = csrf_token();
+        $csrfHash = csrf_hash();
+
+        foreach ($rows as $i => $row) {
+            $loanableBadge = (int) ($row['is_loanable'] ?? 0) === 1
+                ? '<span class="badge badge-success">Ya</span>'
+                : '<span class="badge badge-secondary">Tidak</span>';
+
+            $conditionLabel = str_replace('_', ' ', (string) ($row['condition_status'] ?? '-'));
+            $inventoryLabel = str_replace('_', ' ', (string) ($row['inventory_status'] ?? '-'));
+
+            $actions = '<a href="' . base_url('admin/loans/asset-items/edit/' . (int) $row['id']) . '" class="btn btn-sm btn-info mr-1" title="Edit">'
+                . '<i class="fas fa-edit"></i></a>';
+            $actions .= '<form action="' . base_url('admin/loans/asset-items/delete/' . (int) $row['id']) . '" method="post" class="d-inline js-swal-delete-form" '
+                . 'data-swal-title="Hapus item?" '
+                . 'data-swal-text="Item ' . esc((string) ($row['item_code'] ?? '-')) . ' akan dihapus permanen." '
+                . 'data-swal-confirm="Ya, hapus" '
+                . 'data-swal-cancel="Batal">'
+                . '<input type="hidden" name="' . esc($csrfName) . '" value="' . esc($csrfHash) . '">'
+                . '<button type="submit" class="btn btn-sm btn-danger" title="Hapus"><i class="fas fa-trash"></i></button>'
+                . '</form>';
+
+            $assetText = esc((string) ($row['asset_name'] ?? '-'))
+                . '<div><small class="text-muted"><code>' . esc((string) ($row['master_asset_code'] ?? '-')) . '</code></small></div>';
+
+            $data[] = [
+                $start + $i + 1,
+                '<code>' . esc((string) ($row['item_code'] ?? '-')) . '</code>',
+                $assetText,
+                esc((string) ($row['serial_number'] ?? '-')),
+                esc((string) ($row['lab_name'] ?? '-')),
+                esc(ucfirst($conditionLabel)),
+                esc(ucfirst($inventoryLabel)),
+                $loanableBadge,
+                $actions,
+            ];
+        }
+
+        return $this->response->setJSON([
+            'draw'            => $draw,
+            'recordsTotal'    => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'data'            => $data,
         ]);
     }
 
@@ -753,6 +867,48 @@ class LoanAssetController extends BaseController
 
         return redirect()->to('/admin/loans/asset-items?asset_id=' . $assetId)
             ->with('success', 'Berhasil generate ' . $created . ' item alat.');
+    }
+
+    private function applyItemDatatableFilters(
+        $builder,
+        string $search,
+        int $filterAssetId,
+        int $filterLabId,
+        string $filterCondition,
+        string $filterInventory,
+        string $filterLoanable
+    ): void {
+        if ($filterAssetId > 0) {
+            $builder->where('ai.asset_id', $filterAssetId);
+        }
+
+        if ($filterLabId > 0) {
+            $builder->where('ai.lab_id', $filterLabId);
+        }
+
+        $allowedConditions = ['baik', 'perlu_perbaikan', 'rusak', 'rusak_ringan', 'rusak_berat'];
+        if (in_array($filterCondition, $allowedConditions, true)) {
+            $builder->where('ai.condition_status', $filterCondition);
+        }
+
+        $allowedInventory = ['aktif', 'dipinjam', 'dalam_perbaikan', 'dihapuskan', 'hilang'];
+        if (in_array($filterInventory, $allowedInventory, true)) {
+            $builder->where('ai.inventory_status', $filterInventory);
+        }
+
+        if ($filterLoanable === '1' || $filterLoanable === '0') {
+            $builder->where('ai.is_loanable', (int) $filterLoanable);
+        }
+
+        if ($search !== '') {
+            $builder->groupStart()
+                ->like('ai.item_code', $search)
+                ->orLike('ai.serial_number', $search)
+                ->orLike('a.name', $search)
+                ->orLike('a.asset_code', $search)
+                ->orLike('l.name', $search)
+                ->groupEnd();
+        }
     }
 
     private function guardAccess()
