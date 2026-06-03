@@ -98,7 +98,7 @@ $formAction  = $isEdit
                   <option value="<?= esc($s) ?>" <?= $selStatus === $s ? 'selected' : '' ?>><?= esc(str_replace('_', ' ', ucfirst($s))) ?></option>
                 <?php endforeach; ?>
               </select>
-              <small class="form-text text-muted">Status <b>in_progress</b> otomatis menonaktifkan peminjaman aset.</small>
+              <small class="form-text text-muted">Status <b>in_progress</b> otomatis menonaktifkan peminjaman di level item dan header aset.</small>
             </div>
           </div>
 

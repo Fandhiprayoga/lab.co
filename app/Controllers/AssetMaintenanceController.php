@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\AssetMaintenanceModel;
+use App\Models\AssetItemModel;
 use App\Models\LabAssetModel;
 use App\Models\LabModel;
 
@@ -12,12 +13,14 @@ class AssetMaintenanceController extends BaseController
     public const STATUSES = ['scheduled', 'in_progress', 'completed', 'cancelled'];
 
     protected AssetMaintenanceModel $maintenanceModel;
+    protected AssetItemModel $assetItemModel;
     protected LabAssetModel $assetModel;
     protected LabModel $labModel;
 
     public function __construct()
     {
         $this->maintenanceModel = new AssetMaintenanceModel();
+        $this->assetItemModel   = new AssetItemModel();
         $this->assetModel       = new LabAssetModel();
         $this->labModel         = new LabModel();
     }
@@ -159,9 +162,14 @@ class AssetMaintenanceController extends BaseController
         }
 
         $payload = $this->collectPayload();
+        if ($itemError = $this->validateAssetItemRelation((int) $payload['asset_id'], $payload['asset_item_id'])) {
+            return redirect()->back()->withInput()->with('error', $itemError);
+        }
+
         $payload['created_by'] = auth()->id();
 
         $id = $this->maintenanceModel->insert($payload, true);
+        $this->syncItemStatusByMaintenanceScope((int) $payload['asset_id'], (int) ($payload['asset_item_id'] ?? 0));
         $this->syncAssetStatus((int) $payload['asset_id']);
 
         return redirect()->to('/admin/loans/maintenances?asset_id=' . (int) $payload['asset_id'])
@@ -183,9 +191,28 @@ class AssetMaintenanceController extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
+        $oldAssetId = (int) ($maintenance['asset_id'] ?? 0);
+        $oldItemId  = (int) ($maintenance['asset_item_id'] ?? 0);
+
         $payload = $this->collectPayload();
+        if ($itemError = $this->validateAssetItemRelation((int) $payload['asset_id'], $payload['asset_item_id'])) {
+            return redirect()->back()->withInput()->with('error', $itemError);
+        }
+
         $this->maintenanceModel->update($id, $payload);
-        $this->syncAssetStatus((int) $payload['asset_id']);
+
+        $newAssetId = (int) ($payload['asset_id'] ?? 0);
+        $newItemId  = (int) ($payload['asset_item_id'] ?? 0);
+
+        $this->syncItemStatusByMaintenanceScope($oldAssetId, $oldItemId);
+        if ($oldAssetId !== $newAssetId || $oldItemId !== $newItemId) {
+            $this->syncItemStatusByMaintenanceScope($newAssetId, $newItemId);
+        }
+
+        $this->syncAssetStatus($oldAssetId);
+        if ($oldAssetId !== $newAssetId) {
+            $this->syncAssetStatus($newAssetId);
+        }
 
         return redirect()->to('/admin/loans/maintenances?asset_id=' . (int) $payload['asset_id'])
             ->with('success', 'Catatan perawatan diperbarui.');
@@ -202,8 +229,11 @@ class AssetMaintenanceController extends BaseController
             return redirect()->to('/admin/loans/maintenances')->with('error', 'Data tidak ditemukan.');
         }
 
-        $assetId = (int) $maintenance['asset_id'];
+        $assetId = (int) ($maintenance['asset_id'] ?? 0);
+        $itemId  = (int) ($maintenance['asset_item_id'] ?? 0);
         $this->maintenanceModel->delete($id);
+
+        $this->syncItemStatusByMaintenanceScope($assetId, $itemId);
         $this->syncAssetStatus($assetId);
 
         return redirect()->to('/admin/loans/maintenances?asset_id=' . $assetId)
@@ -247,6 +277,10 @@ class AssetMaintenanceController extends BaseController
 
     private function syncAssetStatus(int $assetId): void
     {
+        if ($assetId < 1) {
+            return;
+        }
+
         $asset = $this->assetModel->find($assetId);
         if (! $asset) {
             return;
@@ -272,6 +306,82 @@ class AssetMaintenanceController extends BaseController
 
         if (! empty($update)) {
             $this->assetModel->update($assetId, $update);
+        }
+    }
+
+    private function validateAssetItemRelation(int $assetId, $assetItemId): ?string
+    {
+        $itemId = (int) ($assetItemId ?? 0);
+        if ($itemId < 1) {
+            return null;
+        }
+
+        $item = $this->assetItemModel->find($itemId);
+        if (! $item) {
+            return 'Item aset tidak ditemukan.';
+        }
+
+        if ((int) ($item['asset_id'] ?? 0) !== $assetId) {
+            return 'Item tidak sesuai dengan aset yang dipilih.';
+        }
+
+        return null;
+    }
+
+    private function syncItemStatusByMaintenanceScope(int $assetId, int $assetItemId = 0): void
+    {
+        if ($assetId < 1) {
+            return;
+        }
+
+        $itemBuilder = $this->assetItemModel->where('asset_id', $assetId);
+        if ($assetItemId > 0) {
+            $itemBuilder->where('id', $assetItemId);
+        }
+
+        $items = $itemBuilder->findAll();
+        if (empty($items)) {
+            return;
+        }
+
+        foreach ($items as $item) {
+            $itemId = (int) ($item['id'] ?? 0);
+            if ($itemId < 1) {
+                continue;
+            }
+
+            $hasActive = $this->maintenanceModel
+                ->where('asset_id', $assetId)
+                ->groupStart()
+                    ->where('asset_item_id', $itemId)
+                    ->orWhere('asset_item_id', null)
+                ->groupEnd()
+                ->where('status', 'in_progress')
+                ->countAllResults() > 0;
+
+            $update = [];
+            $currentCondition = (string) ($item['condition_status'] ?? 'baik');
+            $currentInventory = (string) ($item['inventory_status'] ?? 'aktif');
+
+            if ($hasActive) {
+                $update['inventory_status'] = 'dalam_perbaikan';
+                $update['is_loanable'] = 0;
+
+                if ($currentCondition === 'baik') {
+                    $update['condition_status'] = 'perlu_perbaikan';
+                }
+            } elseif ($currentInventory === 'dalam_perbaikan') {
+                $update['inventory_status'] = 'aktif';
+                if (! in_array($currentCondition, ['rusak', 'rusak_berat'], true)) {
+                    $update['condition_status'] = 'baik';
+                    $update['is_loanable'] = 1;
+                }
+            }
+
+            if (! empty($update)) {
+                $update['updated_by'] = auth()->id();
+                $this->assetItemModel->update($itemId, $update);
+            }
         }
     }
 
