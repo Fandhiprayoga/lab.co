@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\AssetMaintenanceModel;
 use App\Models\LabAssetModel;
+use App\Models\LabModel;
 
 class AssetMaintenanceController extends BaseController
 {
@@ -12,11 +13,13 @@ class AssetMaintenanceController extends BaseController
 
     protected AssetMaintenanceModel $maintenanceModel;
     protected LabAssetModel $assetModel;
+    protected LabModel $labModel;
 
     public function __construct()
     {
         $this->maintenanceModel = new AssetMaintenanceModel();
         $this->assetModel       = new LabAssetModel();
+        $this->labModel         = new LabModel();
     }
 
     public function index()
@@ -56,13 +59,41 @@ class AssetMaintenanceController extends BaseController
             return $guard;
         }
 
+        $assetId = (int) $this->request->getGet('asset_id');
+        $prefillLabId = 0;
+        if ($assetId > 0) {
+            $asset = $this->assetModel->find($assetId);
+            $prefillLabId = (int) ($asset['lab_id'] ?? 0);
+        }
+
+        $assets = db_connect()->table('lab_assets')
+            ->select('id, lab_id, name, asset_code, asset_type, is_active')
+            ->where('asset_type', 'equipment')
+            ->where('is_active', 1)
+            ->orderBy('name', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        $items = db_connect()->table('asset_items ai')
+            ->select('ai.id, ai.asset_id, ai.lab_id, ai.item_code, ai.inventory_status, a.name AS asset_name, a.asset_code')
+            ->join('lab_assets a', 'a.id = ai.asset_id', 'inner')
+            ->where('a.asset_type', 'equipment')
+            ->where('a.is_active', 1)
+            ->orderBy('a.name', 'ASC')
+            ->orderBy('ai.item_code', 'ASC')
+            ->get()
+            ->getResultArray();
+
         return $this->renderView('loans/maintenances/create', [
-            'title'      => 'Catat Perawatan Aset',
-            'page_title' => 'Catat Perawatan Aset',
-            'assets'     => $this->assetModel->orderBy('name', 'ASC')->findAll(),
-            'types'      => self::TYPES,
-            'statuses'   => self::STATUSES,
-            'assetId'    => (int) $this->request->getGet('asset_id'),
+            'title'        => 'Catat Perawatan Aset',
+            'page_title'   => 'Catat Perawatan Aset',
+            'assets'       => $assets,
+            'items'        => $items,
+            'labs'         => $this->labModel->orderBy('name', 'ASC')->findAll(),
+            'types'        => self::TYPES,
+            'statuses'     => self::STATUSES,
+            'assetId'      => $assetId,
+            'prefillLabId' => $prefillLabId,
         ]);
     }
 
@@ -77,13 +108,42 @@ class AssetMaintenanceController extends BaseController
             return redirect()->to('/admin/loans/maintenances')->with('error', 'Data perawatan tidak ditemukan.');
         }
 
+        $assetId = (int) ($maintenance['asset_id'] ?? 0);
+        $prefillLabId = 0;
+        if ($assetId > 0) {
+            $asset = $this->assetModel->find($assetId);
+            $prefillLabId = (int) ($asset['lab_id'] ?? 0);
+        }
+
+        $assets = db_connect()->table('lab_assets')
+            ->select('id, lab_id, name, asset_code, asset_type, is_active')
+            ->where('asset_type', 'equipment')
+            ->where('is_active', 1)
+            ->orderBy('name', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        $items = db_connect()->table('asset_items ai')
+            ->select('ai.id, ai.asset_id, ai.lab_id, ai.item_code, ai.inventory_status, a.name AS asset_name, a.asset_code')
+            ->join('lab_assets a', 'a.id = ai.asset_id', 'inner')
+            ->where('a.asset_type', 'equipment')
+            ->where('a.is_active', 1)
+            ->orderBy('a.name', 'ASC')
+            ->orderBy('ai.item_code', 'ASC')
+            ->get()
+            ->getResultArray();
+
         return $this->renderView('loans/maintenances/edit', [
-            'title'       => 'Edit Perawatan Aset',
-            'page_title'  => 'Edit Perawatan Aset',
-            'maintenance' => $maintenance,
-            'assets'      => $this->assetModel->orderBy('name', 'ASC')->findAll(),
-            'types'       => self::TYPES,
-            'statuses'    => self::STATUSES,
+            'title'        => 'Edit Perawatan Aset',
+            'page_title'   => 'Edit Perawatan Aset',
+            'maintenance'  => $maintenance,
+            'assets'       => $assets,
+            'items'        => $items,
+            'labs'         => $this->labModel->orderBy('name', 'ASC')->findAll(),
+            'types'        => self::TYPES,
+            'statuses'     => self::STATUSES,
+            'assetId'      => $assetId,
+            'prefillLabId' => $prefillLabId,
         ]);
     }
 
@@ -154,6 +214,7 @@ class AssetMaintenanceController extends BaseController
     {
         return [
             'asset_id'              => 'required|is_natural_no_zero',
+            'asset_item_id'         => 'permit_empty|is_natural_no_zero',
             'maintenance_type'      => 'required|in_list[' . implode(',', self::TYPES) . ']',
             'status'                => 'required|in_list[' . implode(',', self::STATUSES) . ']',
             'description'           => 'required|max_length[5000]',
@@ -170,6 +231,7 @@ class AssetMaintenanceController extends BaseController
     {
         return [
             'asset_id'              => (int) $this->request->getPost('asset_id'),
+            'asset_item_id'         => $this->request->getPost('asset_item_id') ?: null,
             'maintenance_type'      => $this->request->getPost('maintenance_type'),
             'status'                => $this->request->getPost('status'),
             'scheduled_date'        => $this->request->getPost('scheduled_date') ?: null,
