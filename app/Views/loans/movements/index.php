@@ -63,6 +63,9 @@
                     <?php if (! empty($m['asset_code'])): ?>
                       <br><small class="text-muted"><code><?= esc($m['asset_code']) ?></code></small>
                     <?php endif; ?>
+                    <?php if (! empty($m['item_code'])): ?>
+                      <br><small class="text-info"><i class="fas fa-barcode mr-1"></i><code><?= esc($m['item_code']) ?></code></small>
+                    <?php endif; ?>
                   </td>
                   <td><span class="badge <?= $badge ?>"><?= esc(ucfirst($type)) ?></span></td>
                   <td><?= (int) $m['quantity'] ?></td>
