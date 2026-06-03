@@ -21,7 +21,7 @@
           <?php if ($asset): ?>
             <a href="<?= base_url('admin/loans/maintenances') ?>" class="btn btn-light btn-sm"><i class="fas fa-list"></i> Semua</a>
           <?php endif; ?>
-          <a href="<?= base_url('admin/loans/maintenances/create' . ($assetId ? '?asset_id=' . $assetId : '')) ?>" class="btn btn-primary">
+          <a href="<?= base_url('admin/loans/maintenances/create' . ($asset && !empty($asset['lab_id']) ? '?lab_id=' . (int) $asset['lab_id'] : '')) ?>" class="btn btn-primary">
             <i class="fas fa-plus"></i> Catat Perawatan
           </a>
         </div>

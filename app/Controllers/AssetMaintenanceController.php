@@ -62,20 +62,7 @@ class AssetMaintenanceController extends BaseController
             return $guard;
         }
 
-        $assetId = (int) $this->request->getGet('asset_id');
-        $prefillLabId = 0;
-        if ($assetId > 0) {
-            $asset = $this->assetModel->find($assetId);
-            $prefillLabId = (int) ($asset['lab_id'] ?? 0);
-        }
-
-        $assets = db_connect()->table('lab_assets')
-            ->select('id, lab_id, name, asset_code, asset_type, is_active')
-            ->where('asset_type', 'equipment')
-            ->where('is_active', 1)
-            ->orderBy('name', 'ASC')
-            ->get()
-            ->getResultArray();
+        $prefillLabId = (int) $this->request->getGet('lab_id');
 
         $items = db_connect()->table('asset_items ai')
             ->select('ai.id, ai.asset_id, ai.lab_id, ai.item_code, ai.inventory_status, a.name AS asset_name, a.asset_code')
@@ -90,12 +77,10 @@ class AssetMaintenanceController extends BaseController
         return $this->renderView('loans/maintenances/create', [
             'title'        => 'Catat Perawatan Aset',
             'page_title'   => 'Catat Perawatan Aset',
-            'assets'       => $assets,
             'items'        => $items,
             'labs'         => $this->labModel->orderBy('name', 'ASC')->findAll(),
             'types'        => self::TYPES,
             'statuses'     => self::STATUSES,
-            'assetId'      => $assetId,
             'prefillLabId' => $prefillLabId,
         ]);
     }
@@ -111,20 +96,12 @@ class AssetMaintenanceController extends BaseController
             return redirect()->to('/admin/loans/maintenances')->with('error', 'Data perawatan tidak ditemukan.');
         }
 
-        $assetId = (int) ($maintenance['asset_id'] ?? 0);
+        $itemId = (int) ($maintenance['asset_item_id'] ?? 0);
         $prefillLabId = 0;
-        if ($assetId > 0) {
-            $asset = $this->assetModel->find($assetId);
-            $prefillLabId = (int) ($asset['lab_id'] ?? 0);
+        if ($itemId > 0) {
+            $item = $this->assetItemModel->find($itemId);
+            $prefillLabId = (int) ($item['lab_id'] ?? 0);
         }
-
-        $assets = db_connect()->table('lab_assets')
-            ->select('id, lab_id, name, asset_code, asset_type, is_active')
-            ->where('asset_type', 'equipment')
-            ->where('is_active', 1)
-            ->orderBy('name', 'ASC')
-            ->get()
-            ->getResultArray();
 
         $items = db_connect()->table('asset_items ai')
             ->select('ai.id, ai.asset_id, ai.lab_id, ai.item_code, ai.inventory_status, a.name AS asset_name, a.asset_code')
@@ -140,12 +117,10 @@ class AssetMaintenanceController extends BaseController
             'title'        => 'Edit Perawatan Aset',
             'page_title'   => 'Edit Perawatan Aset',
             'maintenance'  => $maintenance,
-            'assets'       => $assets,
             'items'        => $items,
             'labs'         => $this->labModel->orderBy('name', 'ASC')->findAll(),
             'types'        => self::TYPES,
             'statuses'     => self::STATUSES,
-            'assetId'      => $assetId,
             'prefillLabId' => $prefillLabId,
         ]);
     }
@@ -162,10 +137,6 @@ class AssetMaintenanceController extends BaseController
         }
 
         $payload = $this->collectPayload();
-        if ($itemError = $this->validateAssetItemRelation((int) $payload['asset_id'], $payload['asset_item_id'])) {
-            return redirect()->back()->withInput()->with('error', $itemError);
-        }
-
         $payload['created_by'] = auth()->id();
 
         $id = $this->maintenanceModel->insert($payload, true);
@@ -195,9 +166,6 @@ class AssetMaintenanceController extends BaseController
         $oldItemId  = (int) ($maintenance['asset_item_id'] ?? 0);
 
         $payload = $this->collectPayload();
-        if ($itemError = $this->validateAssetItemRelation((int) $payload['asset_id'], $payload['asset_item_id'])) {
-            return redirect()->back()->withInput()->with('error', $itemError);
-        }
 
         $this->maintenanceModel->update($id, $payload);
 
@@ -243,8 +211,7 @@ class AssetMaintenanceController extends BaseController
     private function rules(): array
     {
         return [
-            'asset_id'              => 'required|is_natural_no_zero',
-            'asset_item_id'         => 'permit_empty|is_natural_no_zero',
+            'asset_item_id'         => 'required|is_natural_no_zero',
             'maintenance_type'      => 'required|in_list[' . implode(',', self::TYPES) . ']',
             'status'                => 'required|in_list[' . implode(',', self::STATUSES) . ']',
             'description'           => 'required|max_length[5000]',
@@ -259,9 +226,13 @@ class AssetMaintenanceController extends BaseController
 
     private function collectPayload(): array
     {
+        $assetItemId = (int) $this->request->getPost('asset_item_id');
+        $item = $this->assetItemModel->find($assetItemId);
+        $assetId = (int) ($item['asset_id'] ?? 0);
+
         return [
-            'asset_id'              => (int) $this->request->getPost('asset_id'),
-            'asset_item_id'         => $this->request->getPost('asset_item_id') ?: null,
+            'asset_id'              => $assetId,
+            'asset_item_id'         => $assetItemId ?: null,
             'maintenance_type'      => $this->request->getPost('maintenance_type'),
             'status'                => $this->request->getPost('status'),
             'scheduled_date'        => $this->request->getPost('scheduled_date') ?: null,

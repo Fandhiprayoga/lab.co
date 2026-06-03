@@ -40,7 +40,7 @@
           <div class="form-row">
             <div class="form-group col-md-6">
               <label for="lab_id">Lokasi Lab</label>
-              <select id="lab_id" name="lab_id" class="form-control">
+              <select id="lab_id" name="lab_id" class="form-control" readonly disabled>
                 <option value="">- Tanpa lab -</option>
                 <?php foreach ($labs as $lab): ?>
                   <option value="<?= (int) $lab['id'] ?>" <?= old('lab_id', (string) ($item['lab_id'] ?? '')) == (string) $lab['id'] ? 'selected' : '' ?>>
