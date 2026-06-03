@@ -23,7 +23,7 @@
               <i class="fas fa-list"></i> Semua Mutasi
             </a>
           <?php endif; ?>
-          <a href="<?= base_url('admin/loans/movements/create' . ($assetId ? '?asset_id=' . $assetId : '')) ?>" class="btn btn-primary">
+          <a href="<?= base_url('admin/loans/movements/create' . ($asset && !empty($asset['lab_id']) ? '?lab_id=' . (int) $asset['lab_id'] : '')) ?>" class="btn btn-primary">
             <i class="fas fa-plus"></i> Catat Mutasi
           </a>
         </div>

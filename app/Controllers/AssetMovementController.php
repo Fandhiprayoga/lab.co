@@ -66,20 +66,7 @@ class AssetMovementController extends BaseController
             return $guard;
         }
 
-        $assetId = (int) $this->request->getGet('asset_id');
-        $prefillLabId = 0;
-        if ($assetId > 0) {
-            $asset = $this->assetModel->find($assetId);
-            $prefillLabId = (int) ($asset['lab_id'] ?? 0);
-        }
-
-        $assets = db_connect()->table('lab_assets')
-            ->select('id, lab_id, name, asset_code, asset_type, is_active')
-            ->where('asset_type', 'equipment')
-            ->where('is_active', 1)
-            ->orderBy('name', 'ASC')
-            ->get()
-            ->getResultArray();
+        $prefillLabId = (int) $this->request->getGet('lab_id');
 
         $items = db_connect()->table('asset_items ai')
             ->select('ai.id, ai.asset_id, ai.lab_id, ai.item_code, ai.inventory_status, a.name AS asset_name, a.asset_code')
@@ -94,11 +81,9 @@ class AssetMovementController extends BaseController
         return $this->renderView('loans/movements/create', [
             'title'      => 'Catat Mutasi Aset',
             'page_title' => 'Catat Mutasi Aset',
-            'assets'     => $assets,
             'items'      => $items,
             'labs'       => $this->labModel->orderBy('name', 'ASC')->findAll(),
             'types'      => self::TYPES,
-            'assetId'    => $assetId,
             'prefillLabId' => $prefillLabId,
         ]);
     }
