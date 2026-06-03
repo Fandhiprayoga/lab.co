@@ -1216,21 +1216,6 @@ class LoanAssetController extends BaseController
             $builder->where('a.category', $category);
         }
 
-        $conditionStatus = trim((string) ($this->request->getGet('condition_status') ?? ''));
-        if (in_array($conditionStatus, [self::CONDITION_BAIK, self::CONDITION_PERLU_PERBAIKAN, self::CONDITION_RUSAK], true)) {
-            $builder->where('a.condition_status', $conditionStatus);
-        }
-
-        $inventoryStatus = trim((string) ($this->request->getGet('inventory_status') ?? ''));
-        if (in_array($inventoryStatus, self::INVENTORY_STATUSES, true)) {
-            $builder->where('a.inventory_status', $inventoryStatus);
-        }
-
-        $isLoanable = $this->request->getGet('is_loanable');
-        if ($isLoanable !== null && $isLoanable !== '') {
-            $builder->where('a.is_loanable', (int) $isLoanable);
-        }
-
         $isActive = $this->request->getGet('is_active');
         if ($isActive !== null && $isActive !== '') {
             $builder->where('a.is_active', (int) $isActive);

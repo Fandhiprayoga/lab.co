@@ -150,9 +150,6 @@ sort($categoryOptions);
                 <th>Nama</th>
                 <th>Lab</th>
                 <th>Kategori</th>
-                <th>Boleh Dipinjam</th>
-                <th>Kondisi</th>
-                <th>Inventaris</th>
                 <th>Stok</th>
                 <th>Maks Jam</th>
                 <th>Status</th>
@@ -175,36 +172,6 @@ sort($categoryOptions);
                   </td>
                   <td><?= esc($asset['lab_name'] ?? '-') ?></td>
                   <td><?= esc($asset['category'] ?? '-') ?></td>
-                  <td>
-                    <?php if ((int) ($asset['is_loanable'] ?? 0) === 1): ?>
-                      <span class="badge badge-success">Ya</span>
-                    <?php else: ?>
-                      <span class="badge badge-secondary">Tidak</span>
-                    <?php endif; ?>
-                  </td>
-                  <td>
-                    <?php $condition = (string) ($asset['condition_status'] ?? 'baik'); ?>
-                    <?php if ($condition === 'baik'): ?>
-                      <span class="badge badge-success">Baik</span>
-                    <?php elseif ($condition === 'perlu_perbaikan'): ?>
-                      <span class="badge badge-warning">Perlu Perbaikan</span>
-                    <?php else: ?>
-                      <span class="badge badge-danger">Rusak</span>
-                    <?php endif; ?>
-                  </td>
-                  <td>
-                    <?php
-                      $invStatus = (string) ($asset['inventory_status'] ?? 'aktif');
-                      $invBadge = [
-                          'aktif' => 'badge-success',
-                          'dipinjam' => 'badge-info',
-                          'dalam_perbaikan' => 'badge-warning',
-                          'dihapuskan' => 'badge-dark',
-                          'hilang' => 'badge-danger',
-                      ][$invStatus] ?? 'badge-secondary';
-                    ?>
-                    <span class="badge <?= $invBadge ?>"><?= esc(str_replace('_', ' ', ucfirst($invStatus))) ?></span>
-                  </td>
                   <td><?= (int) $asset['stock_available'] ?>/<?= (int) $asset['stock_total'] ?><?= ! empty($asset['unit_symbol']) ? ' ' . esc($asset['unit_symbol']) : '' ?></td>
                   <td><?= (int) $asset['max_loan_hours'] === 0 ? 'Unlimited' : (int) $asset['max_loan_hours'] . ' jam' ?></td>
                   <td>
@@ -290,38 +257,7 @@ sort($categoryOptions);
           </div>
 
           <div class="form-row">
-            <div class="form-group col-md-6">
-              <label for="dl-condition">Kondisi</label>
-              <select id="dl-condition" name="condition_status" class="form-control form-control-sm">
-                <option value="">Semua</option>
-                <option value="baik">Baik</option>
-                <option value="perlu_perbaikan">Perlu Perbaikan</option>
-                <option value="rusak">Rusak</option>
-              </select>
-            </div>
-            <div class="form-group col-md-6">
-              <label for="dl-inventory">Status Inventaris</label>
-              <select id="dl-inventory" name="inventory_status" class="form-control form-control-sm">
-                <option value="">Semua</option>
-                <option value="aktif">Aktif</option>
-                <option value="dipinjam">Dipinjam</option>
-                <option value="dalam_perbaikan">Dalam Perbaikan</option>
-                <option value="dihapuskan">Dihapuskan</option>
-                <option value="hilang">Hilang</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group col-md-6">
-              <label for="dl-loanable">Boleh Dipinjam</label>
-              <select id="dl-loanable" name="is_loanable" class="form-control form-control-sm">
-                <option value="">Semua</option>
-                <option value="1">Ya</option>
-                <option value="0">Tidak</option>
-              </select>
-            </div>
-            <div class="form-group col-md-6">
+            <div class="form-group col-md-12">
               <label for="dl-active">Status Aktif</label>
               <select id="dl-active" name="is_active" class="form-control form-control-sm">
                 <option value="">Semua</option>
@@ -368,24 +304,7 @@ sort($categoryOptions);
       </select>
     </div>
 
-    <div class="form-group">
-      <label for="filter-condition">Kondisi</label>
-      <select id="filter-condition" class="form-control">
-        <option value="">Semua Kondisi</option>
-        <option value="Baik">Baik</option>
-        <option value="Perlu Perbaikan">Perlu Perbaikan</option>
-        <option value="Rusak">Rusak</option>
-      </select>
-    </div>
-
-    <div class="form-group mb-0">
-      <label for="filter-loanable">Status Boleh Dipinjam</label>
-      <select id="filter-loanable" class="form-control">
-        <option value="">Semua Status</option>
-        <option value="Ya">Ya</option>
-        <option value="Tidak">Tidak</option>
-      </select>
-    </div>
+    <p class="text-muted small mb-0">Filter kondisi, inventaris, dan boleh dipinjam dikelola di menu Item Alat.</p>
   </div>
   <div class="asset-filter-drawer__footer">
     <button type="button" id="reset-filter-drawer" class="btn btn-light">Reset</button>
@@ -438,10 +357,8 @@ sort($categoryOptions);
     }
 
     function applyDrawerFilters(table) {
-      applyExactFilter(table, 2, $('#filter-lab').val());
-      applyExactFilter(table, 3, $('#filter-category').val());
-      applyExactFilter(table, 4, $('#filter-loanable').val());
-      applyExactFilter(table, 5, $('#filter-condition').val());
+      applyExactFilter(table, 3, $('#filter-lab').val());
+      applyExactFilter(table, 4, $('#filter-category').val());
       table.draw();
       renderActiveFilterChips();
     }
@@ -449,9 +366,7 @@ sort($categoryOptions);
     function renderActiveFilterChips() {
       var filters = [
         { key: 'lab', label: 'Lab', value: $('#filter-lab').val() },
-        { key: 'category', label: 'Kategori', value: $('#filter-category').val() },
-        { key: 'condition', label: 'Kondisi', value: $('#filter-condition').val() },
-        { key: 'loanable', label: 'Boleh Dipinjam', value: $('#filter-loanable').val() }
+        { key: 'category', label: 'Kategori', value: $('#filter-category').val() }
       ].filter(function (item) {
         return item.value;
       });
@@ -480,7 +395,7 @@ sort($categoryOptions);
       pageLength: 10,
       order: [[1, 'asc']],
       columnDefs: [
-        { targets: [0, 9], orderable: false, searchable: false }
+        { targets: [0, 8], orderable: false, searchable: false }
       ],
       language: {
         search: 'Cari:',
@@ -514,8 +429,6 @@ sort($categoryOptions);
     $('#reset-filter-drawer').on('click', function () {
       $('#filter-lab').val('');
       $('#filter-category').val('');
-      $('#filter-condition').val('');
-      $('#filter-loanable').val('');
       applyDrawerFilters(tableAssets);
     });
 
@@ -525,10 +438,6 @@ sort($categoryOptions);
         $('#filter-lab').val('');
       } else if (key === 'category') {
         $('#filter-category').val('');
-      } else if (key === 'condition') {
-        $('#filter-condition').val('');
-      } else if (key === 'loanable') {
-        $('#filter-loanable').val('');
       }
 
       applyDrawerFilters(tableAssets);
