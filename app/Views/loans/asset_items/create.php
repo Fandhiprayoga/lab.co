@@ -3,6 +3,10 @@
 <?php $selectedAssetId = (int) ($selectedAssetId ?? 0); ?>
 <?php $inventoryStatuses = $inventoryStatuses ?? ['aktif', 'dipinjam', 'dalam_perbaikan', 'dihapuskan', 'hilang']; ?>
 
+<?= $this->section('css') ?>
+<link rel="stylesheet" href="<?= base_url('assets/modules/select2/dist/css/select2.min.css') ?>">
+<?= $this->endSection() ?>
+
 <div class="row justify-content-center">
   <div class="col-lg-8">
     <div class="card">
@@ -15,7 +19,7 @@
 
           <div class="form-group">
             <label for="asset_id">Master Alat</label>
-            <select id="asset_id" name="asset_id" class="form-control" required>
+            <select id="asset_id" name="asset_id" class="form-control select2" required>
               <option value="">- Pilih Master Alat -</option>
               <?php foreach ($assets as $asset): ?>
                 <?php $assetId = (int) ($asset['id'] ?? 0); ?>
@@ -118,3 +122,16 @@
     </div>
   </div>
 </div>
+
+<?= $this->section('js') ?>
+<script src="<?= base_url('assets/modules/select2/dist/js/select2.min.js') ?>"></script>
+<script>
+$(function () {
+  $('#asset_id').select2({
+    placeholder: '- Pilih Master Alat -',
+    allowClear: true,
+    width: '100%'
+  });
+});
+</script>
+<?= $this->endSection() ?>
