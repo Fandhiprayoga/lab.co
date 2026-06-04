@@ -903,7 +903,7 @@ class LoanAssetController extends BaseController
 
         // Fetch reference data from DB for the reference section
         $db   = db_connect();
-        $labs = $db->table('labs')->where('is_active', 1)->orderBy('name', 'ASC')->get()->getColumn('name');
+        $labs = array_column($db->table('labs')->where('is_active', 1)->orderBy('name', 'ASC')->get()->getResultArray(), 'name');
         $categories = $this->categoryModel->where('is_active', 1)->orderBy('name', 'ASC')->findColumn('name');
         $units = $db->table('units')->where('is_active', 1)->orderBy('name', 'ASC')->get()->getResultArray();
 
@@ -956,7 +956,7 @@ class LoanAssetController extends BaseController
         }
 
         $db   = db_connect();
-        $labs = $db->table('labs')->where('is_active', 1)->orderBy('name', 'ASC')->get()->getColumn('name');
+        $labs = array_column($db->table('labs')->where('is_active', 1)->orderBy('name', 'ASC')->get()->getResultArray(), 'name');
         $cats = $this->categoryModel->where('is_active', 1)->orderBy('name', 'ASC')->findColumn('name');
 
         if (empty($labs) || empty($cats)) {

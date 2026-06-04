@@ -3,6 +3,11 @@
 <?php $types = $types ?? []; ?>
 <?php $assetId = (int) ($assetId ?? 0); ?>
 
+<?= $this->section('css') ?>
+<link rel="stylesheet" href="<?= base_url('assets/modules/select2/dist/css/select2.min.css') ?>"/>
+<?= $this->endSection() ?>
+
+
 <div class="row justify-content-center">
   <div class="col-lg-8">
     <div class="card">
@@ -16,7 +21,7 @@
           <div class="form-group">
             <label for="asset_id">Aset</label>
             <?php $selAsset = (string) old('asset_id', (string) $assetId); ?>
-            <select id="asset_id" name="asset_id" class="form-control" required>
+            <select id="asset_id" name="asset_id" class="form-control select2" required>
               <option value="">- Pilih Aset -</option>
               <?php foreach ($assets as $a): ?>
                 <option value="<?= (int) $a['id'] ?>" <?= $selAsset === (string) $a['id'] ? 'selected' : '' ?>>
@@ -95,3 +100,18 @@
     </div>
   </div>
 </div>
+
+<?= $this->section('js') ?>
+<script src="<?= base_url('assets/modules/select2/dist/js/select2.min.js') ?>"></script>
+<script>
+  $(document).ready(function() {
+    //get value from change select asset_id
+    $('#asset_id').change(function() {
+      var assetId = $(this).val();
+        console.log('Selected asset ID:', assetId); // Debugging log
+        //from asset_id get lab_id from asset data and set dari lab value to lab_id
+    });
+  });
+
+</script>
+<?= $this->endSection() ?>
