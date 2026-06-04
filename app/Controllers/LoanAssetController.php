@@ -383,7 +383,7 @@ class LoanAssetController extends BaseController
 
         return view('loans/assets/qr_show', [
             'asset'  => $asset,
-            'qrUrl'  => base_url('admin/loans/assets/edit/' . $id),
+            'qrUrl'  => rawurlencode((string) ($asset['asset_code'] ?? $id)),
         ]);
     }
 
@@ -398,7 +398,8 @@ class LoanAssetController extends BaseController
             return $this->response->setStatusCode(404)->setBody('Aset tidak ditemukan.');
         }
 
-        $url = base_url('admin/loans/assets/edit/' . $id);
+        $assetCode = $asset['asset_code'] ?? $id;
+        $url = rawurlencode((string) $assetCode);
 
         $builder = new \Endroid\QrCode\Builder\Builder(
             writer: new \Endroid\QrCode\Writer\PngWriter(),
@@ -1374,5 +1375,24 @@ class LoanAssetController extends BaseController
 
         fclose($handle);
         return $rows;
+    }
+
+    public function scanByCode(string $code)
+    {
+        $asset = $this->assetModel->where('asset_code', $code)->first();
+        if (! $asset) {
+            return view('errors/html/error_404', ['message' => 'Aset dengan kode tersebut tidak ditemukan.']);
+        }
+
+        $location = $asset['location'] ?? '';
+        if (! $location && ! empty($asset['lab_id'])) {
+            $lab = $this->labModel->find((int) $asset['lab_id']);
+            $location = $lab['name'] ?? '';
+        }
+
+        return view('loans/assets/scan', [
+            'asset'    => $asset,
+            'location' => $location,
+        ]);
     }
 }
