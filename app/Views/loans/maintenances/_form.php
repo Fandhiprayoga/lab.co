@@ -1,4 +1,5 @@
 <?php
+
 /** @var array $assets */
 /** @var array $types */
 /** @var array $statuses */
@@ -12,9 +13,13 @@ $types       = $types ?? [];
 $statuses    = $statuses ?? [];
 $assetId     = (int) ($assetId ?? ($maintenance['asset_id'] ?? 0));
 $formAction  = $isEdit
-    ? base_url('admin/loans/maintenances/update/' . (int) ($maintenance['id'] ?? 0))
-    : base_url('admin/loans/maintenances/store');
+  ? base_url('admin/loans/maintenances/update/' . (int) ($maintenance['id'] ?? 0))
+  : base_url('admin/loans/maintenances/store');
 ?>
+
+<?= $this->section('css') ?>
+<link rel="stylesheet" href="<?= base_url('assets/modules/select2/dist/css/select2.min.css') ?>"/>
+<?= $this->endSection() ?>
 
 <div class="row justify-content-center">
   <div class="col-lg-8">
@@ -29,7 +34,7 @@ $formAction  = $isEdit
           <div class="form-group">
             <label for="asset_id">Aset</label>
             <?php $selAsset = (string) old('asset_id', (string) ($maintenance['asset_id'] ?? $assetId)); ?>
-            <select id="asset_id" name="asset_id" class="form-control" required>
+            <select id="asset_id" name="asset_id" class="form-control select2" required>
               <option value="">- Pilih Aset -</option>
               <?php foreach ($assets as $a): ?>
                 <option value="<?= (int) $a['id'] ?>" <?= $selAsset === (string) $a['id'] ? 'selected' : '' ?>>
@@ -106,3 +111,16 @@ $formAction  = $isEdit
     </div>
   </div>
 </div>
+
+<?= $this->section('js') ?>
+<script src="<?= base_url('assets/modules/select2/dist/js/select2.min.js') ?>"></script>
+<script>
+  $(document).ready(function() {
+    //     $('#asset_id').select2({
+    //   theme: 'bootstrap4',
+    //   placeholder: '- Pilih Aset -',
+    //   // allowClear: true,
+    // });
+  });
+</script>
+<?= $this->endSection() ?>

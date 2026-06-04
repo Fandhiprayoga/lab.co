@@ -57,6 +57,7 @@ class AssetMaintenanceController extends BaseController
         }
 
         return $this->renderView('loans/maintenances/create', [
+            'mode'       => 'create',
             'title'      => 'Catat Perawatan Aset',
             'page_title' => 'Catat Perawatan Aset',
             'assets'     => $this->assetModel->orderBy('name', 'ASC')->findAll(),
@@ -78,6 +79,7 @@ class AssetMaintenanceController extends BaseController
         }
 
         return $this->renderView('loans/maintenances/edit', [
+            'mode'        => 'edit',
             'title'       => 'Edit Perawatan Aset',
             'page_title'  => 'Edit Perawatan Aset',
             'maintenance' => $maintenance,
