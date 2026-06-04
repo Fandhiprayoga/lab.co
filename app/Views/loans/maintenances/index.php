@@ -76,6 +76,10 @@
                       <?= csrf_field() ?>
                       <button type="submit" class="btn btn-sm btn-danger" title="Hapus"><i class="fas fa-trash"></i></button>
                     </form>
+                   
+                    <?php if ($m['status'] === 'scheduled'): ?>
+                      <a onclick="return confirm('Apakah Anda yakin ingin memulai perawatan ini?');" href="<?= base_url('admin/loans/maintenances/perform/' . (int) $m['id']) ?>" class="btn btn-sm btn-success" title="Lakukan Perawatan"><i class="fas fa-check"></i></a>
+                    <?php endif; ?>
                   </td>
                 </tr>
               <?php endforeach; ?>

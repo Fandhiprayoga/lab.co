@@ -636,10 +636,11 @@ class LoanProposalController extends BaseController
         $items = $this->itemModel
             ->where('proposal_id', $proposalId)
             ->where('item_type', 'equipment')
+            ->where('checked_out_at IS NULL', null, false)
             ->findAll();
 
         if (empty($items)) {
-            return redirect()->to('/loans/' . $publicId)->with('error', 'Proposal alat tidak memiliki item untuk diambil.');
+            return redirect()->to('/loans/' . $publicId)->with('error', 'Semua item sudah di-check-out.');
         }
 
         $assetMap = [];
@@ -675,28 +676,17 @@ class LoanProposalController extends BaseController
         $db = db_connect();
         $db->transStart();
 
-        $updated = $db->table('loan_proposals')
-            ->where('id', $proposalId)
-            ->where('status', self::STATUS_APPROVED)
-            ->where('checkout_at IS NULL', null, false)
-            ->update([
-            'status'             => self::STATUS_BORROWED,
-            'checkout_by'        => auth()->id(),
-            'checkout_condition' => $condition,
-            'checkout_at'        => $now,
-            'is_late'            => 0,
-            ]);
-
-        if (! $updated || $db->affectedRows() < 1) {
-            $db->transRollback();
-            return redirect()->to('/loans/' . $publicId)->with('error', 'Status proposal sudah berubah, silakan muat ulang halaman.');
-        }
-
         foreach ($items as $item) {
             $assetId = (int) ($item['equipment_id'] ?? 0);
             if ($assetId < 1 || ! isset($assetMap[$assetId])) {
                 continue;
             }
+
+            $this->itemModel->update((int) $item['id'], [
+                'checked_out_at'     => $now,
+                'checkout_condition' => $condition,
+                'checkout_by'        => auth()->id(),
+            ]);
 
             $asset = $assetMap[$assetId];
             $qty   = (int) ($item['qty'] ?? 1);
@@ -721,6 +711,22 @@ class LoanProposalController extends BaseController
             ]);
         }
 
+        $remaining = $this->itemModel
+            ->where('proposal_id', $proposalId)
+            ->where('item_type', 'equipment')
+            ->where('checked_out_at IS NULL', null, false)
+            ->countAllResults();
+
+        $updated = $db->table('loan_proposals')
+            ->where('id', $proposalId)
+            ->where('status', self::STATUS_APPROVED)
+            ->update([
+                'status'   => $remaining === 0 ? self::STATUS_BORROWED : self::STATUS_APPROVED,
+                'checkout_by'  => auth()->id(),
+                'checkout_at'  => $now,
+                'is_late'  => 0,
+            ]);
+
         $db->transComplete();
         if (! $db->transStatus()) {
             return redirect()->to('/loans/' . $publicId)->with('error', 'Gagal memproses check-out proposal.');
@@ -732,7 +738,130 @@ class LoanProposalController extends BaseController
             'reference_id'  => $proposalId,
         ]);
 
-        return redirect()->to('/loans/' . $publicId)->with('success', 'Check-out proposal berhasil diproses.');
+        return redirect()->to('/loans/' . $publicId)->with('success', $remaining === 0 ? 'Check-out semua item berhasil.' : 'Check-out ' . count($items) . ' item berhasil.');
+    }
+
+    public function checkoutItem(string $publicId, string $itemPublicId)
+    {
+        if (! activeGroupCan('lending.checkout')) {
+            return redirect()->to('/loans')->with('error', 'Anda tidak memiliki izin check-out.');
+        }
+
+        $proposal = $this->findProposalByPublicId($publicId);
+        if (! $proposal || ! $this->canAccessProposal($proposal)) {
+            return redirect()->to('/loans')->with('error', 'Proposal tidak ditemukan atau tidak dapat diakses.');
+        }
+
+        $proposalId = (int) ($proposal['id'] ?? 0);
+
+        if (($proposal['loan_type'] ?? 'equipment') !== 'equipment') {
+            return redirect()->to('/loans/' . $publicId)->with('error', 'Check-out hanya berlaku untuk peminjaman alat.');
+        }
+
+        if (($proposal['status'] ?? '') !== self::STATUS_APPROVED) {
+            return redirect()->to('/loans/' . $publicId)->with('error', 'Proposal tidak valid untuk check-out.');
+        }
+
+        $item = $this->itemModel
+            ->where('proposal_id', $proposalId)
+            ->where('public_id', $itemPublicId)
+            ->where('item_type', 'equipment')
+            ->first();
+
+        if (! $item) {
+            return redirect()->to('/loans/' . $publicId)->with('error', 'Item alat tidak ditemukan dalam proposal.');
+        }
+
+        if (! empty($item['checked_out_at'])) {
+            return redirect()->to('/loans/' . $publicId)->with('error', 'Item ini sudah di-check-out.');
+        }
+
+        $assetId = (int) ($item['equipment_id'] ?? 0);
+        if ($assetId < 1) {
+            return redirect()->to('/loans/' . $publicId)->with('error', 'Item tidak memiliki aset terkait.');
+        }
+
+        $asset = $this->assetModel->find($assetId);
+        if (! $asset || (int) ($asset['is_active'] ?? 0) !== 1 || (int) ($asset['is_loanable'] ?? 0) !== 1) {
+            return redirect()->to('/loans/' . $publicId)->with('error', 'Aset tidak valid untuk check-out.');
+        }
+
+        $qty = (int) ($item['qty'] ?? 1);
+        if ((int) ($asset['stock_available'] ?? 0) < $qty) {
+            return redirect()->to('/loans/' . $publicId)->with('error', 'Stok ' . ($asset['name'] ?? '-') . ' tidak mencukupi.');
+        }
+
+        $condition = strtolower(trim((string) $this->request->getPost('checkout_condition')) ?: 'baik');
+        if (! in_array($condition, self::CHECKOUT_CONDITIONS, true)) {
+            return redirect()->to('/loans/' . $publicId)->with('error', 'Kondisi checkout tidak valid.');
+        }
+
+        $now = Time::now()->toDateTimeString();
+
+        $db = db_connect();
+        $db->transStart();
+
+        $this->itemModel->update((int) $item['id'], [
+            'checked_out_at'     => $now,
+            'checkout_condition' => $condition,
+            'checkout_by'        => auth()->id(),
+        ]);
+
+        $this->assetModel->update($assetId, [
+            'stock_available'  => max(0, (int) $asset['stock_available'] - $qty),
+            'inventory_status' => 'dipinjam',
+        ]);
+
+        $this->movementModel->insert([
+            'asset_id'       => $assetId,
+            'movement_type'  => 'borrow',
+            'quantity'       => -1 * $qty,
+            'from_lab_id'    => (int) ($asset['lab_id'] ?? 0) ?: null,
+            'to_lab_id'      => null,
+            'reference_type' => 'loan_proposal',
+            'reference_id'   => $proposalId,
+            'movement_date'  => $now,
+            'notes'          => 'Auto: check-out item ' . ($item['public_id'] ?? '#'.$item['id']) . ' proposal ' . ($proposal['proposal_code'] ?? '#'.$proposalId) . '. Kondisi: ' . $condition,
+            'created_by'     => auth()->id(),
+            'created_at'     => $now,
+        ]);
+
+        // Check if all equipment items are now checked out
+        $remaining = $this->itemModel
+            ->where('proposal_id', $proposalId)
+            ->where('item_type', 'equipment')
+            ->where('checked_out_at IS NULL', null, false)
+            ->countAllResults();
+
+        if ($remaining === 0) {
+            $db->table('loan_proposals')
+                ->where('id', $proposalId)
+                ->update([
+                    'status'   => self::STATUS_BORROWED,
+                    'checkout_by' => auth()->id(),
+                    'checkout_at' => $now,
+                    'is_late'  => 0,
+                ]);
+        }
+
+        $db->transComplete();
+        if (! $db->transStatus()) {
+            return redirect()->to('/loans/' . $publicId)->with('error', 'Gagal memproses check-out item.');
+        }
+
+        if ($remaining === 0) {
+            send_notification((int) $proposal['proposer_id'], 'loan.checked_out', [
+                'proposal_code' => $proposal['proposal_code'] ?? ('#' . $proposalId),
+                'url'           => '/loans/' . $publicId,
+                'reference_id'  => $proposalId,
+            ]);
+        }
+
+        $msg = $remaining === 0
+            ? 'Check-out item berhasil. Semua item sudah di-check-out.'
+            : 'Check-out item berhasil. (' . $remaining . ' item tersisa)';
+
+        return redirect()->to('/loans/' . $publicId)->with('success', $msg);
     }
 
     public function checkin(string $publicId)

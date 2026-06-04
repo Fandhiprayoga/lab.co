@@ -1052,23 +1052,69 @@ $fmtD  = fn(?string $dt) => $dt ? date('d M Y', strtotime($dt)) : '-';
       <?php endif; ?>
 
       <?php if ($isEquipment && activeGroupCan('lending.checkout') && $proposalStatus === 'approved'): ?>
+        <?php
+          $checkoutItems = array_values(array_filter($items, static fn(array $it): bool => ($it['item_type'] ?? '') === 'equipment'));
+          $uncheckedItems = array_filter($checkoutItems, static fn(array $it): bool => empty($it['checked_out_at']));
+        ?>
         <section class="action-panel">
           <div class="panel-head"><i class="fas fa-hand-holding mr-1"></i>Check-out Alat</div>
           <div class="panel-body">
-            <form action="<?= base_url('loans/' . $proposalPublicId . '/checkout') ?>" method="post">
-              <?= csrf_field() ?>
-              <div class="form-group">
-                <label>Kondisi Awal</label>
-                <select name="checkout_condition" class="form-control form-control-sm" required>
-                  <option value="baik">Baik</option>
-                  <option value="siap_pakai">Siap Pakai</option>
-                  <option value="catatan">Perlu Catatan</option>
-                </select>
-              </div>
-              <button type="submit" class="btn btn-primary btn-sm btn-block btn-action">
-                <i class="fas fa-hand-holding mr-1"></i>Proses Check-out
-              </button>
-            </form>
+            <?php if (empty($uncheckedItems)): ?>
+              <p class="text-muted small mb-2">Semua item sudah di-check-out.</p>
+            <?php else: ?>
+              <p class="text-muted small mb-2">Check-out per item:</p>
+              <?php foreach ($uncheckedItems as $idx => $coItem): ?>
+                <?php
+                  $coItemName = (string) ($coItem['equipment_name'] ?? ('Item #' . ((int) ($coItem['equipment_id'] ?? 0))));
+                  $coItemPublicId = (string) ($coItem['public_id'] ?? ('item_' . $idx));
+                  $coItemQty = (int) ($coItem['qty'] ?? 1);
+                ?>
+                <div class="border rounded p-2 mb-2" style="border-color:#e5e7eb !important;">
+                  <div class="small font-weight-bold mb-2">
+                    <?= esc($coItemName) ?> <span class="text-muted">(Qty: <?= $coItemQty ?>)</span>
+                  </div>
+                  <form action="<?= base_url('loans/' . $proposalPublicId . '/items/' . rawurlencode($coItemPublicId) . '/checkout') ?>" method="post">
+                    <?= csrf_field() ?>
+                    <div class="form-row">
+                      <div class="form-group col-8 mb-1">
+                        <label class="mb-1">Kondisi Awal</label>
+                        <select name="checkout_condition" class="form-control form-control-sm" required>
+                          <option value="baik">Baik</option>
+                          <option value="siap_pakai">Siap Pakai</option>
+                          <option value="catatan">Perlu Catatan</option>
+                        </select>
+                      </div>
+                      <div class="form-group col-4 mb-1 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary btn-sm btn-block">
+                          <i class="fas fa-hand-holding mr-1"></i>Check-out
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              <?php endforeach; ?>
+
+              <?php if (count($uncheckedItems) > 1): ?>
+                <form action="<?= base_url('loans/' . $proposalPublicId . '/checkout') ?>" method="post">
+                  <?= csrf_field() ?>
+                  <div class="form-row">
+                    <div class="form-group col-8 mb-1">
+                      <label class="mb-1">Kondisi Awal (semua)</label>
+                      <select name="checkout_condition" class="form-control form-control-sm" required>
+                        <option value="baik">Baik</option>
+                        <option value="siap_pakai">Siap Pakai</option>
+                        <option value="catatan">Perlu Catatan</option>
+                      </select>
+                    </div>
+                    <div class="form-group col-4 mb-1 d-flex align-items-end">
+                      <button type="submit" class="btn btn-outline-primary btn-sm btn-block">
+                        <i class="fas fa-hand-holding mr-1"></i>Check-out Semua
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              <?php endif; ?>
+            <?php endif; ?>
           </div>
         </section>
       <?php endif; ?>

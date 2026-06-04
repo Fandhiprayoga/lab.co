@@ -26,6 +26,9 @@ class LoanProposalItemModel extends Model
         'return_note',
         'maintenance_record_id',
         'returned_at',
+        'checked_out_at',
+        'checkout_condition',
+        'checkout_by',
         'note',
     ];
 

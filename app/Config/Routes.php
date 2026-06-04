@@ -80,6 +80,7 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
         $routes->post('(:segment)/approve-l2', 'LoanProposalController::approveL2/$1', ['filter' => 'permission:lending.approval.l2']);
         $routes->post('(:segment)/reject-l2', 'LoanProposalController::rejectL2/$1', ['filter' => 'permission:lending.approval.l2']);
         $routes->post('(:segment)/checkout', 'LoanProposalController::checkout/$1', ['filter' => 'permission:lending.checkout']);
+        $routes->post('(:segment)/items/(:segment)/checkout', 'LoanProposalController::checkoutItem/$1/$2', ['filter' => 'permission:lending.checkout']);
         $routes->post('(:segment)/checkin', 'LoanProposalController::checkin/$1', ['filter' => 'permission:lending.checkin']);
         $routes->post('(:segment)/usage/start', 'LoanProposalController::startUsage/$1', ['filter' => 'permission:lending.checkout']);
         $routes->post('(:segment)/usage/finish', 'LoanProposalController::finishUsage/$1', ['filter' => 'permission:lending.checkin']);
@@ -256,6 +257,7 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
             $routes->post('store', 'AssetMaintenanceController::store');
             $routes->post('update/(:num)', 'AssetMaintenanceController::update/$1');
             $routes->post('delete/(:num)', 'AssetMaintenanceController::delete/$1');
+            $routes->get('perform/(:num)', 'AssetMaintenanceController::perform/$1');
         });
 
         // Asset Documents

@@ -223,4 +223,31 @@ class AssetMaintenanceController extends BaseController
 
         return null;
     }
+
+    public function perform(int $id)
+    {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
+        $maintenance = $this->maintenanceModel->find($id);
+        if (! $maintenance) {
+            return redirect()->to('/admin/loans/maintenances')->with('error', 'Data perawatan tidak ditemukan.');
+        }
+
+        if ($maintenance['status'] !== 'scheduled') {
+            return redirect()->back()->with('error', 'Perawatan hanya dapat dilakukan jika statusnya "scheduled".');
+        }
+
+        $this->maintenanceModel->update($id, [
+            'status' => 'in_progress',
+            'performed_date' => date('Y-m-d'),
+            'performed_by' => auth()->user()->username,
+        ]);
+
+        $this->syncAssetStatus((int) $maintenance['asset_id']);
+
+        return redirect()->to('/admin/loans/maintenances?asset_id=' . (int) $maintenance['asset_id'])
+            ->with('success', 'Perawatan telah dimulai. Silakan lengkapi detailnya setelah selesai.');
+    }
 }
