@@ -181,4 +181,86 @@ class AssetMovementController extends BaseController
 
         $this->assetModel->update((int) $asset['id'], $update);
     }
+
+    public function exportHistory()
+    {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
+        $assetId = (int) $this->request->getGet('asset_id');
+
+        $builder = db_connect()->table('asset_movements m')
+            ->select('m.*, a.name AS asset_name, a.asset_code, fl.name AS from_lab_name, tl.name AS to_lab_name, u.username AS created_by_name')
+            ->join('lab_assets a', 'a.id = m.asset_id', 'left')
+            ->join('labs fl', 'fl.id = m.from_lab_id', 'left')
+            ->join('labs tl', 'tl.id = m.to_lab_id', 'left')
+            ->join('users u', 'u.id = m.created_by', 'left')
+            ->orderBy('m.movement_date', 'DESC')
+            ->orderBy('m.id', 'DESC');
+
+        if ($assetId > 0) {
+            $builder->where('m.asset_id', $assetId);
+        }
+
+        $rows = $builder->get()->getResultArray();
+
+        $typeLabels = [
+            'in' => 'Masuk', 'out' => 'Keluar', 'transfer' => 'Transfer',
+            'borrow' => 'Pinjam', 'return' => 'Kembali',
+            'adjustment' => 'Penyesuaian', 'disposal' => 'Penghapusan',
+        ];
+
+        $headers = ['No', 'Tanggal', 'Aset', 'Kode Aset', 'Tipe Mutasi', 'Qty', 'Dari Lab', 'Ke Lab', 'Catatan', 'Referensi', 'Oleh'];
+
+        $sheetXml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        $sheetXml .= '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"';
+        $sheetXml .= ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">' . "\n";
+        $sheetXml .= '<Worksheet ss:Name="Mutasi Aset"><Table>' . "\n";
+
+        $sheetXml .= '<Row>';
+        foreach ($headers as $h) {
+            $sheetXml .= '<Cell><Data ss:Type="String">' . htmlspecialchars($h, ENT_XML1, 'UTF-8') . '</Data></Cell>';
+        }
+        $sheetXml .= '</Row>' . "\n";
+
+        foreach ($rows as $no => $m) {
+            $type = (string) ($m['movement_type'] ?? '');
+            $ref  = '';
+            if (! empty($m['reference_type'])) {
+                $ref = $m['reference_type'] . (! empty($m['reference_id']) ? '#' . $m['reference_id'] : '');
+            }
+
+            $cells = [
+                $no + 1,
+                $m['movement_date'] ?? '',
+                $m['asset_name'] ?? '-',
+                $m['asset_code'] ?? '',
+                $typeLabels[$type] ?? $type,
+                (int) ($m['quantity'] ?? 0),
+                $m['from_lab_name'] ?? '-',
+                $m['to_lab_name'] ?? '-',
+                $m['notes'] ?? '',
+                $ref,
+                $m['created_by_name'] ?? '-',
+            ];
+
+            $sheetXml .= '<Row>';
+            foreach ($cells as $cell) {
+                $t = is_numeric($cell) ? 'Number' : 'String';
+                $sheetXml .= '<Cell><Data ss:Type="' . $t . '">' . htmlspecialchars((string) $cell, ENT_XML1, 'UTF-8') . '</Data></Cell>';
+            }
+            $sheetXml .= '</Row>' . "\n";
+        }
+
+        $sheetXml .= '</Table></Worksheet></Workbook>';
+
+        $filename = 'mutasi-aset-' . date('Ymd-His');
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/vnd.ms-excel; charset=UTF-8')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '.xls"')
+            ->setHeader('Cache-Control', 'no-store, no-cache')
+            ->setBody($sheetXml);
+    }
 }

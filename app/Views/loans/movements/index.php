@@ -23,7 +23,20 @@
               <i class="fas fa-list"></i> Semua Mutasi
             </a>
           <?php endif; ?>
-          <a href="<?= base_url('admin/loans/movements/create' . ($assetId ? '?asset_id=' . $assetId : '')) ?>" class="btn btn-primary">
+          <div class="dropdown d-inline-block mr-2">
+            <button class="btn btn-success dropdown-toggle" type="button" id="mv-export-dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              <i class="fas fa-file-excel mr-1"></i> Export Excel
+            </button>
+            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="mv-export-dropdown">
+              <a class="dropdown-item" id="mv-export-all" href="#">
+                <i class="fas fa-table mr-2"></i> Semua Data
+              </a>
+              <a class="dropdown-item" id="mv-export-filtered" href="#">
+                <i class="fas fa-filter mr-2"></i> Sesuai Filter Aktif
+              </a>
+            </div>
+          </div>
+          <a href="<?= base_url('admin/loans/movements/create') ?>" class="btn btn-primary">
             <i class="fas fa-plus"></i> Catat Mutasi
           </a>
         </div>
@@ -105,6 +118,29 @@
       order: [[0, 'desc']],
       columnDefs: [{ targets: [9], orderable: false, searchable: false }],
       language: { search: 'Cari:', lengthMenu: 'Tampilkan _MENU_ data', info: 'Menampilkan _START_-_END_ dari _TOTAL_', paginate: { previous: 'Sebelumnya', next: 'Selanjutnya' }, zeroRecords: 'Belum ada catatan mutasi.' }
+    });
+
+    /* ── Export ───────────────────────────── */
+    var exportBaseUrl = '<?= base_url('admin/loans/movements/export') ?>';
+
+    function buildExportUrl(withFilters) {
+      var params = {};
+      if (withFilters) {
+        var assetId = '<?= (int) $assetId ?>';
+        if (assetId) { params.asset_id = assetId; }
+      }
+      var qs = $.param(params);
+      return exportBaseUrl + (qs ? '?' + qs : '');
+    }
+
+    $('#mv-export-all').on('click', function (e) {
+      e.preventDefault();
+      window.location.href = buildExportUrl(false);
+    });
+
+    $('#mv-export-filtered').on('click', function (e) {
+      e.preventDefault();
+      window.location.href = buildExportUrl(true);
     });
   });
 </script>

@@ -247,6 +247,7 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
             $routes->get('create', 'AssetMovementController::create');
             $routes->post('store', 'AssetMovementController::store');
             $routes->post('delete/(:num)', 'AssetMovementController::delete/$1');
+            $routes->get('export', 'AssetMovementController::exportHistory');
         });
 
         // Asset Maintenances
