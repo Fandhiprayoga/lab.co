@@ -59,6 +59,8 @@ class LoanProposalController extends BaseController
             self::STATUS_CANCELED,
             self::STATUS_REJECTED,
             self::STATUS_COMPLETED,
+            self::STATUS_ISSUE,
+            self::STATUS_RETURNED
         ];
 
         $builder = db_connect()->table('loan_proposals p')
@@ -693,7 +695,7 @@ class LoanProposalController extends BaseController
 
             $this->assetModel->update($assetId, [
                 'stock_available'  => (int) $asset['stock_available'] - $qty,
-                'inventory_status' => 'dipinjam',
+                // 'inventory_status' => 'dipinjam',
             ]);
 
             $this->movementModel->insert([
@@ -1069,7 +1071,7 @@ class LoanProposalController extends BaseController
                     $assetUpdate['condition_status'] = $itemCondition;
                 }
 
-                $this->assetModel->update($assetId, $assetUpdate);
+                // $this->assetModel->update($assetId, $assetUpdate);
 
                 if ($qtyGood > 0) {
                     $this->movementModel->insert([

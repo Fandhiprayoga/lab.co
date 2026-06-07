@@ -366,7 +366,7 @@ class AssetMaintenanceController extends BaseController
             'performed_by' => auth()->user()->username,
         ]);
 
-        $this->syncAssetStatus((int) $maintenance['asset_id']);
+        // $this->syncAssetStatus((int) $maintenance['asset_id']);
 
         return redirect()->to('/admin/loans/maintenances?asset_id=' . (int) $maintenance['asset_id'])
             ->with('success', 'Perawatan telah dimulai. Silakan lengkapi detailnya setelah selesai.');
