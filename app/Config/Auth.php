@@ -442,7 +442,26 @@ class Auth extends ShieldAuth
     public function loginRedirect(): string
     {
         $session = session();
-        $url     = $session->getTempdata('beforeLoginUrl') ?? setting('Auth.redirects')['login'];
+        $url     = $session->getTempdata('beforeLoginUrl');
+
+        // Skip beforeLoginUrl if it's an AJAX/API endpoint — not a page to render
+        if ($url !== null) {
+            $path = parse_url($url, PHP_URL_PATH) ?? '';
+            $skipPatterns = [
+                '/notifications/unread-count',
+                '/notifications/list',
+                '/notifications/recent',
+                '/menu-search',
+            ];
+            foreach ($skipPatterns as $p) {
+                if (str_ends_with($path, $p)) {
+                    $url = null;
+                    break;
+                }
+            }
+        }
+
+        $url ??= setting('Auth.redirects')['login'];
 
         return $this->getUrl($url);
     }
