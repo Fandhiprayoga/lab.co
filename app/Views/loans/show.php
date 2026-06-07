@@ -1152,7 +1152,7 @@ $fmtD  = fn(?string $dt) => $dt ? date('d M Y', strtotime($dt)) : '-';
                       <input type="number" min="0" max="<?= $itemQty ?>" name="items[<?= esc($itemPublicId) ?>][qty_lost]" value="0" class="form-control form-control-sm" required>
                     </div>
                   </div>
-                  <div class="form-row">
+                  <!-- <div class="form-row">
                     <div class="form-group col-md-5 mb-1">
                       <label class="mb-1">Kondisi Item</label>
                       <select name="items[<?= esc($itemPublicId) ?>][condition]" class="form-control form-control-sm" required>
@@ -1166,7 +1166,7 @@ $fmtD  = fn(?string $dt) => $dt ? date('d M Y', strtotime($dt)) : '-';
                       <label class="mb-1">Catatan Item (opsional)</label>
                       <input type="text" name="items[<?= esc($itemPublicId) ?>][note]" class="form-control form-control-sm" placeholder="Contoh: 1 unit rusak di bagian tombol">
                     </div>
-                  </div>
+                  </div> -->
                 </div>
               <?php endforeach; ?>
 

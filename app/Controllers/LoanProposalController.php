@@ -1064,11 +1064,11 @@ class LoanProposalController extends BaseController
                 $assetUpdate = [
                     'stock_available' => $newStockAvailable,
                     'stock_total'     => $newStockTotal,
-                    // 'inventory_status' => $newStockTotal <= 0 ? 'hilang' : 'aktif',
+                    'inventory_status' => $newStockTotal <= 0 ? 'hilang' : 'aktif',
                 ];
 
                 if ($qtyDamaged > 0 && in_array($itemCondition, ['rusak_ringan', 'rusak_berat'], true)) {
-                    $assetUpdate['condition_status'] = $itemCondition;
+                    // $assetUpdate['condition_status'] = $itemCondition;
                 }
 
                 $this->assetModel->update($assetId, $assetUpdate);
