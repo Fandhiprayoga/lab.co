@@ -1039,7 +1039,7 @@ class LoanProposalController extends BaseController
                         'maintenance_type'      => 'corrective',
                         'scheduled_date'        => date('Y-m-d'),
                         'status'                => 'scheduled',
-                        'description'           => 'Kerusakan saat check-in proposal ' . ($proposal['proposal_code'] ?? ('#' . $proposalId)),
+                        'description'           => 'Kerusakan saat check-in proposal ' . ($proposal['proposal_code'] ?? ('#' . $proposalId)) . ' | qty_damaged: ' . $qtyDamaged,
                         'result_notes'          => $itemNote !== '' ? $itemNote : null,
                         'next_maintenance_date' => null,
                         'created_by'            => auth()->id(),

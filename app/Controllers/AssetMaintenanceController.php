@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\AssetMaintenanceModel;
 use App\Models\LabAssetModel;
+use App\Models\AssetMovementModel;
 
 class AssetMaintenanceController extends BaseController
 {
@@ -12,11 +13,13 @@ class AssetMaintenanceController extends BaseController
 
     protected AssetMaintenanceModel $maintenanceModel;
     protected LabAssetModel $assetModel;
+    protected AssetMovementModel $movementModel;
 
     public function __construct()
     {
         $this->maintenanceModel = new AssetMaintenanceModel();
         $this->assetModel       = new LabAssetModel();
+        $this->movementModel    = new AssetMovementModel();
     }
 
     public function index()
@@ -360,13 +363,41 @@ class AssetMaintenanceController extends BaseController
             return redirect()->back()->with('error', 'Perawatan hanya dapat dilakukan jika statusnya "scheduled".');
         }
 
-        $this->maintenanceModel->update($id, [
-            'status' => 'in_progress',
+        $movementQty = 1;
+        $description = (string) ($maintenance['description'] ?? '');
+        if (preg_match('/qty_damaged\s*:\s*(\d+)/i', $description, $matches)) {
+            $movementQty = max(1, (int) ($matches[1] ?? 1));
+        }
+
+        $updated = $this->maintenanceModel->update($id, [
+            'status' => 'completed',
             'performed_date' => date('Y-m-d'),
             'performed_by' => auth()->user()->username,
         ]);
 
-        // $this->syncAssetStatus((int) $maintenance['asset_id']);
+        if ($updated) {
+            $inserted = $this->movementModel->insert([
+                'asset_id'       => (int) $maintenance['asset_id'],
+                'movement_type'  => 'in',
+                'quantity'       => $movementQty,
+                'movement_date'  => date('Y-m-d H:i:s'),
+                'notes'          => 'Perawatan selesai',
+                'reference_type' => 'maintenance',
+                'reference_id'   => $id,
+                'created_by'     => auth()->id(),
+            ]);
+
+            if ($inserted) {
+                $this->assetModel->update((int) $maintenance['asset_id'], [
+                    'stock_available' => $this->assetModel->selectSum('stock_available')
+                        ->where('id', (int) $maintenance['asset_id'])
+                        ->get()
+                        ->getRow()->stock_available + $movementQty,
+                ]);
+            }
+        }
+
+        $this->syncAssetStatus((int) $maintenance['asset_id']);
 
         return redirect()->to('/admin/loans/maintenances?asset_id=' . (int) $maintenance['asset_id'])
             ->with('success', 'Perawatan telah dimulai. Silakan lengkapi detailnya setelah selesai.');
