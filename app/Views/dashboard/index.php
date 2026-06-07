@@ -125,6 +125,53 @@ $groupLabel = activeGroupTitle();
       </div>
       <div class="card-body">
         <div class="row">
+
+          <?php if (activeGroupCan('lending.access')): ?>
+          <div class="col-6 mb-3">
+            <a href="<?= base_url('loans/beranda') ?>" class="btn btn-primary btn-block">
+              <i class="fas fa-home"></i><br>Beranda Peminjaman
+            </a>
+          </div>
+          <?php if (activeGroupCan('lending.request.create')): ?>
+          <div class="col-6 mb-3">
+            <a href="<?= base_url('loans/create') ?>" class="btn btn-success btn-block">
+              <i class="fas fa-file-alt"></i><br>Buat Proposal
+            </a>
+          </div>
+          <?php endif; ?>
+          <?php endif; ?>
+
+          <?php if (activeGroupCan('clearance.access')): ?>
+          <div class="col-6 mb-3">
+            <a href="<?= base_url('clearance/beranda') ?>" class="btn btn-info btn-block">
+              <i class="fas fa-home"></i><br>Beranda Clearance
+            </a>
+          </div>
+          <?php if (activeGroupCan('clearance.request.create')): ?>
+          <div class="col-6 mb-3">
+            <a href="<?= base_url('clearance/create') ?>" class="btn btn-primary btn-block">
+              <i class="fas fa-file-signature"></i><br>Ajukan Surat Bebas
+            </a>
+          </div>
+          <?php endif; ?>
+          <?php endif; ?>
+
+          <?php if (activeGroupCan('bhp.access')): ?>
+          <div class="col-6 mb-3">
+            <a href="<?= base_url('consumables/beranda') ?>" class="btn btn-warning btn-block">
+              <i class="fas fa-home"></i><br>Beranda BHP
+            </a>
+          </div>
+          <?php endif; ?>
+
+          <?php if (activeGroupCan('visits.list')): ?>
+          <div class="col-6 mb-3">
+            <a href="<?= base_url('admin/visits') ?>" class="btn btn-secondary btn-block">
+              <i class="fas fa-book-open"></i><br>Buku Kunjungan
+            </a>
+          </div>
+          <?php endif; ?>
+
           <?php if (activeGroupCan('users.list')): ?>
           <div class="col-6 mb-3">
             <a href="<?= base_url('admin/users') ?>" class="btn btn-primary btn-block">
@@ -154,6 +201,7 @@ $groupLabel = activeGroupTitle();
             </a>
           </div>
           <?php endif; ?>
+
         </div>
       </div>
     </div>
