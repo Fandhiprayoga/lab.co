@@ -811,7 +811,7 @@ class LoanProposalController extends BaseController
 
         $this->assetModel->update($assetId, [
             'stock_available'  => max(0, (int) $asset['stock_available'] - $qty),
-            'inventory_status' => 'dipinjam',
+            // 'inventory_status' => 'dipinjam',
         ]);
 
         $this->movementModel->insert([
@@ -1064,14 +1064,14 @@ class LoanProposalController extends BaseController
                 $assetUpdate = [
                     'stock_available' => $newStockAvailable,
                     'stock_total'     => $newStockTotal,
-                    'inventory_status' => $newStockTotal <= 0 ? 'hilang' : 'aktif',
+                    // 'inventory_status' => $newStockTotal <= 0 ? 'hilang' : 'aktif',
                 ];
 
                 if ($qtyDamaged > 0 && in_array($itemCondition, ['rusak_ringan', 'rusak_berat'], true)) {
                     $assetUpdate['condition_status'] = $itemCondition;
                 }
 
-                // $this->assetModel->update($assetId, $assetUpdate);
+                $this->assetModel->update($assetId, $assetUpdate);
 
                 if ($qtyGood > 0) {
                     $this->movementModel->insert([
