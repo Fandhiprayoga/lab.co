@@ -25,28 +25,149 @@ class AssetMaintenanceController extends BaseController
             return $guard;
         }
 
-        $assetId = (int) $this->request->getGet('asset_id');
+        return $this->renderView('loans/maintenances/index', [
+            'title'      => 'Riwayat Perawatan Aset',
+            'page_title' => 'Riwayat Perawatan Aset',
+            'assets'     => $this->assetModel->orderBy('name', 'ASC')->findAll(),
+            'types'      => self::TYPES,
+            'statuses'   => self::STATUSES,
+        ]);
+    }
 
-        $builder = db_connect()->table('asset_maintenances m')
-            ->select('m.*, a.name AS asset_name, a.asset_code, u.username AS created_by_name')
-            ->join('lab_assets a', 'a.id = m.asset_id', 'left')
-            ->join('users u', 'u.id = m.created_by', 'left')
-            ->orderBy('COALESCE(m.scheduled_date, m.created_at)', 'DESC', false)
-            ->orderBy('m.id', 'DESC');
-
-        if ($assetId > 0) {
-            $builder->where('m.asset_id', $assetId);
+    public function datatable()
+    {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
         }
 
-        $maintenances = $builder->get()->getResultArray();
-        $asset = $assetId > 0 ? $this->assetModel->find($assetId) : null;
+        $req      = $this->request;
+        $draw     = (int) $req->getGet('draw');
+        $start    = max(0, (int) $req->getGet('start'));
+        $length   = (int) $req->getGet('length');
+        if ($length <= 0) { $length = 25; }
 
-        return $this->renderView('loans/maintenances/index', [
-            'title'        => 'Riwayat Perawatan Aset',
-            'page_title'   => $asset ? 'Perawatan: ' . $asset['name'] : 'Riwayat Perawatan Aset',
-            'maintenances' => $maintenances,
-            'asset'        => $asset,
-            'assetId'      => $assetId,
+        $search   = (string) ($req->getGet('search')['value'] ?? '');
+        $orderCol = (int) ($req->getGet('order')[0]['column'] ?? 2);
+        $orderDir = strtolower((string) ($req->getGet('order')[0]['dir'] ?? 'desc')) === 'asc' ? 'ASC' : 'DESC';
+
+        $filterAssetId        = (int) $req->getGet('filter_asset_id');
+        $filterType           = (string) $req->getGet('filter_type');
+        $filterStatus         = (string) $req->getGet('filter_status');
+        $filterScheduledFrom  = (string) $req->getGet('filter_scheduled_from');
+        $filterScheduledUntil = (string) $req->getGet('filter_scheduled_until');
+        $filterPerformedFrom  = (string) $req->getGet('filter_performed_from');
+        $filterPerformedUntil = (string) $req->getGet('filter_performed_until');
+        $filterCostMin        = $req->getGet('filter_cost_min');
+        $filterCostMax        = $req->getGet('filter_cost_max');
+
+        $colMap = [
+            1 => 'a.name',
+            2 => 'm.maintenance_type',
+            3 => 'm.scheduled_date',
+            4 => 'm.performed_date',
+            5 => 'm.status',
+            6 => 'm.performed_by',
+            7 => 'm.cost',
+            8 => 'm.next_maintenance_date',
+        ];
+        $orderField = $colMap[$orderCol] ?? 'COALESCE(m.scheduled_date, m.created_at)';
+
+        $db   = db_connect();
+        $base = $db->table('asset_maintenances m')
+            ->select('m.*, a.name AS asset_name, a.asset_code, u.username AS created_by_name')
+            ->join('lab_assets a', 'a.id = m.asset_id', 'left')
+            ->join('users u', 'u.id = m.created_by', 'left');
+
+        $recordsTotal = (clone $base)->countAllResults(false);
+
+        if ($search !== '') {
+            $base->groupStart()
+                ->like('a.name', $search)
+                ->orLike('a.asset_code', $search)
+                ->orLike('m.description', $search)
+                ->orLike('m.performed_by', $search)
+                ->groupEnd();
+        }
+        if ($filterAssetId > 0) {
+            $base->where('m.asset_id', $filterAssetId);
+        }
+        if ($filterType !== '' && in_array($filterType, self::TYPES, true)) {
+            $base->where('m.maintenance_type', $filterType);
+        }
+        if ($filterStatus !== '' && in_array($filterStatus, self::STATUSES, true)) {
+            $base->where('m.status', $filterStatus);
+        }
+        if ($filterScheduledFrom !== '') {
+            $base->where('m.scheduled_date >=', $filterScheduledFrom);
+        }
+        if ($filterScheduledUntil !== '') {
+            $base->where('m.scheduled_date <=', $filterScheduledUntil);
+        }
+        if ($filterPerformedFrom !== '') {
+            $base->where('m.performed_date >=', $filterPerformedFrom);
+        }
+        if ($filterPerformedUntil !== '') {
+            $base->where('m.performed_date <=', $filterPerformedUntil);
+        }
+        if ($filterCostMin !== null && $filterCostMin !== '') {
+            $base->where('m.cost >=', (float) $filterCostMin);
+        }
+        if ($filterCostMax !== null && $filterCostMax !== '') {
+            $base->where('m.cost <=', (float) $filterCostMax);
+        }
+
+        $recordsFiltered = (clone $base)->countAllResults(false);
+
+        $rows = $base->orderBy($orderField, $orderDir)->limit($length, $start)->get()->getResultArray();
+
+        $typeLabels   = ['preventive' => 'Preventif', 'corrective' => 'Korektif', 'calibration' => 'Kalibrasi', 'inspection' => 'Inspeksi'];
+        $statusLabels = ['scheduled' => 'Terjadwal', 'in_progress' => 'Diproses', 'completed' => 'Selesai', 'cancelled' => 'Dibatalkan'];
+        $statusBadges = ['scheduled' => 'badge-info', 'in_progress' => 'badge-warning', 'completed' => 'badge-success', 'cancelled' => 'badge-secondary'];
+
+        $data = [];
+        $csrfName  = csrf_token();
+        $csrfValue = csrf_hash();
+        foreach ($rows as $r) {
+            $type   = $typeLabels[$r['maintenance_type']] ?? $r['maintenance_type'];
+            $sLabel = $statusLabels[$r['status']] ?? $r['status'];
+            $sBadge = $statusBadges[$r['status']] ?? 'badge-secondary';
+            $cost   = $r['cost'] !== null ? number_format((float) $r['cost'], 0, ',', '.') : '-';
+
+            $btnEdit   = '<a href="' . base_url('admin/loans/maintenances/edit/' . (int) $r['id']) . '" class="btn btn-sm btn-info" title="Edit"><i class="fas fa-edit"></i></a>';
+            $btnDelete = '<form action="' . base_url('admin/loans/maintenances/delete/' . (int) $r['id']) . '" method="post" class="d-inline js-swal-delete-form" data-swal-title="Hapus perawatan?" data-swal-text="Catatan perawatan akan dihapus permanen." data-swal-confirm="Ya, hapus" data-swal-cancel="Batal">'
+                . '<input type="hidden" name="' . $csrfName . '" value="' . $csrfValue . '" />'
+                . '<button type="submit" class="btn btn-sm btn-danger" title="Hapus"><i class="fas fa-trash"></i></button></form>';
+
+            $actionHtml = '<div class="btn-group btn-group-sm" role="group">' . $btnEdit . $btnDelete . '</div>';
+
+            if ($r['status'] === 'scheduled') {
+                $btnPerform = '<a href="' . base_url('admin/loans/maintenances/perform/' . (int) $r['id']) . '" class="btn btn-sm btn-success btn-perform" title="Laksanakan" onclick="return confirm(\'Apakah Anda yakin ingin memulai perawatan ini?\')"><i class="fas fa-play"></i></a>';
+                $actionHtml = '<div class="btn-group btn-group-sm" role="group">' . $btnPerform . $btnEdit . $btnDelete . '</div>';
+            }
+
+            $scheduledDate  = $r['scheduled_date'] ? date('d M Y', strtotime($r['scheduled_date'])) : '-';
+            $performedDate  = $r['performed_date'] ? date('d M Y', strtotime($r['performed_date'])) : '-';
+            $nextMaintDate  = $r['next_maintenance_date'] ? date('d M Y', strtotime($r['next_maintenance_date'])) : '-';
+
+            $data[] = [
+                '',
+                '<a href="' . base_url('admin/loans/maintenances?asset_id=' . (int) $r['asset_id']) . '">' . esc($r['asset_name'] ?? '-') . '</a><br><small class="text-muted">' . esc($r['asset_code'] ?? '') . '</small>',
+                esc($type),
+                $scheduledDate,
+                $performedDate,
+                '<span class="badge ' . $sBadge . '">' . esc($sLabel) . '</span>',
+                esc($r['performed_by'] ?? '-'),
+                $cost,
+                $nextMaintDate,
+                $actionHtml,
+            ];
+        }
+
+        return $this->response->setJSON([
+            'draw'            => $draw,
+            'recordsTotal'    => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'data'            => $data,
         ]);
     }
 

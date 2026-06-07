@@ -253,6 +253,7 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
         // Asset Maintenances
         $routes->group('loans/maintenances', ['filter' => 'permission:lending.master.maintenances.manage'], static function ($routes) {
             $routes->get('/', 'AssetMaintenanceController::index');
+            $routes->get('datatable', 'AssetMaintenanceController::datatable');
             $routes->get('create', 'AssetMaintenanceController::create');
             $routes->get('edit/(:num)', 'AssetMaintenanceController::edit/$1');
             $routes->post('store', 'AssetMaintenanceController::store');
