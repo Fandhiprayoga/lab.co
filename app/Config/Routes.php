@@ -66,6 +66,8 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
         $routes->get('create', 'LoanProposalController::create', ['filter' => 'permission:lending.request.create']);
         $routes->post('store', 'LoanProposalController::store', ['filter' => 'permission:lending.request.create']);
         $routes->get('analytics', 'LoanProposalController::analytics', ['filter' => 'permission:lending.analytics.view']);
+        $routes->get('calendar', 'LoanProposalController::calendar');
+        $routes->get('calendar/data', 'LoanProposalController::calendarData');
 
         $routes->get('(:segment)', 'LoanProposalController::show/$1', ['filter' => 'permission:lending.request.track']);
         $routes->get('(:segment)/items', 'LoanProposalController::selectItems/$1', ['filter' => 'permission:lending.request.create']);

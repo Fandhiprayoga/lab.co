@@ -148,6 +148,116 @@ class LoanProposalController extends BaseController
         ]);
     }
 
+    public function calendar()
+    {
+        $this->syncLateStatuses();
+
+        $labs = $this->labModel->orderBy('name', 'ASC')->findAll();
+
+        return $this->renderView('loans/calendar', [
+            'title'      => 'Kalender Peminjaman',
+            'page_title' => 'Kalender Jadwal Peminjaman Lab',
+            'labs'       => $labs,
+        ]);
+    }
+
+    public function calendarData()
+    {
+        if (! activeGroupCan('lending.access')) {
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Forbidden']);
+        }
+
+        $isManager = $this->canManageGlobal();
+        $filterLabId = (int) $this->request->getGet('lab_id');
+
+        $statusColors = [
+            self::STATUS_DRAFT      => '#6c757d', // gray
+            self::STATUS_WAITING_L1 => '#ffc107', // yellow
+            self::STATUS_WAITING_L2 => '#fd7e14', // orange
+            self::STATUS_APPROVED   => '#28a745', // green
+            self::STATUS_BORROWED   => '#007bff', // blue
+            self::STATUS_LATE       => '#dc3545', // red
+            self::STATUS_IN_USE     => '#17a2b8', // teal
+            self::STATUS_RETURNED   => '#20c997', // mint
+            self::STATUS_COMPLETED  => '#28a745', // green
+            self::STATUS_ISSUE      => '#e83e8c', // pink
+            self::STATUS_REJECTED   => '#dc3545', // red
+            self::STATUS_CANCELED   => '#6c757d', // gray
+        ];
+
+        $statusLabels = [
+            self::STATUS_DRAFT      => 'Draf',
+            self::STATUS_WAITING_L1 => 'Menunggu L1',
+            self::STATUS_WAITING_L2 => 'Menunggu L2',
+            self::STATUS_APPROVED   => 'Disetujui',
+            self::STATUS_BORROWED   => 'Dipinjam',
+            self::STATUS_LATE       => 'Terlambat',
+            self::STATUS_IN_USE     => 'Digunakan',
+            self::STATUS_RETURNED   => 'Dikembalikan',
+            self::STATUS_COMPLETED  => 'Selesai',
+            self::STATUS_ISSUE      => 'Bermasalah',
+            self::STATUS_REJECTED   => 'Ditolak',
+            self::STATUS_CANCELED   => 'Dibatalkan',
+        ];
+
+        $visibleStatuses = [
+            self::STATUS_WAITING_L1, self::STATUS_WAITING_L2,
+            self::STATUS_APPROVED, self::STATUS_BORROWED,
+            self::STATUS_LATE, self::STATUS_IN_USE,
+            self::STATUS_RETURNED, self::STATUS_COMPLETED,
+            self::STATUS_ISSUE,
+        ];
+
+        $db    = db_connect();
+        $base  = $db->table('loan_proposals p')
+            ->select("p.id, p.public_id, p.title, p.start_at, p.end_at, p.status, p.proposer_id,
+                       u.username AS proposer_name,
+                       GROUP_CONCAT(DISTINCT COALESCE(l.name, le.name) ORDER BY COALESCE(l.name, le.name) SEPARATOR ', ') AS lab_names")
+            ->join('users u', 'u.id = p.proposer_id', 'left')
+            ->join('loan_proposal_items i', 'i.proposal_id = p.id', 'left')
+            ->join('labs l', 'l.id = i.lab_id', 'left')
+            ->join('lab_assets a', 'a.id = i.equipment_id AND i.item_type = \'equipment\'', 'left')
+            ->join('labs le', 'le.id = a.lab_id', 'left')
+            ->where('p.loan_type', 'lab')
+            ->whereIn('p.status', $visibleStatuses)
+            ->where('p.start_at IS NOT NULL')
+            ->where('p.end_at IS NOT NULL');
+
+        if ($filterLabId > 0) {
+            $base->where('EXISTS (SELECT 1 FROM loan_proposal_items i2 WHERE i2.proposal_id = p.id AND i2.lab_id = ' . $filterLabId . ')');
+        }
+
+        $base->groupBy('p.id')
+            ->orderBy('p.start_at', 'ASC');
+
+        if (! $isManager) {
+            $base->where('p.proposer_id', auth()->id());
+        }
+
+        $proposals = $base->get()->getResultArray();
+
+        $events = [];
+        foreach ($proposals as $p) {
+            $color = $statusColors[$p['status']] ?? '#6c757d';
+            $label = $statusLabels[$p['status']] ?? $p['status'];
+
+            $events[] = [
+                'id'    => (int) $p['id'],
+                'title' => $p['title'],
+                'start' => $p['start_at'],
+                'end'   => $p['end_at'],
+                'color' => $color,
+                'textColor' => '#fff',
+                'proposer'  => $p['proposer_name'] ?? '-',
+                'lab_names' => $p['lab_names'] ?? '',
+                'status'    => $label,
+                'detail_url' => base_url('loans/' . $p['public_id']),
+            ];
+        }
+
+        return $this->response->setJSON($events);
+    }
+
     public function create()
     {
         $type = $this->request->getGet('type');
