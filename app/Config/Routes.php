@@ -315,6 +315,17 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
             $routes->post('items/(:num)/delete', 'ConsumableItemController::delete/$1');
         });
 
+        // Academic Years
+        $routes->group('academic-years', ['filter' => 'permission:academic_years.manage'], static function ($routes) {
+            $routes->get('/', 'AcademicYearController::index');
+            $routes->get('create', 'AcademicYearController::create');
+            $routes->get('edit/(:num)', 'AcademicYearController::edit/$1');
+            $routes->post('store', 'AcademicYearController::store');
+            $routes->post('update/(:num)', 'AcademicYearController::update/$1');
+            $routes->post('delete/(:num)', 'AcademicYearController::delete/$1');
+            $routes->post('activate/(:num)', 'AcademicYearController::activate/$1');
+        });
+
         // Loan Faculties Master Data
         $routes->group('loans/faculties', ['filter' => 'permission:lending.master.faculties.manage'], static function ($routes) {
             $routes->get('/', 'FacultyController::index');

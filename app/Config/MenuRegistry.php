@@ -169,6 +169,13 @@ class MenuRegistry
             // Master Data
             // -------------------------------------------------------
             [
+                'label'      => 'Tahun Akademik',
+                'url'        => 'admin/academic-years',
+                'icon'       => 'fas fa-calendar-alt',
+                'permission' => 'academic_years.manage',
+                'group'      => null,
+            ],
+            [
                 'label'      => 'Master Fakultas',
                 'url'        => 'admin/loans/faculties',
                 'icon'       => 'fas fa-university',

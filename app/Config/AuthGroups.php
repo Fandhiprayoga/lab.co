@@ -83,6 +83,9 @@ class AuthGroups extends ShieldAuthGroups
         'reports.view'        => 'Dapat melihat laporan',
         'reports.export'      => 'Dapat mengekspor laporan',
 
+        // Academic Years
+        'academic_years.manage'       => 'Dapat mengelola tahun akademik',
+
         // Lending module
         'lending.access'              => 'Dapat mengakses modul peminjaman',
         'lending.catalog.view'        => 'Dapat melihat katalog aset lab',
@@ -153,9 +156,11 @@ class AuthGroups extends ShieldAuthGroups
             'visits.*',
             'bhp.*',
             'clearance.*',
+            'academic_years.manage',
         ],
         'laboran' => [
             'admin.access',
+            'academic_years.manage',
             'dashboard.access',
             'dashboard.stats',
             'reports.view',
@@ -209,6 +214,7 @@ class AuthGroups extends ShieldAuthGroups
         ],
         'kepala_lab' => [
             'admin.access',
+            'academic_years.manage',
             'users.list',
             'dashboard.*',
             'reports.*',

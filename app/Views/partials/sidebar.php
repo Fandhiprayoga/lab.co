@@ -175,8 +175,14 @@ function isDropdownActive(array $paths): string {
       </li>
       <?php endif; ?>
 
-      <?php if (activeGroupCan('lending.master.manage') || activeGroupCan('lending.master.faculties.manage') || activeGroupCan('lending.master.study_programs.manage') || activeGroupCan('lending.master.units.manage')): ?>
+      <?php if (activeGroupCan('academic_years.manage') || activeGroupCan('lending.master.manage') || activeGroupCan('lending.master.faculties.manage') || activeGroupCan('lending.master.study_programs.manage') || activeGroupCan('lending.master.units.manage')): ?>
       <li class="menu-header">Master Data</li>
+      <?php endif; ?>
+
+      <?php if (activeGroupCan('academic_years.manage')): ?>
+      <li class="<?= isMenuActive('admin/academic-years') ?>">
+        <a class="nav-link" href="<?= base_url('admin/academic-years') ?>"><i class="fas fa-calendar-alt"></i> <span>Tahun Akademik</span></a>
+      </li>
       <?php endif; ?>
 
       <?php if (activeGroupCan('lending.master.faculties.manage')): ?>
