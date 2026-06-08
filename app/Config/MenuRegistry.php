@@ -130,6 +130,13 @@ class MenuRegistry
             // Administrasi
             // -------------------------------------------------------
             [
+                'label'      => 'Manajemen Laboran',
+                'url'        => 'admin/laboran',
+                'icon'       => 'fas fa-user-cog',
+                'permission' => null,
+                'group'      => 'superadmin',
+            ],
+            [
                 'label'      => 'Manajemen User',
                 'url'        => 'admin/users',
                 'icon'       => 'fas fa-users',

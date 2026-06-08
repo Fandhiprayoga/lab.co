@@ -315,6 +315,18 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
             $routes->post('items/(:num)/delete', 'ConsumableItemController::delete/$1');
         });
 
+        // Laboran Management (superadmin only)
+        $routes->group('laboran', ['filter' => 'role:superadmin'], static function ($routes) {
+            $routes->get('/', 'LaboranManagementController::index');
+            $routes->get('datatable', 'LaboranManagementController::datatable');
+            $routes->get('create', 'LaboranManagementController::create');
+            $routes->get('edit/(:num)', 'LaboranManagementController::edit/$1');
+            $routes->post('store', 'LaboranManagementController::store');
+            $routes->post('update/(:num)', 'LaboranManagementController::update/$1');
+            $routes->post('delete/(:num)', 'LaboranManagementController::delete/$1');
+            $routes->get('search-users', 'LaboranManagementController::searchUsers');
+        });
+
         // Academic Years
         $routes->group('academic-years', ['filter' => 'permission:academic_years.manage'], static function ($routes) {
             $routes->get('/', 'AcademicYearController::index');

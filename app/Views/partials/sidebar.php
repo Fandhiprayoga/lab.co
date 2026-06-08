@@ -141,6 +141,13 @@ function isDropdownActive(array $paths): string {
       </li>
       <?php endif; ?>
 
+      <!-- Manajemen Laboran (superadmin only) -->
+      <?php if (activeGroupIs('superadmin')): ?>
+      <li class="<?= isMenuActive('admin/laboran') ?>">
+        <a class="nav-link" href="<?= base_url('admin/laboran') ?>"><i class="fas fa-user-cog"></i> <span>Manajemen Laboran</span></a>
+      </li>
+      <?php endif; ?>
+
       <!-- Role Management (superadmin only) -->
       <?php if (activeGroupIs('superadmin')): ?>
       <li class="nav-item dropdown <?= isDropdownActive(['admin/roles']) ?>">

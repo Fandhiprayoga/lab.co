@@ -83,6 +83,9 @@ class AuthGroups extends ShieldAuthGroups
         'reports.view'        => 'Dapat melihat laporan',
         'reports.export'      => 'Dapat mengekspor laporan',
 
+        // Laboran Management
+        'laboran.manage'             => 'Dapat mengelola data laboran dan penugasan lab',
+
         // Academic Years
         'academic_years.manage'       => 'Dapat mengelola tahun akademik',
 
@@ -157,6 +160,7 @@ class AuthGroups extends ShieldAuthGroups
             'bhp.*',
             'clearance.*',
             'academic_years.manage',
+            'laboran.manage',
         ],
         'laboran' => [
             'admin.access',
