@@ -364,7 +364,7 @@ $roleCheckBg = [
 
     <!-- Group Switcher -->
     <?php if (count($userGroups) > 1): ?>
-    <li class="dropdown">
+    <!-- <li class="dropdown">
       <a href="#" data-toggle="dropdown" class="nav-link dropdown-toggle nav-link-lg" title="Ganti Role">
         <span class="ud-role-pill" style="<?= $roleStyle[$active] ?? 'background:#f1f5f9;color:#475569' ?>; font-size:12px; padding:3px 10px 3px 7px;">
           <span class="rp-dot"></span>
@@ -394,7 +394,7 @@ $roleCheckBg = [
           <?php endif; ?>
         <?php endforeach; ?>
       </div>
-    </li>
+    </li> -->
     <?php endif; ?>
 
     <!-- Notification Bell -->
