@@ -214,6 +214,12 @@ class NotificationService
             'icon'    => 'fas fa-redo',
             'color'   => 'warning',
         ],
+        'oprek.assistant_activated' => [
+            'title'   => 'Aktivasi Asisten Lab',
+            'message' => 'Anda telah diaktivasi sebagai asisten lab {lab_name}. Silakan switch role melalui menu profil.',
+            'icon'    => 'fas fa-user-graduate',
+            'color'   => 'success',
+        ],
     ];
 
     protected NotificationModel $model;

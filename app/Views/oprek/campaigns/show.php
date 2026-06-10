@@ -150,6 +150,7 @@
                           'accepted' => 'badge-success',
                           'onboarding_pending' => 'badge-warning',
                           'onboarding_complete' => 'badge-success',
+                          'activated' => 'badge-info',
                           default => 'badge-light',
                         };
                         ?>
@@ -170,6 +171,14 @@
                           <a href="<?= base_url('oprek/onboarding/' . $app->public_id . '/verify') ?>" class="btn btn-sm btn-success">
                             <i class="fas fa-check-circle"></i> Verifikasi Onboarding
                           </a>
+                        <?php endif; ?>
+                        <?php if (activeGroupCan('oprek.manage') && $app->application_status === 'onboarding_complete'): ?>
+                          <a href="<?= base_url('oprek/activate/' . $app->public_id) ?>" class="btn btn-sm btn-info">
+                            <i class="fas fa-user-graduate"></i> Aktivasi
+                          </a>
+                        <?php endif; ?>
+                        <?php if ($app->application_status === 'activated'): ?>
+                          <span class="badge badge-info"><i class="fas fa-check"></i> Aktif</span>
                         <?php endif; ?>
                       </td>
                     </tr>

@@ -40,7 +40,7 @@ class OprekApplicationModel extends Model
     protected $validationRules = [
         'campaign_id'        => 'required|integer',
         'student_id'         => 'required|integer',
-        'application_status' => 'permit_empty|in_list[submitted,doc_revision,doc_rejected,doc_verified,in_selection,failed,accepted,onboarding_pending,onboarding_complete]',
+        'application_status' => 'permit_empty|in_list[submitted,doc_revision,doc_rejected,doc_verified,in_selection,failed,accepted,onboarding_pending,onboarding_complete,activated]',
     ];
 
     public function getByCampaign(int $campaignId): array

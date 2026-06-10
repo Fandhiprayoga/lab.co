@@ -412,5 +412,9 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
         // Onboarding Verification (laboran)
         $routes->get('onboarding/(:segment)/verify', 'OprekOnboardingController::verify/$1', ['filter' => 'permission:oprek.manage']);
         $routes->post('onboarding/(:segment)/verify/store', 'OprekOnboardingController::storeVerification/$1', ['filter' => 'permission:oprek.manage']);
+
+        // Assistant Activation (laboran)
+        $routes->get('activate/(:segment)', 'OprekActivationController::activate/$1', ['filter' => 'permission:oprek.manage']);
+        $routes->post('activate/(:segment)/store', 'OprekActivationController::storeActivation/$1', ['filter' => 'permission:oprek.manage']);
     });
 });
