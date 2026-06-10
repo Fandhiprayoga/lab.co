@@ -141,6 +141,11 @@ class AuthGroups extends ShieldAuthGroups
         'clearance.request.manage-all' => 'Dapat mengelola seluruh pengajuan surat bebas lab',
         'clearance.verify'             => 'Dapat memverifikasi dan menerbitkan surat bebas lab',
         'clearance.letter.download'    => 'Dapat mengunduh/membuka surat bebas lab',
+
+        // Open Rekrutmen (Oprek) module
+        'oprek.manage'    => 'Dapat mengelola oprek (campaign, komponen, penilai, verifikasi akhir)',
+        'oprek.scoring'   => 'Dapat memberikan penilaian seleksi oprek',
+        'oprek.apply'     => 'Dapat mendaftar oprek sebagai kandidat asisten lab',
     ];
 
     /**
@@ -159,6 +164,7 @@ class AuthGroups extends ShieldAuthGroups
             'visits.*',
             'bhp.*',
             'clearance.*',
+            'oprek.*',
             'academic_years.manage',
             'laboran.manage',
         ],
@@ -203,6 +209,8 @@ class AuthGroups extends ShieldAuthGroups
             'clearance.request.manage-all',
             'clearance.verify',
             'clearance.letter.download',
+            'oprek.manage',
+            'oprek.scoring',
         ],
         'asisten' => [
             'admin.access',
@@ -213,6 +221,7 @@ class AuthGroups extends ShieldAuthGroups
             'lending.checkout',
             'lending.checkin',
             'lending.issue.report',
+            'oprek.scoring',
             'visits.list',
             'visits.manage',
         ],
@@ -264,6 +273,7 @@ class AuthGroups extends ShieldAuthGroups
             'clearance.request.create',
             'clearance.request.track',
             'clearance.request.cancel',
+            'oprek.apply',
             'clearance.letter.download',
         ],
         'alumni' => [

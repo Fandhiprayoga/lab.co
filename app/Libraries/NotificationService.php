@@ -164,6 +164,56 @@ class NotificationService
             'icon'    => 'fas fa-user-cog',
             'color'   => 'info',
         ],
+
+        // ---- Open Rekrutmen (Oprek) ----
+        'oprek.new_application' => [
+            'title'   => 'Pendaftaran Oprek Baru',
+            'message' => '{student_name} mendaftar di oprek {period_name} ({lab_name}).',
+            'icon'    => 'fas fa-user-plus',
+            'color'   => 'primary',
+        ],
+        'oprek.doc_verified' => [
+            'title'   => 'Dokumen Terverifikasi',
+            'message' => 'Dokumen Anda untuk oprek {period_name} telah diverifikasi. Menunggu seleksi.',
+            'icon'    => 'fas fa-check-circle',
+            'color'   => 'success',
+        ],
+        'oprek.doc_revision' => [
+            'title'   => 'Revisi Dokumen Diperlukan',
+            'message' => 'Dokumen Anda (type: {document_type}) untuk oprek {period_name} perlu direvisi.',
+            'icon'    => 'fas fa-exclamation-triangle',
+            'color'   => 'warning',
+        ],
+        'oprek.doc_rejected' => [
+            'title'   => 'Dokumen Ditolak',
+            'message' => 'Dokumen Anda (type: {document_type}) untuk oprek {period_name} ditolak.',
+            'icon'    => 'fas fa-times-circle',
+            'color'   => 'danger',
+        ],
+        'oprek.application_accepted' => [
+            'title'   => 'Selamat! Anda Diterima',
+            'message' => 'Anda diterima di oprek {period_name} ({lab_name}). Silakan lengkapi data onboarding.',
+            'icon'    => 'fas fa-trophy',
+            'color'   => 'success',
+        ],
+        'oprek.application_rejected' => [
+            'title'   => 'Hasil Oprek',
+            'message' => 'Anda belum berhasil di oprek {period_name} ({lab_name}). Tetap semangat!',
+            'icon'    => 'fas fa-heart-broken',
+            'color'   => 'danger',
+        ],
+        'oprek.onboarding_verified' => [
+            'title'   => 'Onboarding Selesai',
+            'message' => 'Data onboarding Anda untuk {period_name} telah diverifikasi. Selamat bergabung!',
+            'icon'    => 'fas fa-user-check',
+            'color'   => 'success',
+        ],
+        'oprek.onboarding_revision' => [
+            'title'   => 'Revisi Onboarding',
+            'message' => 'Data onboarding Anda untuk {period_name} perlu diperbaiki.',
+            'icon'    => 'fas fa-redo',
+            'color'   => 'warning',
+        ],
     ];
 
     protected NotificationModel $model;

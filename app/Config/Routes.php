@@ -359,4 +359,58 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
             $routes->post('delete/(:num)', 'StudyProgramController::delete/$1');
         });
     });
+
+    // ---------------------------------------------------------------
+    // Open Rekrutmen (Oprek) Module
+    // ---------------------------------------------------------------
+    $routes->group('oprek', static function ($routes) {
+        // Student-facing (session filter + oprek.apply permission)
+        $routes->get('browse', 'OprekRegistrationController::browse', ['filter' => 'permission:oprek.apply']);
+        $routes->get('detail/(:segment)', 'OprekRegistrationController::detail/$1', ['filter' => 'permission:oprek.apply']);
+        $routes->get('register/(:segment)', 'OprekRegistrationController::register/$1', ['filter' => 'permission:oprek.apply']);
+        $routes->post('register/(:segment)/store', 'OprekRegistrationController::storeRegistration/$1', ['filter' => 'permission:oprek.apply']);
+        $routes->get('my-applications', 'OprekRegistrationController::myApplications', ['filter' => 'permission:oprek.apply']);
+        $routes->get('my-applications/(:segment)', 'OprekRegistrationController::showApplication/$1', ['filter' => 'permission:oprek.apply']);
+        $routes->get('my-applications/(:segment)/revise/(:segment)', 'OprekRegistrationController::reviseDocument/$1/$2', ['filter' => 'permission:oprek.apply']);
+        $routes->post('my-applications/(:segment)/revise/(:segment)/store', 'OprekRegistrationController::storeRevisedDocument/$1/$2', ['filter' => 'permission:oprek.apply']);
+
+        // Onboarding (student side)
+        $routes->get('onboarding/(:segment)', 'OprekOnboardingController::index/$1', ['filter' => 'permission:oprek.apply']);
+        $routes->post('onboarding/(:segment)/store', 'OprekOnboardingController::storeOnboarding/$1', ['filter' => 'permission:oprek.apply']);
+
+        // Laboran / Admin (oprek.manage permission)
+        $routes->get('/', 'OprekController::index', ['filter' => 'permission:oprek.manage']);
+        $routes->get('create', 'OprekController::create', ['filter' => 'permission:oprek.manage']);
+        $routes->post('store', 'OprekController::store', ['filter' => 'permission:oprek.manage']);
+        $routes->get('(:num)', 'OprekController::show/$1', ['filter' => 'permission:oprek.manage']);
+        $routes->get('(:num)/edit', 'OprekController::edit/$1', ['filter' => 'permission:oprek.manage']);
+        $routes->post('(:num)/update', 'OprekController::update/$1', ['filter' => 'permission:oprek.manage']);
+        $routes->post('(:num)/publish', 'OprekController::publish/$1', ['filter' => 'permission:oprek.manage']);
+        $routes->post('(:num)/close', 'OprekController::close/$1', ['filter' => 'permission:oprek.manage']);
+        $routes->post('(:num)/archive', 'OprekController::archive/$1', ['filter' => 'permission:oprek.manage']);
+
+        // Document Verification
+        $routes->get('verify/(:segment)/documents', 'OprekController::verifyDocuments/$1', ['filter' => 'permission:oprek.manage']);
+        $routes->post('verify/document/(:num)', 'OprekController::verifyDocumentAction/$1', ['filter' => 'permission:oprek.manage']);
+
+        // Selection Components
+        $routes->get('(:num)/components', 'OprekController::components/$1', ['filter' => 'permission:oprek.manage']);
+        $routes->post('(:num)/components/store', 'OprekController::storeComponent/$1', ['filter' => 'permission:oprek.manage']);
+        $routes->post('(:num)/components/(:num)/update', 'OprekController::updateComponent/$1/$2', ['filter' => 'permission:oprek.manage']);
+        $routes->get('(:num)/components/(:num)/toggle', 'OprekController::toggleComponent/$1/$2', ['filter' => 'permission:oprek.manage']);
+        $routes->get('(:num)/components/(:num)/delete', 'OprekController::deleteComponent/$1/$2', ['filter' => 'permission:oprek.manage']);
+        $routes->get('(:num)/components/(:num)/assessors', 'OprekController::assessors/$1/$2', ['filter' => 'permission:oprek.manage']);
+        $routes->post('(:num)/components/(:num)/assessors/store', 'OprekController::storeAssessors/$1/$2', ['filter' => 'permission:oprek.manage']);
+
+        // Scoring (oprek.manage or oprek.scoring)
+        $routes->get('(:num)/scoring', 'OprekSelectionController::scoringDashboard/$1', ['filter' => 'permission:oprek.manage,oprek.scoring']);
+        $routes->get('scoring/(:segment)', 'OprekSelectionController::scoreApplication/$1', ['filter' => 'permission:oprek.manage,oprek.scoring']);
+        $routes->post('scoring/(:segment)/store', 'OprekSelectionController::storeScore/$1', ['filter' => 'permission:oprek.manage,oprek.scoring']);
+        $routes->get('(:num)/finalize', 'OprekSelectionController::finalize/$1', ['filter' => 'permission:oprek.manage']);
+        $routes->post('(:num)/finalize/store', 'OprekSelectionController::storeFinalDecision/$1', ['filter' => 'permission:oprek.manage']);
+
+        // Onboarding Verification (laboran)
+        $routes->get('onboarding/(:segment)/verify', 'OprekOnboardingController::verify/$1', ['filter' => 'permission:oprek.manage']);
+        $routes->post('onboarding/(:segment)/verify/store', 'OprekOnboardingController::storeVerification/$1', ['filter' => 'permission:oprek.manage']);
+    });
 });

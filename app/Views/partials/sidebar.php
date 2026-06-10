@@ -130,6 +130,26 @@ function isDropdownActive(array $paths): string {
       <?php endif; ?>
       <?php endif; ?>
 
+      <!-- Open Rekrutmen (Oprek) Module -->
+      <?php if (activeGroupCan('oprek.manage') || activeGroupCan('oprek.scoring') || activeGroupCan('oprek.apply')): ?>
+      <li class="menu-header">Open Rekrutmen</li>
+
+      <?php if (activeGroupCan('oprek.apply')): ?>
+      <li class="<?= isMenuActive('oprek/browse') ?>">
+        <a class="nav-link" href="<?= base_url('oprek/browse') ?>"><i class="fas fa-search"></i> <span>Cari Oprek</span></a>
+      </li>
+      <li class="<?= isMenuActive('oprek/my-applications') ?>">
+        <a class="nav-link" href="<?= base_url('oprek/my-applications') ?>"><i class="fas fa-clipboard-list"></i> <span>Pendaftaran Saya</span></a>
+      </li>
+      <?php endif; ?>
+
+      <?php if (activeGroupCan('oprek.manage')): ?>
+      <li class="<?= rtrim(uri_string(), '/') === 'oprek' ? 'active' : '' ?>">
+        <a class="nav-link" href="<?= base_url('oprek') ?>"><i class="fas fa-tasks"></i> <span>Kelola Oprek</span></a>
+      </li>
+      <?php endif; ?>
+      <?php endif; ?>
+
       <!-- Admin Menu (hanya untuk active group yang punya akses admin) -->
       <?php if (activeGroupCan('admin.access')): ?>
       <li class="menu-header">Administrasi</li>
