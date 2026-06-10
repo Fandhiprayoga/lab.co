@@ -86,6 +86,9 @@ class AuthGroups extends ShieldAuthGroups
         // Laboran Management
         'laboran.manage'             => 'Dapat mengelola data laboran dan penugasan lab',
 
+        // Asisten Management
+        'asisten.manage'             => 'Dapat mengelola data asisten dan penugasan lab',
+
         // Academic Years
         'academic_years.manage'       => 'Dapat mengelola tahun akademik',
 
@@ -167,10 +170,12 @@ class AuthGroups extends ShieldAuthGroups
             'oprek.*',
             'academic_years.manage',
             'laboran.manage',
+            'asisten.manage',
         ],
         'laboran' => [
             'admin.access',
             'academic_years.manage',
+            'asisten.manage',
             'dashboard.access',
             'dashboard.stats',
             'reports.view',

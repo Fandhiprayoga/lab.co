@@ -327,6 +327,18 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
             $routes->get('search-users', 'LaboranManagementController::searchUsers');
         });
 
+        // Asisten Management (superadmin & laboran)
+        $routes->group('asisten', ['filter' => 'permission:asisten.manage'], static function ($routes) {
+            $routes->get('/', 'AsistenManagementController::index');
+            $routes->get('datatable', 'AsistenManagementController::datatable');
+            $routes->get('create', 'AsistenManagementController::create');
+            $routes->get('edit/(:num)', 'AsistenManagementController::edit/$1');
+            $routes->post('store', 'AsistenManagementController::store');
+            $routes->post('update/(:num)', 'AsistenManagementController::update/$1');
+            $routes->post('delete/(:num)', 'AsistenManagementController::delete/$1');
+            $routes->get('search-users', 'AsistenManagementController::searchUsers');
+        });
+
         // Academic Years
         $routes->group('academic-years', ['filter' => 'permission:academic_years.manage'], static function ($routes) {
             $routes->get('/', 'AcademicYearController::index');

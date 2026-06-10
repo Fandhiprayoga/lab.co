@@ -137,6 +137,13 @@ class MenuRegistry
                 'group'      => 'superadmin',
             ],
             [
+                'label'      => 'Manajemen Asisten',
+                'url'        => 'admin/asisten',
+                'icon'       => 'fas fa-user-graduate',
+                'permission' => 'asisten.manage',
+                'group'      => null,
+            ],
+            [
                 'label'      => 'Manajemen User',
                 'url'        => 'admin/users',
                 'icon'       => 'fas fa-users',
