@@ -105,20 +105,35 @@ class OprekController extends BaseController
     {
         if ($guard = $this->guardLaboran()) return $guard;
 
-        $labIds   = $this->getUserLabIds();
-        $campaigns = [];
+        $activeLabId = (int) session()->get('active_lab_id');
 
-        if (! empty($labIds)) {
-            foreach ($labIds as $labId) {
-                $list = $this->campaignModel->getByLab($labId);
-                $campaigns = array_merge($campaigns, $list);
+        if ($activeLabId > 0) {
+            // Filter by active lab session
+            $userLabIds = $this->getUserLabIds();
+            if (in_array($activeLabId, $userLabIds, true)) {
+                $campaigns = $this->campaignModel->getByLab($activeLabId);
+            } else {
+                $campaigns = [];
             }
+            $activeLab = $this->labModel->find($activeLabId);
+        } else {
+            // Show all user's assigned labs
+            $labIds   = $this->getUserLabIds();
+            $campaigns = [];
+            if (! empty($labIds)) {
+                foreach ($labIds as $labId) {
+                    $list = $this->campaignModel->getByLab($labId);
+                    $campaigns = array_merge($campaigns, $list);
+                }
+            }
+            $activeLab = null;
         }
 
         return $this->renderView('oprek/campaigns/index', [
             'title'      => 'Open Rekrutmen Asisten',
             'page_title' => 'Daftar Oprek',
             'campaigns'  => $campaigns,
+            'activeLab'  => $activeLab,
         ]);
     }
 

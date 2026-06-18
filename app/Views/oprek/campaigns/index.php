@@ -1,5 +1,8 @@
 <?= $this->section('css') ?>
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap4.min.css">
+<?php
+$activeLab = $activeLab ?? null;
+?>
 <?= $this->endSection() ?>
 
 <div class="row">
@@ -14,6 +17,22 @@
         </div>
       </div>
       <div class="card-body">
+        <?php if (isset($activeLab) && $activeLab): ?>
+        <div class="alert alert-info py-2 px-3 mb-3 d-flex align-items-center justify-content-between">
+          <div>
+            <i class="fas fa-filter mr-1"></i>
+            Menampilkan data oprek untuk lab:
+            <strong><?= esc($activeLab['name']) ?></strong>
+          </div>
+          <form action="<?= site_url('switch-lab') ?>" method="post" style="margin:0;">
+            <input type="hidden" name="lab_id" value="0">
+            <!-- <button type="submit" class="btn btn-sm btn-light">
+              <i class="fas fa-times mr-1"></i> Reset Filter
+            </button> -->
+          </form>
+        </div>
+        <?php endif; ?>
+
         <?php if (empty($campaigns)): ?>
           <div class="text-center py-5 text-muted">
             <i class="fas fa-inbox fa-3x mb-3"></i>
