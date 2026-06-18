@@ -299,7 +299,9 @@ class AsistenManagementController extends BaseController
                 ->distinct();
         }
 
-        $recordsTotal = (clone $baseBuilder)->countAllResults();
+        $recordsTotal = (clone $baseBuilder)
+            ->select('COUNT(DISTINCT u.id) AS cnt')
+            ->get()->getRow()->cnt ?? 0;
 
         $countBase = (clone $baseBuilder)->select('COUNT(DISTINCT u.id) AS cnt')
             ->join('auth_identities ai', "ai.user_id = u.id AND ai.type = 'email_password'", 'left');
