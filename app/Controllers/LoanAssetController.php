@@ -357,7 +357,12 @@ class LoanAssetController extends BaseController
             return $guard;
         }
 
-        $filterLabId = (int) $this->request->getGet('lab_id');
+        $activeLabId = (int) session()->get('active_lab_id');
+        $activeLab   = null;
+
+        // Use active lab session as default filter, manual GET param overrides
+        $rawLab    = $this->request->getGet('lab_id');
+        $filterLabId = ($rawLab !== '' && $rawLab !== null) ? (int) $rawLab : $activeLabId;
 
         $builder = db_connect()->table('lab_assets a')
             ->select('a.id, a.name, a.asset_code, a.brand, a.model, a.lab_id, l.name AS lab_name')
@@ -368,6 +373,7 @@ class LoanAssetController extends BaseController
 
         if ($filterLabId > 0) {
             $builder->where('a.lab_id', $filterLabId);
+            $activeLab = $this->labModel->find($filterLabId);
         }
 
         $assets = $builder->get()->getResultArray();
@@ -378,6 +384,7 @@ class LoanAssetController extends BaseController
             'assets'     => $assets,
             'labs'       => $this->getActiveLabs(),
             'filterLabId' => $filterLabId,
+            'activeLab'  => $activeLab,
         ]);
     }
 

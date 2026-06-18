@@ -6,7 +6,15 @@
 $assets      = $assets      ?? [];
 $labs        = $labs        ?? [];
 $filterLabId = $filterLabId ?? 0;
+$activeLab   = $activeLab   ?? null;
 ?>
+
+<?php if ($activeLab): ?>
+  <div class="alert alert-info">
+    <i class="fas fa-filter"></i> Menampilkan data untuk <strong><?= esc($activeLab['name']) ?></strong>
+    <!-- <a href="<?= base_url('admin/loans/assets/qr') ?>" class="btn btn-sm btn-light ml-2">Reset Filter</a> -->
+  </div>
+<?php endif; ?>
 
 <div class="row">
   <div class="col-12">
