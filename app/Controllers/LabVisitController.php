@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\LabModel;
 use App\Models\LabVisitModel;
+use App\Models\UserLabAssignmentModel;
 
 class LabVisitController extends BaseController
 {
@@ -25,20 +26,39 @@ class LabVisitController extends BaseController
             return redirect()->to('/dashboard')->with('error', 'Anda tidak memiliki akses ke data kunjungan.');
         }
 
-        $labs = $this->labModel->where('deleted_at IS NULL')->orderBy('name', 'ASC')->findAll();
+        $activeLabId = (int) session()->get('active_lab_id');
+        $activeLab   = null;
 
-        // Stat cards
-        $today     = date('Y-m-d');
-        $todayTotal = $this->visitModel->db->table('lab_visits')
-            ->where('DATE(checked_in_at)', $today)->countAllResults();
-        $nowInside = $this->visitModel->db->table('lab_visits')
-            ->where('DATE(checked_in_at)', $today)
+        // Scope labs dropdown by user assignments
+        $userLabAssignmentModel = new UserLabAssignmentModel();
+        $assignedLabIds         = $userLabAssignmentModel->getLabIdsByUser(user_id());
+        if (empty($assignedLabIds)) {
+            $assignedLabIds = [0];
+        }
+
+        $labs = $this->labModel
+            ->where('deleted_at IS NULL')
+            ->whereIn('id', $assignedLabIds)
+            ->orderBy('name', 'ASC')
+            ->findAll();
+
+        // Stat cards scoped by active lab
+        $today = date('Y-m-d');
+        $visitTable = $this->visitModel->db->table('lab_visits');
+
+        if ($activeLabId > 0) {
+            $visitTable->where('lab_id', $activeLabId);
+            $activeLab = $this->labModel->find($activeLabId);
+        }
+        $todayTotal = (clone $visitTable)->where('DATE(checked_in_at)', $today)->countAllResults();
+        $nowInside  = (clone $visitTable)->where('DATE(checked_in_at)', $today)
             ->where('checked_out_at IS NULL')->countAllResults();
 
         return $this->renderView('admin/visits/index', [
             'title'      => 'Buku Kunjungan',
             'page_title' => 'Buku Kunjungan Lab',
             'labs'       => $labs,
+            'activeLab'  => $activeLab,
             'todayTotal' => $todayTotal,
             'nowInside'  => $nowInside,
         ]);
@@ -64,7 +84,10 @@ class LabVisitController extends BaseController
         $orderDir = strtolower((string) ($req->getGet('order')[0]['dir'] ?? 'desc')) === 'asc' ? 'ASC' : 'DESC';
 
         // Custom filters
-        $filterLabId    = $req->getGet('filter_lab_id');
+        $rawFilterLabId = $req->getGet('filter_lab_id');
+        $activeLabId    = (int) session()->get('active_lab_id');
+        // Default to active lab session if no explicit filter
+        $filterLabId    = ($rawFilterLabId !== '' && $rawFilterLabId !== null) ? (int) $rawFilterLabId : $activeLabId;
         $filterDateFrom = $req->getGet('filter_date_from');
         $filterDateTo   = $req->getGet('filter_date_to');
         $filterStatus   = $req->getGet('filter_status');
@@ -182,7 +205,9 @@ class LabVisitController extends BaseController
         }
 
         $req          = $this->request;
-        $filterLabId  = (int)    ($req->getGet('filter_lab_id')    ?? 0);
+        $rawLabId     = $req->getGet('filter_lab_id');
+        $activeLabId  = (int) session()->get('active_lab_id');
+        $filterLabId  = ($rawLabId !== '' && $rawLabId !== null) ? (int) $rawLabId : $activeLabId;
         $filterFrom   = (string) ($req->getGet('filter_date_from') ?? '');
         $filterUntil  = (string) ($req->getGet('filter_date_to')   ?? '');
         $filterStatus = (string) ($req->getGet('filter_status')    ?? '');

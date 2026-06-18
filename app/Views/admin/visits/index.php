@@ -85,6 +85,14 @@
 <?= $this->endSection() ?>
 
 <?php $labs = $labs ?? []; ?>
+<?php $activeLab = $activeLab ?? null; ?>
+
+<?php if ($activeLab): ?>
+  <div class="alert alert-info">
+    <i class="fas fa-filter"></i> Menampilkan data untuk <strong><?= esc($activeLab['name']) ?></strong>
+    <!-- <a href="<?= base_url('admin/loans/labs/switch-lab') ?>" class="btn btn-sm btn-light ml-2">Ganti Lab</a> -->
+  </div>
+<?php endif; ?>
 
 <!-- ── Stat cards ──────────────────────────────────────── -->
 <div class="row">
@@ -180,7 +188,7 @@
       <select id="filter-visit-lab" class="form-control">
         <option value="">Semua Lab</option>
         <?php foreach ($labs as $l): ?>
-        <option value="<?= (int) $l['id'] ?>"><?= esc($l['name']) ?></option>
+        <option value="<?= (int) $l['id'] ?>" <?= ($activeLab && (int) $activeLab['id'] === (int) $l['id']) ? 'selected' : '' ?>><?= esc($l['name']) ?></option>
         <?php endforeach; ?>
       </select>
     </div>
