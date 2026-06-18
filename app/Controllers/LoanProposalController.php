@@ -63,28 +63,73 @@ class LoanProposalController extends BaseController
             self::STATUS_RETURNED
         ];
 
-        $builder = db_connect()->table('loan_proposals p')
-            ->select('p.*, u.username AS proposer_name, COUNT(i.id) AS total_items')
-            ->join('users u', 'u.id = p.proposer_id', 'left')
-            ->join('loan_proposal_items i', 'i.proposal_id = p.id', 'left')
-            ->groupBy('p.id')
-            ->orderBy('p.created_at', 'DESC');
+        $activeLabId = (int) session()->get('active_lab_id');
+
+        // Main query builder
+        $sql = 'SELECT p.*, u.username AS proposer_name, COUNT(i.id) AS total_items
+                FROM loan_proposals p
+                LEFT JOIN users u ON u.id = p.proposer_id
+                LEFT JOIN loan_proposal_items i ON i.proposal_id = p.id';
+        $bind = [];
+
+        $where = [];
 
         if (! $this->canManageGlobal()) {
-            $builder->where('p.proposer_id', auth()->id());
+            $where[] = 'p.proposer_id = ?';
+            $bind[] = auth()->id();
         }
 
-        $allProposals = $builder->get()->getResultArray();
-
-        $activeCount = 0;
-        $archiveCount = 0;
-        foreach ($allProposals as $proposal) {
-            if (in_array((string) ($proposal['status'] ?? ''), $archiveStatuses, true)) {
-                $archiveCount++;
-            } else {
-                $activeCount++;
-            }
+        if ($activeLabId) {
+            $labId = $activeLabId;
+            $where[] = 'p.id IN (
+                SELECT DISTINCT lpi.proposal_id
+                FROM loan_proposal_items lpi
+                LEFT JOIN lab_assets la ON (lpi.item_type = \'equipment\' AND lpi.equipment_id = la.id)
+                WHERE (lpi.item_type = \'lab\' AND lpi.lab_id = ' . $labId . ')
+                   OR (lpi.item_type = \'equipment\' AND la.lab_id = ' . $labId . ')
+            )';
         }
+
+        if (! empty($where)) {
+            $sql .= ' WHERE ' . implode(' AND ', $where);
+        }
+
+        $sql .= ' GROUP BY p.id ORDER BY p.created_at DESC';
+
+        $allProposals = db_connect()->query($sql, $bind)->getResultArray();
+
+        // Count per tab with lab filter applied
+        $countSqlBase = 'SELECT COUNT(*) AS cnt FROM loan_proposals p WHERE 1=1';
+        $countBindBase = [];
+        if (! $this->canManageGlobal()) {
+            $countSqlBase .= ' AND p.proposer_id = ?';
+            $countBindBase[] = auth()->id();
+        }
+
+        if ($activeLabId) {
+            $labId = $activeLabId;
+            $countSqlBase .= ' AND p.id IN (
+                SELECT DISTINCT lpi.proposal_id
+                FROM loan_proposal_items lpi
+                LEFT JOIN lab_assets la ON (lpi.item_type = \'equipment\' AND lpi.equipment_id = la.id)
+                WHERE (lpi.item_type = \'lab\' AND lpi.lab_id = ' . $labId . ')
+                   OR (lpi.item_type = \'equipment\' AND la.lab_id = ' . $labId . ')
+            )';
+        }
+
+        $statusPlaceholders = implode(',', array_fill(0, count($archiveStatuses), '?'));
+
+        $activeRow = db_connect()->query(
+            $countSqlBase . ' AND p.status NOT IN (' . $statusPlaceholders . ')',
+            array_merge($countBindBase, $archiveStatuses)
+        )->getRow();
+        $activeCount = $activeRow ? (int) $activeRow->cnt : 0;
+
+        $archiveRow = db_connect()->query(
+            $countSqlBase . ' AND p.status IN (' . $statusPlaceholders . ')',
+            array_merge($countBindBase, $archiveStatuses)
+        )->getRow();
+        $archiveCount = $archiveRow ? (int) $archiveRow->cnt : 0;
 
         $proposals = array_values(array_filter($allProposals, static function (array $proposal) use ($tab, $archiveStatuses): bool {
             $status = (string) ($proposal['status'] ?? '');
@@ -97,6 +142,12 @@ class LoanProposalController extends BaseController
             return ! $isArchive;
         }));
 
+        // Ambil info lab aktif untuk ditampilkan
+        $activeLab = null;
+        if ($activeLabId) {
+            $activeLab = model('App\Models\LabModel')->find($activeLabId);
+        }
+
         return $this->renderView('loans/index', [
             'title'      => 'Peminjaman Lab',
             'page_title' => 'Daftar Proposal Peminjaman',
@@ -106,6 +157,7 @@ class LoanProposalController extends BaseController
                 'active'  => $activeCount,
                 'archive' => $archiveCount,
             ],
+            'activeLab'  => $activeLab,
         ]);
     }
 

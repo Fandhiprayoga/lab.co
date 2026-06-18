@@ -2,7 +2,24 @@
 $proposals = $proposals ?? [];
 $activeTab = $activeTab ?? 'active';
 $tabCounts = $tabCounts ?? ['active' => 0, 'archive' => 0];
+$activeLab = $activeLab ?? null;
+?>
 
+<?php if ($activeLab): ?>
+<!-- <div class="alert alert-info alert-dismissible show fade">
+  <div class="alert-body d-flex align-items-center justify-content-between">
+    <span>
+      <i class="fas fa-flask mr-1"></i>
+      Data difilter untuk laboratorium: <strong><?= esc($activeLab['name']) ?></strong> (<?= esc($activeLab['code']) ?>)
+    </span>
+    <a href="<?= base_url('loans') ?>" class="btn btn-sm btn-light">
+      <i class="fas fa-times mr-1"></i>Reset Filter
+    </a>
+  </div>
+</div> -->
+<?php endif; ?>
+
+<?php
 $statusMap = [
     'draft'      => ['label' => 'Draft',            'tone' => 'neutral',  'icon' => 'fa-file-alt'],
     'waiting_l1' => ['label' => 'Menunggu Laboran', 'tone' => 'waiting',  'icon' => 'fa-clock'],
