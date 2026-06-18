@@ -83,6 +83,22 @@ $typeLabels = $typeLabels ?? [];
   </div>
 
   <div class="card-body">
+    <?php if (isset($activeLab) && $activeLab): ?>
+    <div class="alert alert-info py-2 px-3 mb-3 d-flex align-items-center justify-content-between">
+      <div>
+        <i class="fas fa-filter mr-1"></i>
+        Menampilkan data penyesuaian untuk lab:
+        <strong><?= esc($activeLab['name']) ?></strong>
+      </div>
+      <form action="<?= site_url('switch-lab') ?>" method="post" style="margin:0;">
+        <input type="hidden" name="lab_id" value="0">
+        <!-- <button type="submit" class="btn btn-sm btn-light">
+          <i class="fas fa-times mr-1"></i> Reset Filter
+        </button> -->
+      </form>
+    </div>
+    <?php endif; ?>
+
     <!-- Active filter chips -->
     <div id="adj-active-filters" class="adj-active-filters" aria-live="polite">
       <span class="text-muted small mr-1">Filter aktif:</span>
@@ -224,6 +240,12 @@ $(function () {
       activeChips.append(chip);
     });
     activeWrap.addClass('is-visible');
+  }
+
+  /* ── Pre-select lab dari session ──────── */
+  var activeLabId = <?= isset($activeLab) && $activeLab ? (int) $activeLab['id'] : 0 ?>;
+  if (activeLabId > 0) {
+    $('#filter-adj-lab').val(activeLabId);
   }
 
   /* ── DataTable ────────────────────────── */

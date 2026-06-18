@@ -6,6 +6,7 @@ use App\Models\ConsumableCategoryModel;
 use App\Models\ConsumableItemModel;
 use App\Models\LabModel;
 use App\Models\UnitModel;
+use App\Models\UserLabAssignmentModel;
 
 class ConsumableItemController extends BaseController
 {
@@ -28,7 +29,12 @@ class ConsumableItemController extends BaseController
             return $guard;
         }
 
-        $labs       = $this->labModel->where('is_active', 1)->orderBy('name', 'ASC')->findAll();
+        $userId = (int) auth()->id();
+        $labIds = (new UserLabAssignmentModel())->getLabIdsByUser($userId);
+        $labs   = [];
+        if (! empty($labIds)) {
+            $labs = $this->labModel->where('is_active', 1)->whereIn('id', $labIds)->orderBy('name', 'ASC')->findAll();
+        }
         $categories = $this->categoryModel->where('is_active', 1)->orderBy('sort_order', 'ASC')->findAll();
 
         return $this->renderView('consumables/items/index', [
@@ -45,10 +51,17 @@ class ConsumableItemController extends BaseController
             return $guard;
         }
 
+        $userId = (int) auth()->id();
+        $labIds = (new UserLabAssignmentModel())->getLabIdsByUser($userId);
+        $labs   = [];
+        if (! empty($labIds)) {
+            $labs = $this->labModel->where('is_active', 1)->whereIn('id', $labIds)->orderBy('name', 'ASC')->findAll();
+        }
+
         return $this->renderView('consumables/items/create', [
             'title'      => 'Tambah Bahan',
             'page_title' => 'Tambah Bahan Habis Pakai',
-            'labs'       => $this->labModel->where('is_active', 1)->orderBy('name', 'ASC')->findAll(),
+            'labs'       => $labs,
             'categories' => $this->categoryModel->where('is_active', 1)->orderBy('sort_order', 'ASC')->findAll(),
             'units'      => $this->unitModel->where('is_active', 1)->orderBy('name', 'ASC')->findAll(),
         ]);
@@ -68,6 +81,14 @@ class ConsumableItemController extends BaseController
 
         if (! $this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        // Validate lab_id against user's assigned labs
+        $userId = (int) auth()->id();
+        $labIds = (new UserLabAssignmentModel())->getLabIdsByUser($userId);
+        $labId  = (int) $this->request->getPost('lab_id');
+        if (! in_array($labId, $labIds)) {
+            return redirect()->back()->withInput()->with('error', 'Anda tidak memiliki akses ke laboratorium tersebut.');
         }
 
         $stockTotal = max(0, (float) ($this->request->getPost('stock_total') ?? 0));
@@ -101,11 +122,18 @@ class ConsumableItemController extends BaseController
             return redirect()->to('/admin/consumables/items')->with('error', 'Bahan tidak ditemukan.');
         }
 
+        $userId = (int) auth()->id();
+        $labIds = (new UserLabAssignmentModel())->getLabIdsByUser($userId);
+        $labs   = [];
+        if (! empty($labIds)) {
+            $labs = $this->labModel->where('is_active', 1)->whereIn('id', $labIds)->orderBy('name', 'ASC')->findAll();
+        }
+
         return $this->renderView('consumables/items/edit', [
             'title'      => 'Edit Bahan',
             'page_title' => 'Edit Bahan Habis Pakai',
             'item'       => $item,
-            'labs'       => $this->labModel->where('is_active', 1)->orderBy('name', 'ASC')->findAll(),
+            'labs'       => $labs,
             'categories' => $this->categoryModel->where('is_active', 1)->orderBy('sort_order', 'ASC')->findAll(),
             'units'      => $this->unitModel->where('is_active', 1)->orderBy('name', 'ASC')->findAll(),
         ]);
@@ -130,6 +158,14 @@ class ConsumableItemController extends BaseController
 
         if (! $this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        // Validate lab_id against user's assigned labs
+        $userId = (int) auth()->id();
+        $labIds = (new UserLabAssignmentModel())->getLabIdsByUser($userId);
+        $labId  = (int) $this->request->getPost('lab_id');
+        if (! in_array($labId, $labIds)) {
+            return redirect()->back()->withInput()->with('error', 'Anda tidak memiliki akses ke laboratorium tersebut.');
         }
 
         $this->itemModel->update($id, [

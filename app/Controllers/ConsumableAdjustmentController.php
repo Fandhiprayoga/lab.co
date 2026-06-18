@@ -112,6 +112,12 @@ class ConsumableAdjustmentController extends BaseController
 
         $labs = model('LabModel')->where('is_active', 1)->orderBy('name', 'ASC')->findAll();
 
+        $activeLabId = (int) session()->get('active_lab_id');
+        $activeLab   = null;
+        if ($activeLabId > 0) {
+            $activeLab = model('LabModel')->find($activeLabId);
+        }
+
         $typeLabels = [
             'masuk'   => 'Bahan Masuk',
             'susut'   => 'Susut',
@@ -124,6 +130,7 @@ class ConsumableAdjustmentController extends BaseController
             'title'      => 'Riwayat Penyesuaian Stok',
             'page_title' => 'Riwayat Penyesuaian Stok BHP',
             'labs'       => $labs,
+            'activeLab'  => $activeLab,
             'typeLabels' => $typeLabels,
         ]);
     }
@@ -147,7 +154,9 @@ class ConsumableAdjustmentController extends BaseController
         $search      = trim((string) ($req->getGet('search')['value'] ?? ''));
         $orderCol    = (int) ($req->getGet('order')[0]['column'] ?? 1);
         $orderDir    = strtolower((string) ($req->getGet('order')[0]['dir'] ?? 'desc')) === 'asc' ? 'ASC' : 'DESC';
-        $filterLab   = (int) ($req->getGet('filter_lab')   ?? 0);
+        $activeLabId = (int) session()->get('active_lab_id');
+        $rawLab      = $req->getGet('filter_lab');
+        $filterLab   = ($rawLab !== '' && $rawLab !== null) ? (int) $rawLab : $activeLabId;
         $filterType  = (string) ($req->getGet('filter_type')  ?? '');
         $filterFrom  = (string) ($req->getGet('filter_from')  ?? '');
         $filterUntil = (string) ($req->getGet('filter_until') ?? '');
@@ -163,7 +172,10 @@ class ConsumableAdjustmentController extends BaseController
 
         $db = db_connect();
 
-        $recordsTotal = (int) $db->table('consumable_stock_adjustments')->countAllResults();
+        $recordsTotal = (int) $db->table('consumable_stock_adjustments csa')
+            ->join('consumable_items ci', 'ci.id = csa.consumable_id', 'left')
+            ->where($activeLabId ? 'ci.lab_id = ' . $activeLabId : '1=1', null, false)
+            ->countAllResults();
 
         $applyFilters = function ($builder) use ($search, $filterLab, $filterType, $filterFrom, $filterUntil) {
             if ($search !== '') {
@@ -251,7 +263,9 @@ class ConsumableAdjustmentController extends BaseController
         }
 
         $req         = $this->request;
-        $filterLab   = (int)    ($req->getGet('filter_lab')   ?? 0);
+        $activeLabId = (int) session()->get('active_lab_id');
+        $rawLab      = $req->getGet('filter_lab');
+        $filterLab   = ($rawLab !== '' && $rawLab !== null) ? (int) $rawLab : $activeLabId;
         $filterType  = (string) ($req->getGet('filter_type')  ?? '');
         $filterFrom  = (string) ($req->getGet('filter_from')  ?? '');
         $filterUntil = (string) ($req->getGet('filter_until') ?? '');

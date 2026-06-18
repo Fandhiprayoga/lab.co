@@ -6,6 +6,7 @@ use App\Models\ConsumableItemModel;
 use App\Models\ConsumableRequestItemModel;
 use App\Models\ConsumableRequestModel;
 use App\Models\LabModel;
+use App\Models\UserLabAssignmentModel;
 use CodeIgniter\I18n\Time;
 
 class ConsumableController extends BaseController
@@ -66,23 +67,52 @@ class ConsumableController extends BaseController
 
     public function beranda()
     {
-        $lowStockItems = $this->itemModel->getLowStock();
-        $totalItems    = $this->itemModel->where('is_active', 1)->countAllResults();
-        $totalRequests = $this->requestModel->countAllResults();
-        $pendingCount  = $this->requestModel
-            ->whereIn('status', [
-                ConsumableRequestModel::STATUS_WAITING_APPROVAL,
-                ConsumableRequestModel::STATUS_APPROVED,
-                ConsumableRequestModel::STATUS_DISBURSED,
-            ])
-            ->countAllResults();
+        $activeLabId = (int) session()->get('active_lab_id');
+
+        $lowStockItems = $this->itemModel->getLowStock($activeLabId ?: null);
+
+        // Count items
+        $itemBuilder = $this->itemModel->where('is_active', 1);
+        if ($activeLabId) {
+            $itemBuilder->where('lab_id', $activeLabId);
+        }
+        $totalItems = $itemBuilder->countAllResults();
+
+        // Count total requests & pending — pakai db_connect() biar ga overlap query builder
+        $db = db_connect();
+        $baseWhere = '1=1';
+        $bind = [];
+        if ($activeLabId) {
+            $baseWhere .= ' AND lab_id = ?';
+            $bind[] = $activeLabId;
+        }
+
+        $totalRequests = (int) $db->query(
+            "SELECT COUNT(*) AS cnt FROM consumable_requests WHERE {$baseWhere}",
+            $bind
+        )->getRow()->cnt;
+
+        $pendingStatuses = [
+            ConsumableRequestModel::STATUS_WAITING_APPROVAL,
+            ConsumableRequestModel::STATUS_APPROVED,
+            ConsumableRequestModel::STATUS_DISBURSED,
+        ];
+        $placeholders = implode(',', array_fill(0, count($pendingStatuses), '?'));
+        $pendingCount = (int) $db->query(
+            "SELECT COUNT(*) AS cnt FROM consumable_requests WHERE status IN ({$placeholders}) AND {$baseWhere}",
+            array_merge($pendingStatuses, $bind)
+        )->getRow()->cnt;
+
+        // Ambil info lab aktif untuk banner
+        $activeLab = $activeLabId ? $this->labModel->find($activeLabId) : null;
 
         return $this->renderView('consumables/beranda', [
-            'title'         => 'Beranda Bahan Habis Pakai',
+            'page_title'         => 'Beranda Bahan Habis Pakai',
             'totalItems'    => $totalItems,
             'totalRequests' => $totalRequests,
             'pendingCount'  => $pendingCount,
             'lowStockItems' => $lowStockItems,
+            'activeLab'     => $activeLab,
         ]);
     }
 
@@ -95,6 +125,12 @@ class ConsumableController extends BaseController
         $labId = (int) $this->request->getGet('lab_id');
 
         if ($labId < 1) {
+            return $this->response->setJSON([]);
+        }
+
+        // Pastikan lab termasuk dalam assignment user
+        $assignedIds = model('App\Models\UserLabAssignmentModel')->getLabIdsByUser((int) auth()->id());
+        if (! in_array($labId, $assignedIds, true)) {
             return $this->response->setJSON([]);
         }
 
@@ -143,8 +179,12 @@ class ConsumableController extends BaseController
 
         $db    = db_connect();
         $today = date('Y-m-d');
+        $activeLabId = (int) session()->get('active_lab_id');
 
-        $recordsTotal = (int) $db->table('consumable_items')->where('is_active', 1)->countAllResults();
+        $recordsTotal = (int) $db->table('consumable_items')
+            ->where('is_active', 1)
+            ->where($activeLabId ? 'lab_id = ' . $activeLabId : '1=1', null, false)
+            ->countAllResults();
 
         // ---- Count filtered ----
         $cnt = $db->table('consumable_items ci')
@@ -153,6 +193,7 @@ class ConsumableController extends BaseController
             ->join('labs', 'labs.id = ci.lab_id', 'left')
             ->where('ci.is_active', 1);
         $this->applyConsumableFilters($cnt, $search, $filterLab, $filterCategory, $filterStatus, $today);
+        if ($activeLabId) { $cnt->where('ci.lab_id', $activeLabId); }
         $recordsFiltered = (int) ($cnt->get()->getRow()->cnt ?? 0);
 
         // ---- Data ----
@@ -166,6 +207,7 @@ class ConsumableController extends BaseController
             ->join('labs', 'labs.id = ci.lab_id', 'left')
             ->where('ci.is_active', 1);
         $this->applyConsumableFilters($qb, $search, $filterLab, $filterCategory, $filterStatus, $today);
+        if ($activeLabId) { $qb->where('ci.lab_id', $activeLabId); }
         $rows = $qb->orderBy($orderField, $orderDir)->limit($length, $start)->get()->getResultArray();
 
         $canAdjust = activeGroupCan('bhp.stock.adjust');
@@ -283,7 +325,12 @@ class ConsumableController extends BaseController
             return redirect()->to('/dashboard')->with('error', 'Akses ditolak.');
         }
 
-        $labs       = $this->labModel->where('is_active', 1)->orderBy('name', 'ASC')->findAll();
+        $userId = (int) auth()->id();
+        $labIds = (new UserLabAssignmentModel())->getLabIdsByUser($userId);
+        $labs   = [];
+        if (! empty($labIds)) {
+            $labs = $this->labModel->where('is_active', 1)->whereIn('id', $labIds)->orderBy('name', 'ASC')->findAll();
+        }
         $categories = db_connect()
             ->table('consumable_categories')
             ->where('is_active', 1)
@@ -291,11 +338,15 @@ class ConsumableController extends BaseController
             ->orderBy('name', 'ASC')
             ->get()->getResultArray();
 
+        $activeLabId = (int) session()->get('active_lab_id');
+        $activeLab   = $activeLabId ? $this->labModel->find($activeLabId) : null;
+
         return $this->renderView('consumables/index', [
             'title'      => 'Katalog Bahan Habis Pakai',
             'page_title' => 'Katalog Bahan Habis Pakai',
             'labs'       => $labs,
             'categories' => $categories,
+            'activeLab'  => $activeLab,
         ]);
     }
 
@@ -320,11 +371,15 @@ class ConsumableController extends BaseController
             'problematic'      => 'Bermasalah',
         ];
 
+        $activeLabId = (int) session()->get('active_lab_id');
+        $activeLab   = $activeLabId ? $this->labModel->find($activeLabId) : null;
+
         return $this->renderView('consumables/requests/index', [
             'title'        => 'Permintaan BHP',
             'page_title'   => 'Daftar Permintaan Bahan Habis Pakai',
             'canManageAll' => activeGroupCan('bhp.request.manage-all'),
             'statusLabels' => $statusLabels,
+            'activeLab'    => $activeLab,
         ]);
     }
 
@@ -353,6 +408,7 @@ class ConsumableController extends BaseController
 
         $ownOnly = ! activeGroupCan('bhp.request.manage-all');
         $userId  = (int) auth()->id();
+        $activeLabId = (int) session()->get('active_lab_id');
 
         $colMap = [
             1 => 'r.request_code',
@@ -365,8 +421,9 @@ class ConsumableController extends BaseController
 
         $db = db_connect();
 
-        $applyFilters = function ($builder) use ($search, $filterStatus, $filterFrom, $filterUntil, $ownOnly, $userId) {
+        $applyFilters = function ($builder) use ($search, $filterStatus, $filterFrom, $filterUntil, $ownOnly, $userId, $activeLabId) {
             if ($ownOnly) { $builder->where('r.requester_id', $userId); }
+            if ($activeLabId) { $builder->where('r.lab_id', $activeLabId); }
             if ($search !== '') {
                 $builder->groupStart()
                     ->like('r.request_code', $search)
@@ -388,6 +445,7 @@ class ConsumableController extends BaseController
         // Total unfiltered (respect ownOnly)
         $cntTotal = $db->table('consumable_requests r');
         if ($ownOnly) { $cntTotal->where('r.requester_id', $userId); }
+        if ($activeLabId) { $cntTotal->where('r.lab_id', $activeLabId); }
         $recordsTotal = (int) $cntTotal->countAllResults();
 
         // Count filtered
@@ -458,6 +516,7 @@ class ConsumableController extends BaseController
 
         $ownOnly = ! activeGroupCan('bhp.request.manage-all');
         $userId  = (int) auth()->id();
+        $activeLabId = (int) session()->get('active_lab_id');
 
         $db = db_connect();
 
@@ -468,6 +527,7 @@ class ConsumableController extends BaseController
             ->join('labs l',  'l.id = r.lab_id',       'left');
 
         if ($ownOnly)            { $qb->where('r.requester_id', $userId); }
+        if ($activeLabId)        { $qb->where('r.lab_id', $activeLabId); }
         if ($filterStatus !== '') { $qb->where('r.status', $filterStatus); }
         if ($filterFrom !== '')   { $qb->where('DATE(r.created_at) >=', $filterFrom); }
         if ($filterUntil !== '')  { $qb->where('DATE(r.created_at) <=', $filterUntil); }
@@ -539,7 +599,16 @@ class ConsumableController extends BaseController
             return redirect()->to('/consumables')->with('error', 'Akses ditolak.');
         }
 
-        $labs = $this->labModel->where('is_active', 1)->orderBy('name', 'ASC')->findAll();
+        // Hanya tampilkan lab yang di-assign ke user login
+        $labObjects = model('App\Models\UserLabAssignmentModel')->getLabsByUser((int) auth()->id());
+        $labs = [];
+        foreach ($labObjects as $obj) {
+            $labs[] = [
+                'id'   => (int) $obj->id,
+                'name' => $obj->name,
+                'code' => $obj->code ?? '',
+            ];
+        }
 
         return $this->renderView('consumables/requests/create', [
             'title'      => 'Buat Permintaan BHP',
@@ -563,6 +632,13 @@ class ConsumableController extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
+        // Pastikan lab yang dipilih adalah milik user
+        $labId = (int) $this->request->getPost('lab_id');
+        $assignedLabIds = model('App\Models\UserLabAssignmentModel')->getLabIdsByUser((int) auth()->id());
+        if (! in_array($labId, $assignedLabIds, true)) {
+            return redirect()->back()->withInput()->with('error', 'Laboratorium yang dipilih tidak valid.');
+        }
+
         $items = $this->request->getPost('items') ?? [];
         if (empty($items)) {
             return redirect()->back()->withInput()->with('error', 'Tambahkan minimal 1 bahan sebelum menyimpan.');
@@ -576,7 +652,7 @@ class ConsumableController extends BaseController
         $this->requestModel->insert([
             'request_code'   => $code,
             'requester_id'   => auth()->id(),
-            'lab_id'         => (int) $this->request->getPost('lab_id'),
+            'lab_id'         => $labId,
             'purpose'        => trim((string) $this->request->getPost('purpose')),
             'scheduled_date' => $scheduledDate,
             'status'         => ConsumableRequestModel::STATUS_DRAFT,
@@ -904,10 +980,11 @@ class ConsumableController extends BaseController
         }
 
         $db = db_connect();
-        
-        // Get selected lab from query string
-        $selectedLabId = (int) ($this->request->getGet('lab_id') ?? 0);
-        
+
+        // Default from session; allow GET param to override
+        $activeLabId = (int) session()->get('active_lab_id');
+        $selectedLabId = (int) ($this->request->getGet('lab_id') ?? $activeLabId);
+
         // Get all labs for dropdown
         $labs = $this->labModel->where('is_active', 1)->orderBy('name', 'ASC')->findAll();
 
@@ -974,6 +1051,9 @@ class ConsumableController extends BaseController
         
         $lowStockItems = $qbLowStock->orderBy('consumable_items.name', 'ASC')->findAll();
 
+        // Lab yg sedang memfilter (dari session atau dropdown)
+        $activeLab = $selectedLabId ? $this->labModel->find($selectedLabId) : null;
+
         return $this->renderView('consumables/analytics', [
             'title'          => 'Analitik BHP',
             'page_title'     => 'Analitik Konsumsi Bahan Habis Pakai',
@@ -983,6 +1063,7 @@ class ConsumableController extends BaseController
             'lowStockItems'  => $lowStockItems,
             'labs'           => $labs,
             'selectedLabId'  => $selectedLabId,
+            'activeLab'      => $activeLab,
         ]);
     }
 

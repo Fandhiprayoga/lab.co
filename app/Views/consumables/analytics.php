@@ -5,6 +5,7 @@ $statusSummary = $statusSummary ?? [];
 $lowStockItems = $lowStockItems ?? [];
 $labs          = $labs ?? [];
 $selectedLabId = $selectedLabId ?? 0;
+$activeLab     = $activeLab ?? null;
 
 $statusLabels = [
     'draft'            => 'Draft',
@@ -18,8 +19,22 @@ $statusLabels = [
 ];
 ?>
 
+<?php if ($selectedLabId > 0 && $activeLab): ?>
+<div class="alert alert-info alert-dismissible show fade">
+  <div class="alert-body d-flex align-items-center justify-content-between">
+    <span>
+      <i class="fas fa-flask mr-1"></i>
+      Data difilter untuk laboratorium: <strong><?= esc($activeLab['name']) ?></strong> (<?= esc($activeLab['code']) ?>)
+    </span>
+    <!-- <a href="<?= base_url('consumables/analytics?lab_id=0') ?>" class="btn btn-sm btn-light">
+      <i class="fas fa-times mr-1"></i>Reset Filter
+    </a> -->
+  </div>
+</div>
+<?php endif; ?>
+
 <!-- Filter Lab -->
-<div class="row mb-3">
+<!-- <div class="row mb-3">
   <div class="col-md-4">
     <div class="card">
       <div class="card-body">
@@ -35,7 +50,7 @@ $statusLabels = [
       </div>
     </div>
   </div>
-</div>
+</div> -->
 
 <div class="row">
   <!-- Top items chart -->

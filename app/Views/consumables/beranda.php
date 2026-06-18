@@ -3,7 +3,22 @@ $totalItems    = $totalItems    ?? 0;
 $totalRequests = $totalRequests ?? 0;
 $pendingCount  = $pendingCount  ?? 0;
 $lowStockItems = $lowStockItems ?? [];
+$activeLab     = $activeLab     ?? null;
 ?>
+
+<?php if ($activeLab): ?>
+<div class="alert alert-info alert-dismissible show fade">
+  <div class="alert-body d-flex align-items-center justify-content-between">
+    <span>
+      <i class="fas fa-flask mr-1"></i>
+      Data difilter untuk laboratorium: <strong><?= esc($activeLab['name']) ?></strong> (<?= esc($activeLab['code']) ?>)
+    </span>
+    <!-- <a href="<?= base_url('consumables/beranda') ?>" class="btn btn-sm btn-light">
+      <i class="fas fa-times mr-1"></i>Reset Filter
+    </a> -->
+  </div>
+</div>
+<?php endif; ?>
 
 <!-- Ringkasan Statistik -->
 <div class="row">

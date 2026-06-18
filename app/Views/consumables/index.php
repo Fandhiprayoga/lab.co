@@ -1,7 +1,23 @@
 <?php
 $labs       = $labs       ?? [];
 $categories = $categories ?? [];
+$activeLab  = $activeLab  ?? null;
 ?>
+
+<?php if ($activeLab): ?>
+<div class="alert alert-info alert-dismissible show fade">
+  <div class="alert-body d-flex align-items-center justify-content-between">
+    <span>
+      <i class="fas fa-flask mr-1"></i>
+      Data difilter untuk laboratorium: <strong><?= esc($activeLab['name']) ?></strong> (<?= esc($activeLab['code']) ?>)
+    </span>
+    <!-- <a href="<?= base_url('consumables') ?>" class="btn btn-sm btn-light">
+      <i class="fas fa-times mr-1"></i>Reset Filter
+    </a> -->
+  </div>
+</div>
+<?php endif; ?>
+
 <?= $this->section('css') ?>
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap4.min.css">
 <style>
