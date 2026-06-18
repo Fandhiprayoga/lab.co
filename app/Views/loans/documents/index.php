@@ -1,4 +1,5 @@
 <?= $this->section('css') ?>
+<link rel="stylesheet" href="<?= base_url('assets/modules/select2/dist/css/select2.min.css') ?>"/>
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap4.min.css">
 <?= $this->endSection() ?>
 
@@ -27,7 +28,7 @@
           <div class="form-group">
             <label for="asset_id">Aset</label>
             <?php $selAsset = (string) old('asset_id', (string) $assetId); ?>
-            <select id="asset_id" name="asset_id" class="form-control" required>
+            <select id="asset_id" name="asset_id" class="form-control select2" required>
               <option value="">- Pilih Aset -</option>
               <?php foreach ($assets as $a): ?>
                 <option value="<?= (int) $a['id'] ?>" <?= $selAsset === (string) $a['id'] ? 'selected' : '' ?>>
@@ -132,8 +133,15 @@
 <?= $this->section('js') ?>
 <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap4.min.js"></script>
+<script src="<?= base_url('assets/modules/select2/dist/js/select2.min.js') ?>"></script>
 <script>
   $(function () {
+    $('#asset_id').select2({
+      placeholder: '- Pilih Aset -',
+      allowClear: true,
+      width: '100%'
+    });
+
     $('#table-documents').DataTable({
       pageLength: 25,
       order: [[0, 'desc']],
