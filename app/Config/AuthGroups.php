@@ -243,6 +243,7 @@ class AuthGroups extends ShieldAuthGroups
             'lending.request.manage-all',
             'lending.approval.l2',
             'lending.analytics.view',
+            'lending.master.labs.manage',
             'lending.master.labs.assign-pic',
             'visits.list',
             'bhp.access',

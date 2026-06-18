@@ -278,9 +278,9 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
         // Loan Labs Master Data
         $routes->group('loans/labs', ['filter' => 'permission:lending.master.labs.manage'], static function ($routes) {
             $routes->get('/', 'LabController::index');
-            $routes->get('create', 'LabController::create');
+            $routes->get('create', 'LabController::create', ['filter' => 'role:kepala_lab,superadmin']);
             $routes->get('edit/(:num)', 'LabController::edit/$1');
-            $routes->post('store', 'LabController::store');
+            $routes->post('store', 'LabController::store', ['filter' => 'role:kepala_lab,superadmin']);
             $routes->post('update/(:num)', 'LabController::update/$1');
             $routes->post('delete/(:num)', 'LabController::delete/$1');
             $routes->get('archive', 'LabController::archive');
