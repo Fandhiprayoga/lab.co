@@ -102,6 +102,7 @@
 <?= $this->endSection() ?>
 <?php $labs = $labs ?? []; ?>
 <?php $assets = $assets ?? []; ?>
+<?php $activeLab = $activeLab ?? null; ?>
 <?php
 $categoryMap = [];
 foreach ($assets as $assetRow) {
@@ -114,6 +115,13 @@ foreach ($assets as $assetRow) {
 $categoryOptions = array_keys($categoryMap);
 sort($categoryOptions);
 ?>
+
+<?php if ($activeLab): ?>
+  <!-- <div class="alert alert-info">
+    <i class="fas fa-filter"></i> Menampilkan data untuk <strong><?= esc($activeLab['name']) ?></strong>
+    <a href="<?= base_url('admin/loans/labs/switch-lab') ?>" class="btn btn-sm btn-light ml-2">Ganti Lab</a>
+  </div> -->
+<?php endif; ?>
 
 <div class="row">
   <div class="col-12">

@@ -6,6 +6,7 @@ use App\Models\AssetCategoryModel;
 use App\Models\LabAssetModel;
 use App\Models\LabModel;
 use App\Models\UnitModel;
+use App\Models\UserLabAssignmentModel;
 
 class LoanAssetController extends BaseController
 {
@@ -35,12 +36,21 @@ class LoanAssetController extends BaseController
             return $guard;
         }
 
-        $assets = db_connect()->table('lab_assets a')
+        $activeLabId = (int) session()->get('active_lab_id');
+        $activeLab   = null;
+
+        $builder = db_connect()->table('lab_assets a')
             ->select('a.*, l.name AS lab_name, u.symbol AS unit_symbol')
             ->join('labs l', 'l.id = a.lab_id', 'left')
             ->join('units u', 'u.id = a.unit_id', 'left')
-            ->where('a.asset_type', 'equipment')
-            ->orderBy('a.name', 'ASC')
+            ->where('a.asset_type', 'equipment');
+
+        if ($activeLabId > 0) {
+            $builder->where('a.lab_id', $activeLabId);
+            $activeLab = $this->labModel->find($activeLabId);
+        }
+
+        $assets = $builder->orderBy('a.name', 'ASC')
             ->get()->getResultArray();
 
         return $this->renderView('loans/assets/index', [
@@ -48,6 +58,7 @@ class LoanAssetController extends BaseController
             'page_title' => 'Master Data Alat',
             'assets'     => $assets,
             'labs'       => $this->getActiveLabs(),
+            'activeLab'  => $activeLab,
         ]);
     }
 
@@ -460,8 +471,15 @@ class LoanAssetController extends BaseController
 
     private function getActiveLabs(): array
     {
+        $userLabAssignmentModel = new UserLabAssignmentModel();
+        $assignedLabIds         = $userLabAssignmentModel->getLabIdsByUser(user_id());
+        if (empty($assignedLabIds)) {
+            return [];
+        }
+
         return $this->labModel
             ->where('is_active', 1)
+            ->whereIn('id', $assignedLabIds)
             ->orderBy('name', 'ASC')
             ->findAll();
     }
