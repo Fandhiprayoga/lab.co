@@ -6,6 +6,7 @@ use App\Models\LabModel;
 use App\Models\LabPhotoModel;
 use App\Models\LabConditionHistoryModel;
 use App\Models\LabVisitModel;
+use App\Models\UserLabAssignmentModel;
 
 class LabController extends BaseController
 {
@@ -26,9 +27,17 @@ class LabController extends BaseController
             return $guard;
         }
 
-        $labs = $this->labModel
-            ->orderBy('labs.name', 'ASC')
-            ->findAll();
+        $activeLabId = (int) session()->get('active_lab_id');
+        $activeLab   = null;
+
+        $query = $this->labModel->orderBy('labs.name', 'ASC');
+
+        if ($activeLabId > 0) {
+            $query->where('labs.id', $activeLabId);
+            $activeLab = $this->labModel->find($activeLabId);
+        }
+
+        $labs = $query->findAll();
 
         if (! empty($labs)) {
             $labIds = array_column($labs, 'id');
@@ -50,6 +59,7 @@ class LabController extends BaseController
             'title'      => 'Master Ruangan Lab',
             'page_title' => 'Master Data Ruangan/Lab',
             'labs'       => $labs,
+            'activeLab'  => $activeLab,
         ]);
     }
 
@@ -527,6 +537,7 @@ class LabController extends BaseController
         $filterLoanable  = $request->getGet('filter_loanable');
         $filterCondition = $request->getGet('filter_condition');
         $filterActive    = $request->getGet('filter_active');
+        $activeLabId     = (int) session()->get('active_lab_id');
 
         $columns = ['logo', 'name', 'code', 'description', 'is_loanable', 'condition_status', 'location', 'capacity', 'is_active', 'actions'];
         $orderField = $columns[$orderColumn] ?? 'name';
@@ -536,9 +547,17 @@ class LabController extends BaseController
 
         $db = db_connect();
 
-        $recordsTotal = $db->table('labs')->where('deleted_at', null)->countAllResults();
+        $recordsTotalQb = $db->table('labs')->where('deleted_at', null);
+        if ($activeLabId > 0) {
+            $recordsTotalQb->where('id', $activeLabId);
+        }
+        $recordsTotal = $recordsTotalQb->countAllResults();
 
         $base = $db->table('labs')->where('deleted_at', null);
+
+        if ($activeLabId > 0) {
+            $base->where('id', $activeLabId);
+        }
 
         if ($search !== '') {
             $base->groupStart()
