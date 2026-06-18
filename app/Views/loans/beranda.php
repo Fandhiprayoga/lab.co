@@ -1,7 +1,22 @@
 <?php
 $isManager = $isManager ?? false;
 $stats     = $stats ?? ['total' => 0, 'pending' => 0, 'approved' => 0, 'running' => 0];
+$activeLab = $activeLab ?? null;
 ?>
+
+<?php if ($activeLab): ?>
+<div class="alert alert-info alert-dismissible show fade">
+  <div class="alert-body d-flex align-items-center justify-content-between">
+    <span>
+      <i class="fas fa-flask mr-1"></i>
+      Menampilkan data untuk laboratorium: <strong><?= esc($activeLab['name']) ?></strong> (<?= esc($activeLab['code']) ?>)
+    </span>
+    <!-- <a href="<?= base_url('switch-lab') ?>" class="btn btn-sm btn-light" onclick="event.preventDefault(); fetch('<?= base_url('switch-lab') ?>',{method:'POST',headers:{'X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':'<?= csrf_hash() ?>'},body:'lab_id='}).then(function(){location.reload();});">
+      <i class="fas fa-times mr-1"></i>Reset Filter
+    </a> -->
+  </div>
+</div>
+<?php endif; ?>
 
 <!-- Ringkasan Statistik -->
 <div class="row">

@@ -145,6 +145,9 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
     // Switch Active Group
     $routes->post('switch-group', 'GroupSwitchController::switch');
 
+    // Switch Active Lab
+    $routes->post('switch-lab', 'LabSwitchController::switch');
+
     // Profile
     $routes->get('profile', 'ProfileController::index');
     $routes->post('profile/update', 'ProfileController::update');

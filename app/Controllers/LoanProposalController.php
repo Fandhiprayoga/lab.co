@@ -117,34 +117,70 @@ class LoanProposalController extends BaseController
     {
         $this->syncLateStatuses();
 
-        $isManager = $this->canManageGlobal();
+        $isManager   = $this->canManageGlobal();
+        $activeLabId = (int) session()->get('active_lab_id');
 
-        $countByStatuses = static function (array $statuses) use ($isManager): int {
-            $builder = db_connect()->table('loan_proposals')->whereIn('status', $statuses);
-            if (! $isManager) {
-                $builder->where('proposer_id', auth()->id());
-            }
-
-            return $builder->countAllResults();
-        };
-
-        $totalBuilder = db_connect()->table('loan_proposals');
-        if (! $isManager) {
-            $totalBuilder->where('proposer_id', auth()->id());
+        // Build sub-query untuk filter proposal yg item-nya terkait lab aktif
+        $labFilterSub = '';
+        $labFilterBind = [];
+        if ($activeLabId) {
+            $labFilterSub = 'AND p.id IN (
+                SELECT DISTINCT lpi.proposal_id
+                FROM loan_proposal_items lpi
+                LEFT JOIN lab_assets la ON (lpi.item_type = \'equipment\' AND lpi.equipment_id = la.id)
+                WHERE (lpi.item_type = \'lab\' AND lpi.lab_id = ?)
+                   OR (lpi.item_type = \'equipment\' AND la.lab_id = ?)
+            )';
+            $labFilterBind = [$activeLabId, $activeLabId];
         }
 
+        $countByStatuses = static function (array $statuses) use ($isManager, $labFilterSub, $labFilterBind): int {
+            $sql = 'SELECT COUNT(*) AS cnt FROM loan_proposals p WHERE p.status IN (' . implode(',', array_fill(0, count($statuses), '?')) . ')';
+            $bind = $statuses;
+
+            if (! $isManager) {
+                $sql .= ' AND p.proposer_id = ?';
+                $bind[] = auth()->id();
+            }
+
+            $sql .= ' ' . $labFilterSub;
+            $bind = array_merge($bind, $labFilterBind);
+
+            $row = db_connect()->query($sql, $bind)->getRow();
+
+            return $row ? (int) $row->cnt : 0;
+        };
+
+        $totalSql  = 'SELECT COUNT(*) AS cnt FROM loan_proposals p WHERE 1=1';
+        $totalBind = [];
+        if (! $isManager) {
+            $totalSql .= ' AND p.proposer_id = ?';
+            $totalBind[] = auth()->id();
+        }
+        $totalSql .= ' ' . $labFilterSub;
+        $totalBind = array_merge($totalBind, $labFilterBind);
+
+        $totalRow = db_connect()->query($totalSql, $totalBind)->getRow();
+
         $stats = [
-            'total'    => $totalBuilder->countAllResults(),
+            'total'    => $totalRow ? (int) $totalRow->cnt : 0,
             'pending'  => $countByStatuses([self::STATUS_WAITING_L1, self::STATUS_WAITING_L2]),
             'approved' => $countByStatuses([self::STATUS_APPROVED]),
             'running'  => $countByStatuses([self::STATUS_BORROWED, self::STATUS_LATE, self::STATUS_IN_USE]),
         ];
+
+        // Ambil info lab aktif untuk ditampilkan
+        $activeLab = null;
+        if ($activeLabId) {
+            $activeLab = model('App\Models\LabModel')->find($activeLabId);
+        }
 
         return $this->renderView('loans/beranda', [
             'title'      => 'Beranda Peminjaman',
             'page_title' => 'Beranda Peminjaman Lab & Alat',
             'isManager'  => $isManager,
             'stats'      => $stats,
+            'activeLab'  => $activeLab,
         ]);
     }
 
@@ -1642,7 +1678,23 @@ class LoanProposalController extends BaseController
             $status = '';
         }
 
-        $applyProposalFilters = static function ($builder, string $alias = '') use ($from, $until, $loanType, $status): void {
+        $activeLabId = (int) session()->get('active_lab_id');
+
+        // Build sub-query untuk filter proposal yg item-nya terkait lab aktif
+        $labFilterSub = '';
+        $labFilterBind = [];
+        if ($activeLabId) {
+            $labFilterSub = 'AND p.id IN (
+                SELECT DISTINCT lpi.proposal_id
+                FROM loan_proposal_items lpi
+                LEFT JOIN lab_assets la ON (lpi.item_type = \'equipment\' AND lpi.equipment_id = la.id)
+                WHERE (lpi.item_type = \'lab\' AND lpi.lab_id = ?)
+                   OR (lpi.item_type = \'equipment\' AND la.lab_id = ?)
+            )';
+            $labFilterBind = [$activeLabId, $activeLabId];
+        }
+
+        $applyProposalFilters = static function ($builder, string $alias = '') use ($from, $until, $loanType, $status, $labFilterSub, $labFilterBind): void {
             $prefix = $alias !== '' ? $alias . '.' : '';
 
             if ($from !== '') {
@@ -1659,6 +1711,17 @@ class LoanProposalController extends BaseController
 
             if ($status !== '') {
                 $builder->where($prefix . 'status', $status);
+            }
+
+            if ($labFilterSub !== '') {
+                $labId = (int) $labFilterBind[0];
+                $builder->where($prefix . 'id IN (
+                    SELECT DISTINCT lpi.proposal_id
+                    FROM loan_proposal_items lpi
+                    LEFT JOIN lab_assets la ON (lpi.item_type = \'equipment\' AND lpi.equipment_id = la.id)
+                    WHERE (lpi.item_type = \'lab\' AND lpi.lab_id = ' . $labId . ')
+                       OR (lpi.item_type = \'equipment\' AND la.lab_id = ' . $labId . ')
+                )', null, false);
             }
         };
 
@@ -1700,6 +1763,12 @@ class LoanProposalController extends BaseController
         $applyProposalFilters($topBuilder, 'p');
         $topProposers = $topBuilder->get()->getResultArray();
 
+        // Ambil info lab aktif untuk ditampilkan
+        $activeLab = null;
+        if ($activeLabId) {
+            $activeLab = model('App\Models\LabModel')->find($activeLabId);
+        }
+
         return $this->renderView('loans/analytics', [
             'title'         => 'Analitik Peminjaman',
             'page_title'    => 'Dasbor Proposal Peminjaman',
@@ -1714,6 +1783,7 @@ class LoanProposalController extends BaseController
                 'loan_type' => $loanType,
                 'status'    => $status,
             ],
+            'activeLab'     => $activeLab,
         ]);
     }
 
