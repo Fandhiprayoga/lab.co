@@ -7,6 +7,14 @@
 <?php $assetId = (int) ($assetId ?? 0); ?>
 <?php $types = $types ?? []; ?>
 <?php $assets = $assets ?? []; ?>
+<?php $activeLab = $activeLab ?? null; ?>
+
+<?php if ($activeLab): ?>
+  <div class="alert alert-info">
+    <i class="fas fa-filter"></i> Menampilkan data untuk <strong><?= esc($activeLab['name']) ?></strong>
+    <a href="<?= base_url('admin/loans/documents') ?>" class="btn btn-sm btn-light ml-2">Tampilkan Semua</a>
+  </div>
+<?php endif; ?>
 
 <div class="row">
   <div class="col-lg-5">

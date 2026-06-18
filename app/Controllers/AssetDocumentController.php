@@ -4,6 +4,8 @@ namespace App\Controllers;
 
 use App\Models\AssetDocumentModel;
 use App\Models\LabAssetModel;
+use App\Models\LabModel;
+use App\Models\UserLabAssignmentModel;
 use CodeIgniter\I18n\Time;
 use RuntimeException;
 
@@ -27,14 +29,40 @@ class AssetDocumentController extends BaseController
             return $guard;
         }
 
+        $activeLabId = (int) session()->get('active_lab_id');
+        $activeLab   = null;
+
+        // Determine which labs the user can access
+        $userLabAssignmentModel = new UserLabAssignmentModel();
+        $assignedLabIds         = $userLabAssignmentModel->getLabIdsByUser(user_id());
+        if (empty($assignedLabIds)) {
+            $assignedLabIds = [0];
+        }
+
+        // Scope assets dropdown by assigned labs (and active lab if set)
+        $assetsQuery = $this->assetModel
+            ->whereIn('lab_id', $assignedLabIds)
+            ->orderBy('name', 'ASC');
+        if ($activeLabId > 0) {
+            $assetsQuery->where('lab_id', $activeLabId);
+        }
+        $assets = $assetsQuery->findAll();
+
         $assetId = (int) $this->request->getGet('asset_id');
 
+        // Also scope documents by lab: join lab_assets and filter
         $builder = db_connect()->table('asset_documents d')
             ->select('d.*, a.name AS asset_name, a.asset_code, u.username AS uploaded_by_name')
             ->join('lab_assets a', 'a.id = d.asset_id', 'left')
             ->join('users u', 'u.id = d.uploaded_by', 'left')
+            ->whereIn('a.lab_id', $assignedLabIds)
             ->orderBy('d.created_at', 'DESC')
             ->orderBy('d.id', 'DESC');
+
+        if ($activeLabId > 0) {
+            $builder->where('a.lab_id', $activeLabId);
+            $activeLab = (new LabModel())->find($activeLabId);
+        }
 
         if ($assetId > 0) {
             $builder->where('d.asset_id', $assetId);
@@ -50,7 +78,8 @@ class AssetDocumentController extends BaseController
             'asset'      => $asset,
             'assetId'    => $assetId,
             'types'      => self::TYPES,
-            'assets'     => $this->assetModel->orderBy('name', 'ASC')->findAll(),
+            'assets'     => $assets,
+            'activeLab'  => $activeLab,
         ]);
     }
 
