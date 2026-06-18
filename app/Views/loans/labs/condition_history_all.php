@@ -8,7 +8,15 @@ $conditionBadge = function (string $c): string {
 ?>
 <?php $histories = $histories ?? []; ?>
 <?php $labs = $labs ?? []; ?>
+<?php $activeLab = $activeLab ?? null; ?>
 <?php $filters = $filters ?? ['lab_id' => 0, 'date_from' => '', 'date_to' => '']; ?>
+
+<?php if ($activeLab): ?>
+  <!-- <div class="alert alert-info">
+    <i class="fas fa-filter"></i> Menampilkan data untuk <strong><?= esc($activeLab['name']) ?></strong>
+    <a href="<?= base_url('admin/loans/labs/condition-history') ?>" class="btn btn-sm btn-light ml-2">Reset Filter</a>
+  </div> -->
+<?php endif; ?>
 
 <div class="row">
   <div class="col-12">

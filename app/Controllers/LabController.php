@@ -659,9 +659,24 @@ class LabController extends BaseController
             return $guard;
         }
 
+        $activeLabId = (int) session()->get('active_lab_id');
+        $activeLab   = null;
+
         $labId    = (int) $this->request->getGet('lab_id');
         $dateFrom = (string) $this->request->getGet('date_from');
         $dateTo   = (string) $this->request->getGet('date_to');
+
+        // Scope labs dropdown by user assignments
+        $userLabAssignmentModel = new UserLabAssignmentModel();
+        $assignedLabIds         = $userLabAssignmentModel->getLabIdsByUser(user_id());
+        if (empty($assignedLabIds)) {
+            $assignedLabIds = [0];
+        }
+
+        $labs = $this->labModel
+            ->whereIn('id', $assignedLabIds)
+            ->orderBy('name', 'ASC')
+            ->findAll();
 
         $builder = $this->labConditionHistoryModel
             ->select('lab_condition_history.*, labs.name AS lab_name, labs.code AS lab_code, users.username AS changed_by_name')
@@ -669,8 +684,13 @@ class LabController extends BaseController
             ->join('users', 'users.id = lab_condition_history.changed_by', 'left')
             ->orderBy('lab_condition_history.created_at', 'DESC');
 
-        if ($labId > 0) {
-            $builder->where('lab_condition_history.lab_id', $labId);
+        // Determine effective lab filter: session active_lab_id takes precedence
+        $effectiveLabId = $activeLabId > 0 ? $activeLabId : $labId;
+        if ($effectiveLabId > 0) {
+            $builder->where('lab_condition_history.lab_id', $effectiveLabId);
+        }
+        if ($activeLabId > 0) {
+            $activeLab = $this->labModel->find($activeLabId);
         }
         if ($dateFrom !== '') {
             $builder->where('lab_condition_history.created_at >=', $dateFrom . ' 00:00:00');
@@ -680,14 +700,14 @@ class LabController extends BaseController
         }
 
         $histories = $builder->findAll();
-        $labs      = $this->labModel->orderBy('name', 'ASC')->findAll();
 
         return $this->renderView('loans/labs/condition_history_all', [
             'title'      => 'Riwayat Kondisi Lab',
             'page_title' => 'Riwayat Perubahan Kondisi Lab',
             'histories'  => $histories,
             'labs'       => $labs,
-            'filters'    => ['lab_id' => $labId, 'date_from' => $dateFrom, 'date_to' => $dateTo],
+            'activeLab'  => $activeLab,
+            'filters'    => ['lab_id' => $effectiveLabId, 'date_from' => $dateFrom, 'date_to' => $dateTo],
         ]);
     }
 
