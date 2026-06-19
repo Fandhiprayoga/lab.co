@@ -30,6 +30,9 @@ $routes->get('maintenance', static function () {
     return view('errors/maintenance');
 });
 
+// Public Certificate Verification (no auth)
+$routes->get('verify/certificate/(:segment)', 'CertificatePublicController::verify/$1');
+
 // ---------------------------------------------------------------
 // Protected Routes (require login)
 // ---------------------------------------------------------------
@@ -141,6 +144,38 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
         $routes->get('adjustments/(:num)/create', 'ConsumableAdjustmentController::create/$1', ['filter' => 'permission:bhp.stock.adjust']);
         $routes->post('adjustments/(:num)', 'ConsumableAdjustmentController::store/$1', ['filter' => 'permission:bhp.stock.adjust']);
     });
+
+    // Certificate Module — Template Management (laboran/superadmin)
+    $routes->group('certificates', ['filter' => 'permission:certificate.template.manage'], static function ($routes) {
+        $routes->get('templates', 'CertificateTemplateController::index');
+        $routes->get('templates/create', 'CertificateTemplateController::create');
+        $routes->post('templates/store', 'CertificateTemplateController::store');
+        $routes->get('templates/(:segment)/edit', 'CertificateTemplateController::edit/$1');
+        $routes->post('templates/(:segment)/update', 'CertificateTemplateController::update/$1');
+        $routes->post('templates/(:segment)/delete', 'CertificateTemplateController::delete/$1');
+        $routes->get('templates/(:segment)/components', 'CertificateTemplateController::components/$1');
+        $routes->post('templates/(:segment)/components/store', 'CertificateTemplateController::storeComponent/$1');
+        $routes->post('templates/(:segment)/components/(:num)/update', 'CertificateTemplateController::updateComponent/$1/$2');
+        $routes->post('templates/(:segment)/components/(:num)/delete', 'CertificateTemplateController::deleteComponent/$1/$2');
+        $routes->post('templates/(:segment)/components/(:num)/ajax-update', 'CertificateTemplateController::updateComponentAjax/$1/$2');
+        $routes->get('templates/(:segment)/preview', 'CertificateTemplateController::preview/$1');
+    });
+
+    // Certificate Issuance (laboran/superadmin)
+    $routes->group('certificates/issuances', ['filter' => 'permission:certificate.issue'], static function ($routes) {
+        $routes->get('/', 'CertificateIssuanceController::index');
+        $routes->get('create', 'CertificateIssuanceController::create');
+        $routes->post('store', 'CertificateIssuanceController::store');
+        $routes->post('bulk-csv', 'CertificateIssuanceController::bulkCsv');
+        $routes->get('(:segment)', 'CertificateIssuanceController::show/$1');
+        $routes->post('(:segment)/revoke', 'CertificateIssuanceController::revoke/$1', ['filter' => 'permission:certificate.revoke']);
+    });
+
+    // Recipient: view own certificates
+    $routes->get('my-certificates', 'CertificateIssuanceController::myCertificates', ['filter' => 'permission:certificate.access']);
+
+    // Render certificate (auth required)
+    $routes->get('certificates/render/(:segment)', 'CertificatePublicController::render/$1');
 
     // Switch Active Group
     $routes->post('switch-group', 'GroupSwitchController::switch');

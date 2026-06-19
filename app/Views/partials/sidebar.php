@@ -150,6 +150,27 @@ function isDropdownActive(array $paths): string {
       <?php endif; ?>
       <?php endif; ?>
 
+      <!-- Sertifikat Module -->
+      <?php if (activeGroupCan('certificate.access')): ?>
+      <li class="menu-header">Sertifikat</li>
+
+      <?php if (activeGroupCan('certificate.template.manage')): ?>
+      <li class="<?= isMenuActive('certificates/templates') ?>">
+        <a class="nav-link" href="<?= base_url('certificates/templates') ?>"><i class="fas fa-paint-brush"></i> <span>Kelola Template</span></a>
+      </li>
+      <?php endif; ?>
+
+      <?php if (activeGroupCan('certificate.issue')): ?>
+      <li class="<?= isMenuActive('certificates/issuances') ?>">
+        <a class="nav-link" href="<?= base_url('certificates/issuances') ?>"><i class="fas fa-certificate"></i> <span>Daftar Sertifikat</span></a>
+      </li>
+      <?php endif; ?>
+
+      <li class="<?= isMenuActive('my-certificates') ?>">
+        <a class="nav-link" href="<?= base_url('my-certificates') ?>"><i class="fas fa-file-certificate"></i> <span>Sertifikat Saya</span></a>
+      </li>
+      <?php endif; ?>
+
       <!-- Admin Menu (hanya untuk active group yang punya akses admin) -->
       <?php if (activeGroupCan('admin.access')): ?>
       <li class="menu-header">Administrasi</li>

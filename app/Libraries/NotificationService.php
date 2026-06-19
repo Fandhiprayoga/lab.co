@@ -220,6 +220,14 @@ class NotificationService
             'icon'    => 'fas fa-user-graduate',
             'color'   => 'success',
         ],
+
+        // ---- Sertifikat ----
+        'certificate.issued' => [
+            'title'   => 'Sertifikat Diterima',
+            'message' => 'Anda menerima sertifikat "{template_name}". Klik untuk lihat.',
+            'icon'    => 'fas fa-certificate',
+            'color'   => 'success',
+        ],
     ];
 
     protected NotificationModel $model;

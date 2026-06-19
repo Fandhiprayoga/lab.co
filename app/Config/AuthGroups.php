@@ -149,6 +149,12 @@ class AuthGroups extends ShieldAuthGroups
         'oprek.manage'    => 'Dapat mengelola oprek (campaign, komponen, penilai, verifikasi akhir)',
         'oprek.scoring'   => 'Dapat memberikan penilaian seleksi oprek',
         'oprek.apply'     => 'Dapat mendaftar oprek sebagai kandidat asisten lab',
+
+        // Certificate module
+        'certificate.access'          => 'Akses modul sertifikat',
+        'certificate.template.manage' => 'Kelola template sertifikat',
+        'certificate.issue'           => 'Terbitkan sertifikat',
+        'certificate.revoke'          => 'Cabut sertifikat yang diterbitkan',
     ];
 
     /**
@@ -168,6 +174,7 @@ class AuthGroups extends ShieldAuthGroups
             'bhp.*',
             'clearance.*',
             'oprek.*',
+            'certificate.*',
             'academic_years.manage',
             'laboran.manage',
             'asisten.manage',
@@ -216,6 +223,10 @@ class AuthGroups extends ShieldAuthGroups
             'clearance.letter.download',
             'oprek.manage',
             'oprek.scoring',
+            'certificate.access',
+            'certificate.template.manage',
+            'certificate.issue',
+            'certificate.revoke',
         ],
         'asisten' => [
             'admin.access',
@@ -229,6 +240,7 @@ class AuthGroups extends ShieldAuthGroups
             'oprek.scoring',
             'visits.list',
             'visits.manage',
+            'certificate.access',
         ],
         'kepala_lab' => [
             'admin.access',
@@ -255,6 +267,10 @@ class AuthGroups extends ShieldAuthGroups
             'clearance.request.track',
             'clearance.request.manage-all',
             'clearance.letter.download',
+            'certificate.access',
+            'certificate.template.manage',
+            'certificate.issue',
+            'certificate.revoke',
         ],
         'dosen' => [
             'dashboard.access',
@@ -281,12 +297,14 @@ class AuthGroups extends ShieldAuthGroups
             'clearance.request.cancel',
             'oprek.apply',
             'clearance.letter.download',
+            'certificate.access',
         ],
         'alumni' => [
             'dashboard.access',
             'clearance.access',
             'clearance.request.track',
             'clearance.letter.download',
+            'certificate.access',
         ],
     ];
 }

@@ -126,6 +126,34 @@ class MenuRegistry
                 'group'      => null,
             ],
 
+            // Open Rekrutmen (Oprek)
+            // (already covered above)
+
+            // -------------------------------------------------------
+            // Sertifikat
+            // -------------------------------------------------------
+            [
+                'label'      => 'Kelola Template Sertifikat',
+                'url'        => 'certificates/templates',
+                'icon'       => 'fas fa-paint-brush',
+                'permission' => 'certificate.template.manage',
+                'group'      => null,
+            ],
+            [
+                'label'      => 'Daftar Sertifikat',
+                'url'        => 'certificates/issuances',
+                'icon'       => 'fas fa-certificate',
+                'permission' => 'certificate.issue',
+                'group'      => null,
+            ],
+            [
+                'label'      => 'Sertifikat Saya',
+                'url'        => 'my-certificates',
+                'icon'       => 'fas fa-file-certificate',
+                'permission' => 'certificate.access',
+                'group'      => null,
+            ],
+
             // -------------------------------------------------------
             // Administrasi
             // -------------------------------------------------------
