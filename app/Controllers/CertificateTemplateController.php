@@ -67,7 +67,8 @@ class CertificateTemplateController extends BaseController
     public function create(): string
     {
         return $this->renderView('certificates/templates/create', [
-            'title' => 'Buat Template Sertifikat',
+            'page_title' => 'Buat Template Sertifikat',
+            'title' => 'Form Template Sertifikat',
         ]);
     }
 
@@ -99,7 +100,8 @@ class CertificateTemplateController extends BaseController
         }
 
         return $this->renderView('certificates/templates/edit', [
-            'title'    => 'Edit Template Sertifikat',
+            'page_title' => 'Edit Template Sertifikat',
+            'title'    => 'Form Template Sertifikat',
             'template' => $template,
         ]);
     }
@@ -165,6 +167,7 @@ class CertificateTemplateController extends BaseController
         $components = $this->componentModel->getByTemplate($template->id);
 
         return $this->renderView('certificates/templates/components', [
+            'page_title' => 'Kelola Komponen Template Sertifikat',
             'title'      => 'Komponen: ' . $template->name,
             'template'   => $template,
             'components' => $components,

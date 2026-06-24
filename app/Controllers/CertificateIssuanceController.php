@@ -43,6 +43,7 @@ class CertificateIssuanceController extends BaseController
         $templates = $this->templateModel->getActive();
 
         return $this->renderView('certificates/issuances/index', [
+            'page_title' => 'Daftar Sertifikat',
             'title'      => 'Daftar Sertifikat',
             'issuances'  => $issuances,
             'templates'  => $templates,
@@ -73,7 +74,8 @@ class CertificateIssuanceController extends BaseController
             ->get()->getResultObject();
 
         return $this->renderView('certificates/issuances/create', [
-            'title'     => 'Terbitkan Sertifikat',
+            'page_title' => 'Terbitkan Sertifikat',
+            'title'     => 'Form Terbitkan Sertifikat',
             'templates' => $templates,
             'users'     => $users,
         ]);
@@ -206,6 +208,7 @@ class CertificateIssuanceController extends BaseController
         $template = $this->templateModel->find($issuance->template_id);
 
         return $this->renderView('certificates/issuances/show', [
+            'page_title' => 'Detail Sertifikat',
             'title'    => 'Detail Sertifikat',
             'issuance' => $issuance,
             'template' => $template,
@@ -247,6 +250,7 @@ class CertificateIssuanceController extends BaseController
         $certificates = $this->issuanceModel->getByRecipient($userId);
 
         return $this->renderView('certificates/my_certificates', [
+            'page_title'   => 'Sertifikat Saya',
             'title'        => 'Sertifikat Saya',
             'certificates' => $certificates,
         ]);
